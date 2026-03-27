@@ -1,5 +1,0 @@
-__pycache__/
-*.pyc
-rami.db
-server_startup.log
-.env
