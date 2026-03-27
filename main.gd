@@ -30,33 +30,14 @@ func _setup_network_ui():
 	$CanvasLayer.add_child(join_btn)
 
 func _spawn_player(id):
+	if not multiplayer.is_server(): return
 	var player = player_scene.instantiate()
 	player.name = str(id)
 	player.position = Vector2(640, 360) # Central hub spawn point
-	$Players.add_child(player)
-
-	if id == multiplayer.get_unique_id() and id != 1:
-		rpc_id(1, "request_initial_state")
-
-@rpc("any_peer")
-func request_initial_state():
-	if multiplayer.is_server():
-		var caller_id = multiplayer.get_remote_sender_id()
-		for player_node in $Players.get_children():
-			var p_id = str(player_node.name).to_int()
-			if p_id != caller_id:
-				rpc_id(caller_id, "spawn_existing_player", p_id, player_node.position, player_node.get_node("NameLabel").text)
-
-@rpc("authority")
-func spawn_existing_player(id, pos, u_name):
-	if $Players.has_node(str(id)): return
-	var player = player_scene.instantiate()
-	player.name = str(id)
-	player.position = pos
-	$Players.add_child(player)
-	player.get_node("NameLabel").text = u_name
+	$Players.add_child(player, true) # Force readable name for spawner
 
 func _remove_player(id):
+	if not multiplayer.is_server(): return
 	var player_node = $Players.get_node_or_null(str(id))
 	if player_node:
 		player_node.queue_free()

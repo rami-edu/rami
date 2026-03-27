@@ -8,9 +8,9 @@ var emojis = ["💡", "👍", "👏", "👋"]
 func _enter_tree():
 	set_multiplayer_authority(str(name).to_int())
 
+func _ready():
 	if is_multiplayer_authority():
 		$NameLabel.text = UserManager.get_username()
-		rpc("set_username", UserManager.get_username())
 
 func _physics_process(delta):
 	if not is_multiplayer_authority(): return
@@ -18,11 +18,6 @@ func _physics_process(delta):
 	var dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	velocity = dir * speed
 	move_and_slide()
-
-@rpc("any_peer", "call_local")
-func set_username(u_name):
-	if multiplayer.get_remote_sender_id() != str(name).to_int(): return
-	$NameLabel.text = u_name
 
 # Emotes/Pings replacing chat
 func _input(event):
