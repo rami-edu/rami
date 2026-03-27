@@ -1,0 +1,95 @@
+[gd_scene load_steps=5 format=3 uid="uid://b1b1b1b1b1b1b"]
+
+[ext_resource type="Script" path="res://splash_screen.gd" id="1_splsh"]
+[ext_resource type="Script" path="res://loading_animation.gd" id="2_load"]
+
+[sub_resource type="SystemFont" id="SystemFont_r753p"]
+font_names = PackedStringArray("Sans-Serif")
+font_weight = 800
+
+[sub_resource type="LabelSettings" id="LabelSettings_bnnr"]
+font = SubResource("SystemFont_r753p")
+font_size = 96
+font_color = Color(0.9, 0.95, 0.8, 1)
+outline_size = 10
+outline_color = Color(0.2, 0.4, 0.1, 1)
+shadow_size = 10
+shadow_color = Color(0.1, 0.2, 0.05, 0.5)
+shadow_offset = Vector2(5, 5)
+
+[node name="SplashScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_splsh")
+
+[node name="BannerBackground" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.3, 0.6, 0.2, 1)
+
+[node name="TreeSilhouette" type="ColorRect" parent="BannerBackground"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -200.0
+offset_right = 150.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.15, 0.4, 0.1, 0.8)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="LogoText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "PROJECT RAMI"
+label_settings = SubResource("LabelSettings_bnnr")
+horizontal_alignment = 1
+
+[node name="SubtitleText" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "The Wonder Tree"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 32
+
+[node name="LoadingAnimation" type="Node2D" parent="."]
+position = Vector2(640, 500)
+script = ExtResource("2_load")
+
+[node name="LoadingText" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -50.0
+offset_top = -150.0
+offset_right = 50.0
+offset_bottom = -110.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Loading..."
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 0.8)
+theme_override_font_sizes/font_size = 24
