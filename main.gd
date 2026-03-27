@@ -26,6 +26,12 @@ func _setup_network_ui():
 	join_btn.pressed.connect(NetworkManager.join_shard)
 	$CanvasLayer.add_child(join_btn)
 
+	var offline_btn = Button.new()
+	offline_btn.text = "Single Player"
+	offline_btn.position = Vector2(110, 10)
+	offline_btn.pressed.connect(NetworkManager.start_offline)
+	$CanvasLayer.add_child(offline_btn)
+
 func _spawn_player(id):
 	if not multiplayer.is_server(): return
 	var player = player_scene.instantiate()
