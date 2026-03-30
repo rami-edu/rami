@@ -26,6 +26,12 @@ func host_shard():
 	print("Hosted Shard on port ", host_port)
 	player_connected.emit(1) # Host is id 1
 
+func start_offline():
+	var offline_peer = OfflineMultiplayerPeer.new()
+	multiplayer.multiplayer_peer = offline_peer
+	print("Started Offline Mode")
+	player_connected.emit(multiplayer.get_unique_id())
+
 func join_shard():
 	peer = ENetMultiplayerPeer.new()
 	var error = peer.create_client(host_address, host_port)
