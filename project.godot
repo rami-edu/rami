@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 UserManager="*res://user_manager.gd"
 NetworkManager="*res://network_manager.gd"
 MinigameLoader="*res://minigame_loader.gd"
+AuthManager="*res://auth_manager.gd"
 
 [display]
 
