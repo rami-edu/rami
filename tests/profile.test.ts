@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ProfileManager } from '../src/managers/ProfileManager';
 import { UserManager } from '../src/managers/UserManager';
+import {
+  PILLAR_DEFINITIONS,
+  TOPIC_LOGO_DEFINITIONS
+} from '../src/objects/ActivityLogoLibrary';
 
 describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
   let profiles: ProfileManager;
@@ -61,5 +65,18 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(parts).toHaveLength(2);
     expect(UserManager.PREFIXES).toContain(parts[0]);
     expect(UserManager.SUFFIXES).toContain(parts[1]);
+  });
+
+  it('defines a library of 20 distinct topic logos across the 3 main areas (solving, logic, creativity)', () => {
+    const pillars = Object.keys(PILLAR_DEFINITIONS);
+    expect(pillars).toEqual(['solving', 'logic', 'creativity']);
+
+    const topics = Object.values(TOPIC_LOGO_DEFINITIONS);
+    expect(topics).toHaveLength(20);
+
+    for (const pillar of pillars) {
+      const countForPillar = topics.filter((t) => t.pillar === pillar).length;
+      expect(countForPillar).toBeGreaterThanOrEqual(6);
+    }
   });
 });

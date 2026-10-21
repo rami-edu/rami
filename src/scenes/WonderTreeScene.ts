@@ -8,6 +8,7 @@ import {
   TIER_ACTIVITIES,
   type TreeHollowAnchor
 } from '../objects/DynamicWonderTree';
+import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
 interface PortalInstance {
   anchor: TreeHollowAnchor;
@@ -82,6 +83,9 @@ export class WonderTreeScene extends Phaser.Scene {
     if (hudOverlay) {
       hudOverlay.style.display = 'flex';
     }
+
+    // Pre-register all 3 main area emblems and all 20 high-res topic logos
+    ActivityLogoLibrary.ensureAllLogosRegistered(this);
 
     this.portals = [];
     this.drawStaticForestBackground();
@@ -226,6 +230,18 @@ export class WonderTreeScene extends Phaser.Scene {
       return;
     }
     const theme = this.getPortalTheme(anchor.minigame);
+    const { topic, pillar } = ActivityLogoLibrary.resolveMinigameTopic(
+      anchor.minigame
+    );
+    const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
+      this,
+      topic.id
+    );
+    const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
+      this,
+      pillar.id
+    );
+
     const container = this.add.container(0, 0).setDepth(15);
 
     // Warm inner tree-hole glow that blends with the hand-drawn bark cavity
@@ -255,18 +271,25 @@ export class WonderTreeScene extends Phaser.Scene {
       .circle(0, 0, 52, 0x000000, 0.01)
       .setInteractive({ useHandCursor: true });
 
-    const iconText = this.add
-      .text(0, -2, theme.icon, { fontSize: '24px' })
+    // High-resolution 256x256 vector-rendered topic medallion inside the tree hollow
+    const logoImg = this.add
+      .image(0, -2, topicLogoKey)
+      .setDisplaySize(54, 54)
       .setOrigin(0.5);
 
     // Carved wooden bark plaque beneath the tree hole
     const bannerBg = this.add
-      .rectangle(0, 56, 178, 32, 0x26170c, 0.92)
+      .rectangle(0, 56, 192, 34, 0x26170c, 0.92)
       .setStrokeStyle(2, theme.ringColor)
       .setInteractive({ useHandCursor: true });
 
+    const pillarBadgeImg = this.add
+      .image(-78, 56, pillarLogoKey)
+      .setDisplaySize(24, 24)
+      .setOrigin(0.5);
+
     const titleLabel = this.add
-      .text(0, 50, anchor.minigame, {
+      .text(8, 50, anchor.minigame, {
         fontSize: '12px',
         color: '#fff3b0',
         fontStyle: 'bold'
@@ -274,7 +297,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subLabel = this.add
-      .text(0, 63, `✨ ${theme.subtitle}`, {
+      .text(8, 63, `${pillar.title} • ${topic.title}`, {
         fontSize: '9.5px',
         color: '#d8f3dc'
       })
@@ -302,8 +325,9 @@ export class WonderTreeScene extends Phaser.Scene {
       innerHollowGlow,
       vortexWisps,
       hitZone,
-      iconText,
+      logoImg,
       bannerBg,
+      pillarBadgeImg,
       titleLabel,
       subLabel
     ]);
@@ -345,11 +369,23 @@ export class WonderTreeScene extends Phaser.Scene {
     treeScale: number;
   } {
     const dpr = this.getDpr();
-    const maxFitScale = (width * 0.98) / 960;
-    const treeScale = Math.min(dpr * 1.18, maxFitScale);
+    const maxFitScale = (width * 0.96) / 1320;
+    const treeScale = Math.max(0.45 * dpr, Math.min(dpr * 0.92, maxFitScale));
     const treeBaseX = width / 2;
     const treeBaseY = height - 36 * dpr;
     return { treeBaseX, treeBaseY, treeScale };
+  }
+
+  private getHorizontalWorldBounds(
+    width: number,
+    height: number
+  ): { minWorldX: number; maxWorldX: number } {
+    const { treeBaseX, treeScale } = this.getTreeTransform(width, height);
+    const halfTreeWorldW =
+      ((this.wonderTree?.getTotalLogicalWidth() ?? 1840) * 0.5) * treeScale;
+    const minWorldX = Math.min(0, treeBaseX - halfTreeWorldW);
+    const maxWorldX = Math.max(width, treeBaseX + halfTreeWorldW);
+    return { minWorldX, maxWorldX };
   }
 
   private positionPortalInstance(
@@ -514,10 +550,14 @@ export class WonderTreeScene extends Phaser.Scene {
     if (this.playerContainer) {
       this.playerContainer.setScale(dpr);
       const minY = this.getMinWorldY(width, height);
+      const { minWorldX, maxWorldX } = this.getHorizontalWorldBounds(
+        width,
+        height
+      );
       this.playerContainer.x = Phaser.Math.Clamp(
         this.playerContainer.x,
-        40 * dpr,
-        width - 40 * dpr
+        minWorldX + 40 * dpr,
+        maxWorldX - 40 * dpr
       );
       this.playerContainer.y = Phaser.Math.Clamp(
         this.playerContainer.y,
@@ -597,10 +637,14 @@ export class WonderTreeScene extends Phaser.Scene {
     }
 
     const minWorldY = this.getMinWorldY(width, height);
+    const { minWorldX, maxWorldX } = this.getHorizontalWorldBounds(
+      width,
+      height
+    );
     this.playerContainer.x = Phaser.Math.Clamp(
       this.playerContainer.x,
-      40 * dpr,
-      width - 40 * dpr
+      minWorldX + 40 * dpr,
+      maxWorldX - 40 * dpr
     );
     this.playerContainer.y = Phaser.Math.Clamp(
       this.playerContainer.y,
@@ -608,11 +652,21 @@ export class WonderTreeScene extends Phaser.Scene {
       height - 55 * dpr
     );
 
-    // Smoothly scroll camera vertically to follow the explorer up the growing tree
+    // Smoothly scroll camera horizontally and vertically to view the full sides and crown of the tree
+    const desiredScrollX = Phaser.Math.Clamp(
+      this.playerContainer.x - width * 0.5,
+      minWorldX,
+      Math.max(0, maxWorldX - width)
+    );
     const desiredScrollY = Phaser.Math.Clamp(
       this.playerContainer.y - height * 0.62,
       minWorldY,
       0
+    );
+    this.cameras.main.scrollX = Phaser.Math.Linear(
+      this.cameras.main.scrollX,
+      desiredScrollX,
+      Math.min(1, dt * 6)
     );
     this.cameras.main.scrollY = Phaser.Math.Linear(
       this.cameras.main.scrollY,

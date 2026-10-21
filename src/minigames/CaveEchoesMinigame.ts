@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
+import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
 const CRYSTALS = [
   { idx: 0, name: 'Emerald (1)', shortName: 'Emerald', x: -160, color: 0x52b788 },
@@ -62,8 +63,25 @@ const CaveEchoesMinigame: MinigameModule = {
     const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
     bg.setStrokeStyle(4, 0x52b788);
 
+    const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
+      scene,
+      'memory_echoes'
+    );
+    const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
+      scene,
+      'logic'
+    );
+
+    const headerTopicIcon = scene.add
+      .image(-215, -188, topicLogoKey)
+      .setDisplaySize(52, 52);
+
+    const headerPillarIcon = scene.add
+      .image(215, -188, pillarLogoKey)
+      .setDisplaySize(44, 44);
+
     const title = scene.add
-      .text(0, -190, '🔮 Cave Echoes — Level 1', {
+      .text(0, -190, 'Cave Echoes — Level 1', {
         fontSize: '24px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -117,7 +135,7 @@ const CaveEchoesMinigame: MinigameModule = {
       const displayLevel = levelIndex + 1;
       const pattern = getCurrentPattern();
       const seqNames = pattern.map((idx) => CRYSTALS[idx].shortName).join(' → ');
-      title.setText(`🔮 Cave Echoes — Level ${displayLevel}`);
+      title.setText(`Cave Echoes — Level ${displayLevel}`);
       status.setText(`Repeat the crystal sequence: ${seqNames}`);
       feedback
         .setText(`Progress: ${step} / ${pattern.length}`)
@@ -126,7 +144,14 @@ const CaveEchoesMinigame: MinigameModule = {
 
     updateLevelHeader();
 
-    container.add([bg, title, status, feedback]);
+    container.add([
+      bg,
+      headerTopicIcon,
+      headerPillarIcon,
+      title,
+      status,
+      feedback
+    ]);
 
     for (const c of CRYSTALS) {
       const gem = scene.add

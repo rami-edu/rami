@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
+import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
 interface AcornLevel {
   level: number;
@@ -62,8 +63,25 @@ const AcornScaleMinigame: MinigameModule = {
     const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
     bg.setStrokeStyle(4, 0x52b788);
 
+    const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
+      scene,
+      'balance_equations'
+    );
+    const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
+      scene,
+      'solving'
+    );
+
+    const headerTopicIcon = scene.add
+      .image(-215, -188, topicLogoKey)
+      .setDisplaySize(52, 52);
+
+    const headerPillarIcon = scene.add
+      .image(215, -188, pillarLogoKey)
+      .setDisplaySize(44, 44);
+
     const title = scene.add
-      .text(0, -190, '⚖️ Acorn Scale — Level 1 / 5', {
+      .text(0, -190, 'Acorn Scale — Level 1', {
         fontSize: '26px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -144,7 +162,7 @@ const AcornScaleMinigame: MinigameModule = {
       const displayLevel = levelIndex + 1;
       const targetWeight = currentDef.targetWeight + Math.floor(levelIndex / LEVELS.length) * 2;
 
-      title.setText(`⚖️ Acorn Scale — Level ${displayLevel}`);
+      title.setText(`Acorn Scale — Level ${displayLevel}`);
       subtitle.setText(
         `Match the rock of weight [${targetWeight}] with acorns!`
       );
@@ -204,6 +222,8 @@ const AcornScaleMinigame: MinigameModule = {
 
     container.add([
       bg,
+      headerTopicIcon,
+      headerPillarIcon,
       title,
       subtitle,
       beam,

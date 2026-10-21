@@ -129,6 +129,10 @@ export class DynamicWonderTree {
     return this.tiers.length * this.tierHeight + 420;
   }
 
+  public getTotalLogicalWidth(): number {
+    return 1840;
+  }
+
   /**
    * Automatically grows the tree upwards to match the number of unlocked
    * activities (up to `TIER_ACTIVITIES.length`).
@@ -189,7 +193,7 @@ export class DynamicWonderTree {
 
   private appendTier(tierIndex: number, animate: boolean): TreeHollowAnchor[] {
     const texKey = `camphor_tree_tier_${tierIndex}_${Date.now()}`;
-    const canvasW = 1680;
+    const canvasW = 1840;
     const canvasH = 520;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -271,7 +275,7 @@ export class DynamicWonderTree {
     const crownBaseY = -topTierIdx * this.tierHeight;
 
     const texKey = `camphor_tree_crown_${topTierIdx}_${Date.now()}`;
-    const canvasW = 1680;
+    const canvasW = 1840;
     const canvasH = 600;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 

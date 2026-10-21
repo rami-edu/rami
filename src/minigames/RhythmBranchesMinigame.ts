@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
+import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
 const LEAF_DEFS = [
   { label: '🍃 Do', x: -200, color: 0x52b788 },
@@ -64,8 +65,25 @@ const RhythmBranchesMinigame: MinigameModule = {
     const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
     bg.setStrokeStyle(4, 0x52b788);
 
+    const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
+      scene,
+      'rhythm_melody'
+    );
+    const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
+      scene,
+      'creativity'
+    );
+
+    const headerTopicIcon = scene.add
+      .image(-255, -188, topicLogoKey)
+      .setDisplaySize(52, 52);
+
+    const headerPillarIcon = scene.add
+      .image(255, -188, pillarLogoKey)
+      .setDisplaySize(44, 44);
+
     const title = scene.add
-      .text(0, -190, '🎵 Rhythm in the Branches — Level 1', {
+      .text(0, -190, 'Rhythm in the Branches — Level 1', {
         fontSize: '24px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -118,7 +136,7 @@ const RhythmBranchesMinigame: MinigameModule = {
       const displayLevel = levelIndex + 1;
       const pattern = getCurrentPattern();
       const targetNames = pattern.map((idx) => LEAF_DEFS[idx].label).join(' → ');
-      title.setText(`🎵 Rhythm in the Branches — Level ${displayLevel}`);
+      title.setText(`Rhythm in the Branches — Level ${displayLevel}`);
       subtitle.setText(`Play this melody: ${targetNames}`);
       scoreDisplay
         .setText(`Progress: ${stepIndex} / ${pattern.length} notes`)
@@ -127,7 +145,14 @@ const RhythmBranchesMinigame: MinigameModule = {
 
     updateLevelHeader();
 
-    container.add([bg, title, subtitle, scoreDisplay]);
+    container.add([
+      bg,
+      headerTopicIcon,
+      headerPillarIcon,
+      title,
+      subtitle,
+      scoreDisplay
+    ]);
 
     LEAF_DEFS.forEach((leaf, idx) => {
       const circle = scene.add
