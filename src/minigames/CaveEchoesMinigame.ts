@@ -35,7 +35,7 @@ const CaveEchoesMinigame: MinigameModule = {
     };
     scene.scale.on('resize', onResize);
 
-    const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.96);
+    const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
     bg.setStrokeStyle(4, 0x52b788);
 
     const title = scene.add

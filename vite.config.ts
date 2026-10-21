@@ -14,6 +14,7 @@ export default defineConfig({
         'pwa-512x512.png',
         'tree-of-knowledge.jpg',
         'forest-background.jpg',
+        'minigame-background.jpg',
         'world.json'
       ],
       workbox: {

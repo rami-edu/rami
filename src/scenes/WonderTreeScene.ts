@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { userManager } from '../managers/UserManager';
 import { profileManager } from '../managers/ProfileManager';
 import { minigameLoader } from '../managers/MinigameLoader';
+import { MinigameActivityScene } from './MinigameActivityScene';
 
 interface WorldNode {
   id: string;
@@ -68,6 +69,9 @@ export class WonderTreeScene extends Phaser.Scene {
     if (!this.textures.exists('forestBackground')) {
       this.load.image('forestBackground', './forest-background.jpg');
     }
+    if (!this.textures.exists('minigameBackground')) {
+      this.load.image('minigameBackground', './minigame-background.jpg');
+    }
   }
 
   public create(): void {
@@ -92,7 +96,7 @@ export class WonderTreeScene extends Phaser.Scene {
     this.layoutScene(this.scale.width, this.scale.height);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
-      if (this.scene.isActive()) {
+      if (this.scene.isActive() && this.scene.isVisible()) {
         this.layoutScene(gameSize.width, gameSize.height);
       }
     });
@@ -373,33 +377,135 @@ export class WonderTreeScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Plays an expanding, spinning vortex swirl animation centered on the portal
+   * while pulling the player avatar into the portal.
+   */
+  private playSwirlingPortalTransition(
+    portalX: number,
+    portalY: number
+  ): Promise<Phaser.GameObjects.Container> {
+    return new Promise((resolve) => {
+      const { width, height } = this.scale;
+      const dpr = this.getDpr();
+      const maxDim = Math.hypot(width, height);
+
+      const swirlContainer = this.add
+        .container(portalX, portalY)
+        .setDepth(85);
+
+      // Full-screen dark forest backdrop fade
+      const veil = this.add
+        .circle(0, 0, maxDim, 0x0b160e, 0)
+        .setOrigin(0.5);
+      swirlContainer.add(veil);
+
+      this.tweens.add({
+        targets: veil,
+        fillAlpha: 0.96,
+        duration: 850,
+        ease: 'Sine.easeIn'
+      });
+
+      // Concentric spiral arms & glowing runes rotating and expanding
+      const vortexArms = this.add.graphics();
+      const ringColors = [0x95d5b2, 0x52b788, 0x74c69d, 0xffd166, 0x40916c];
+      for (let arm = 0; arm < 6; arm++) {
+        const baseAngle = (arm / 6) * Math.PI * 2;
+        const color = ringColors[arm % ringColors.length];
+        vortexArms.lineStyle(5 * dpr, color, 0.85);
+        vortexArms.beginPath();
+        for (let step = 0; step <= 45; step++) {
+          const t = step / 45;
+          const r = t * 240 * dpr;
+          const theta = baseAngle + t * Math.PI * 3.5;
+          const sx = Math.cos(theta) * r;
+          const sy = Math.sin(theta) * r;
+          if (step === 0) {
+            vortexArms.moveTo(sx, sy);
+          } else {
+            vortexArms.lineTo(sx, sy);
+          }
+        }
+        vortexArms.strokePath();
+
+        // Glowing orb particles along the spiral
+        const orbDist = (45 + arm * 28) * dpr;
+        const orb = this.add.circle(
+          Math.cos(baseAngle) * orbDist,
+          Math.sin(baseAngle) * orbDist,
+          7 * dpr,
+          0xffd166,
+          0.9
+        );
+        swirlContainer.add(orb);
+      }
+
+      swirlContainer.add(vortexArms);
+      swirlContainer.setScale(0.15);
+
+      // Spin and expand the swirling vortex to engulf the screen
+      this.tweens.add({
+        targets: swirlContainer,
+        rotation: Math.PI * 3.5,
+        scale: (maxDim / (220 * dpr)) * 1.15,
+        duration: 950,
+        ease: 'Cubic.easeIn'
+      });
+
+      // Pull and spin the player into the center of the portal
+      this.tweens.add({
+        targets: this.playerContainer,
+        x: portalX,
+        y: portalY,
+        scale: 0.05,
+        rotation: Math.PI * 4,
+        duration: 850,
+        ease: 'Back.easeIn'
+      });
+
+      this.time.delayedCall(950, () => {
+        resolve(swirlContainer);
+      });
+    });
+  }
+
   private async enterPortal(portal: WorldPortal): Promise<void> {
     this.activeMinigame = true;
     this.targetPos = null;
 
-    const { width, height } = this.scale;
-    const dpr = this.getDpr();
-    const loadingText = this.add
-      .text(width / 2, height / 2, `📦 Loading "${portal.minigame}"...`, {
-        fontSize: `${Math.round(20 * dpr)}px`,
-        color: '#ffffff',
-        backgroundColor: '#1b4332',
-        padding: { x: 16 * dpr, y: 10 * dpr }
-      })
-      .setOrigin(0.5)
-      .setDepth(90);
+    // Run both the swirling portal animation and on-demand module fetch
+    const [swirlOverlay, mod] = await Promise.all([
+      this.playSwirlingPortalTransition(portal.x, portal.y),
+      minigameLoader.loadMinigame(portal.minigame)
+    ]);
 
-    try {
-      const mod = await minigameLoader.loadMinigame(portal.minigame);
-      loadingText.destroy();
-      mod.launch(this, () => {
+    // Clean up swirl and restore player transform before sleeping the hub scene
+    swirlOverlay.destroy();
+    const dpr = this.getDpr();
+    this.playerContainer.setRotation(0).setScale(dpr);
+
+    // Create a brand-new dedicated Phaser.Scene for the portal activity
+    const dynamicSceneKey = `MinigameActivity_${portal.id}_${Date.now()}`;
+
+    const activityScene = new MinigameActivityScene({
+      sceneKey: dynamicSceneKey,
+      module: mod,
+      onExit: () => {
         profileManager.recordMinigameCompletion(portal.minigame);
+
+        // Wake the WonderTreeScene hub and completely destroy the activity scene
+        this.scene.wake('WonderTreeScene');
+        this.scene.remove(dynamicSceneKey);
+
+        this.layoutScene(this.scale.width, this.scale.height);
+        this.cameras.main.fadeIn(350, 11, 22, 14);
         this.activeMinigame = false;
-      });
-    } catch (err) {
-      console.error('Failed to load minigame:', err);
-      loadingText.destroy();
-      this.activeMinigame = false;
-    }
+      }
+    });
+
+    // Sleep the main hub scene so it is completely hidden and inactive
+    this.scene.sleep('WonderTreeScene');
+    this.scene.add(dynamicSceneKey, activityScene, true);
   }
 }

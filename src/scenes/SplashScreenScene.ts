@@ -30,6 +30,7 @@ export class SplashScreenScene extends Phaser.Scene {
   public preload(): void {
     this.load.image('treeOfKnowledge', './tree-of-knowledge.jpg');
     this.load.image('forestBackground', './forest-background.jpg');
+    this.load.image('minigameBackground', './minigame-background.jpg');
   }
 
   public create(): void {
