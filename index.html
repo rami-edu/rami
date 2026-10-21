@@ -181,15 +181,33 @@
 
       <div id="guardian-modal">
         <div class="modal-card">
-          <h2>Guardian Dashboard (COPPA Safe)</h2>
-          <p>Manage local child profiles and inspect progress metrics across Solving, Creativity, and Logic minigames.</p>
-          <div class="form-row">
-            <input id="input-child-name" type="text" placeholder="Child nickname (e.g. Alice)" />
-            <button id="btn-add-child" class="hud-btn">Add Profile</button>
+          <div id="guardian-gate-step">
+            <h2>🔒 Guardian Verification</h2>
+            <p>Please solve this 2-digit arithmetic puzzle to open the Guardian Dashboard:</p>
+            <div style="font-size: 26px; font-weight: 700; color: #ffd166; text-align: center; margin: 16px 0;" id="math-gate-question">
+              -- + -- = ?
+            </div>
+            <div class="form-row">
+              <input id="input-math-answer" type="number" inputmode="numeric" placeholder="Enter answer..." />
+              <button id="btn-verify-math" class="hud-btn">Unlock</button>
+            </div>
+            <div id="math-gate-error" style="color: #ffadad; font-size: 13px; min-height: 18px; margin-top: 4px;"></div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+              <button id="btn-cancel-gate" class="hud-btn" style="background: #1b4332;">Cancel</button>
+            </div>
           </div>
-          <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
-          <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-            <button id="btn-close-guardian" class="hud-btn">Close</button>
+
+          <div id="guardian-dashboard-step" style="display: none;">
+            <h2>Guardian Dashboard (COPPA Safe)</h2>
+            <p>Manage local child profiles and inspect progress metrics across Solving, Creativity, and Logic minigames.</p>
+            <div class="form-row">
+              <input id="input-child-name" type="text" placeholder="Child nickname (e.g. Alice)" />
+              <button id="btn-add-child" class="hud-btn">Add Profile</button>
+            </div>
+            <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+              <button id="btn-close-guardian" class="hud-btn">Close</button>
+            </div>
           </div>
         </div>
       </div>

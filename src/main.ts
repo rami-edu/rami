@@ -8,7 +8,17 @@ function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
   const guardianBtn = document.getElementById('btn-guardian');
   const closeGuardianBtn = document.getElementById('btn-close-guardian');
+  const cancelGateBtn = document.getElementById('btn-cancel-gate');
   const guardianModal = document.getElementById('guardian-modal');
+  const gateStep = document.getElementById('guardian-gate-step');
+  const dashboardStep = document.getElementById('guardian-dashboard-step');
+  const mathQuestionEl = document.getElementById('math-gate-question');
+  const mathAnswerInput = document.getElementById(
+    'input-math-answer'
+  ) as HTMLInputElement | null;
+  const verifyMathBtn = document.getElementById('btn-verify-math');
+  const mathErrorEl = document.getElementById('math-gate-error');
+
   const addChildBtn = document.getElementById('btn-add-child');
   const childNameInput = document.getElementById(
     'input-child-name'
@@ -74,9 +84,56 @@ function setupHudAndGuardianModal(): void {
       });
   };
 
-  guardianBtn?.addEventListener('click', () => {
-    renderProfiles();
+  const openMathGate = () => {
+    const challenge = profileManager.generateGuardianChallenge();
+    if (mathQuestionEl) {
+      mathQuestionEl.textContent = `${challenge.question} = ?`;
+    }
+    if (mathAnswerInput) {
+      mathAnswerInput.value = '';
+    }
+    if (mathErrorEl) {
+      mathErrorEl.textContent = '';
+    }
+    if (gateStep) gateStep.style.display = 'block';
+    if (dashboardStep) dashboardStep.style.display = 'none';
     guardianModal?.classList.add('open');
+    window.setTimeout(() => mathAnswerInput?.focus(), 50);
+  };
+
+  const tryUnlockDashboard = () => {
+    const raw = mathAnswerInput?.value ?? '';
+    if (profileManager.verifyGuardianChallenge(raw)) {
+      if (gateStep) gateStep.style.display = 'none';
+      if (dashboardStep) dashboardStep.style.display = 'block';
+      renderProfiles();
+    } else {
+      const nextChallenge = profileManager.generateGuardianChallenge();
+      if (mathQuestionEl) {
+        mathQuestionEl.textContent = `${nextChallenge.question} = ?`;
+      }
+      if (mathAnswerInput) {
+        mathAnswerInput.value = '';
+        mathAnswerInput.focus();
+      }
+      if (mathErrorEl) {
+        mathErrorEl.textContent = 'Incorrect answer. Try this new puzzle!';
+      }
+    }
+  };
+
+  guardianBtn?.addEventListener('click', openMathGate);
+
+  verifyMathBtn?.addEventListener('click', tryUnlockDashboard);
+
+  mathAnswerInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      tryUnlockDashboard();
+    }
+  });
+
+  cancelGateBtn?.addEventListener('click', () => {
+    guardianModal?.classList.remove('open');
   });
 
   closeGuardianBtn?.addEventListener('click', () => {

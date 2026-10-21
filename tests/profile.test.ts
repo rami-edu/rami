@@ -31,13 +31,19 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(stats2?.completedCount).toBe(2);
   });
 
-  it('supports an optional 4-digit on-device Guardian PIN gate', () => {
-    expect(profiles.hasGuardianPin()).toBe(false);
-    expect(profiles.setGuardianPin('abcd')).toBe(false); // must be 4 digits
-    expect(profiles.setGuardianPin('1234')).toBe(true);
-    expect(profiles.hasGuardianPin()).toBe(true);
-    expect(profiles.verifyGuardianPin('0000')).toBe(false);
-    expect(profiles.verifyGuardianPin('1234')).toBe(true);
+  it('requires solving a 2-digit arithmetic puzzle each time to unlock Guardian Dashboard', () => {
+    const challenge = profiles.generateGuardianChallenge();
+    expect(challenge.a).toBeGreaterThanOrEqual(10);
+    expect(challenge.a).toBeLessThanOrEqual(99);
+    expect(challenge.b).toBeGreaterThanOrEqual(10);
+    expect(challenge.b).toBeLessThanOrEqual(99);
+
+    expect(profiles.verifyGuardianChallenge(challenge.expectedAnswer + 1)).toBe(
+      false
+    );
+    expect(
+      profiles.verifyGuardianChallenge(String(challenge.expectedAnswer))
+    ).toBe(true);
   });
 
   it('generates COPPA-compliant nature/mineral + animal usernames', () => {

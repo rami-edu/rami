@@ -15,9 +15,16 @@ export interface PlayerProfile {
 }
 
 export interface LocalStoreData {
-  guardianPin: string | null;
   activeProfileId: string | null;
   profiles: Record<string, PlayerProfile>;
+}
+
+export interface GuardianMathChallenge {
+  a: number;
+  b: number;
+  operator: '+' | '-';
+  question: string;
+  expectedAnswer: number;
 }
 
 /**
@@ -31,12 +38,12 @@ export class ProfileManager {
   public static readonly AVATARS = ['🦕', '🦝', '🦉', '🦊', '🐻', '🦦'] as const;
 
   private state: LocalStoreData = {
-    guardianPin: null,
     activeProfileId: null,
     profiles: {}
   };
 
   private nextId = 1;
+  private activeChallenge: GuardianMathChallenge | null = null;
 
   constructor() {
     this.load();
@@ -44,11 +51,11 @@ export class ProfileManager {
 
   public resetAll(): void {
     this.state = {
-      guardianPin: null,
       activeProfileId: null,
       profiles: {}
     };
     this.nextId = 1;
+    this.activeChallenge = null;
     this.save();
   }
 
@@ -84,26 +91,42 @@ export class ProfileManager {
     }
   }
 
-  // --- On-Device Guardian PIN Lock (Parental Gate) ---
+  // --- On-Device Guardian Math Gate (2-digit arithmetic required each entry) ---
 
-  public hasGuardianPin(): boolean {
-    return this.state.guardianPin !== null;
+  public generateGuardianChallenge(): GuardianMathChallenge {
+    const isAddition = Math.random() < 0.5;
+    let a = Math.floor(Math.random() * 80) + 12; // 12..91
+    let b = Math.floor(Math.random() * 80) + 12; // 12..91
+
+    if (!isAddition && a < b) {
+      const tmp = a;
+      a = b;
+      b = tmp;
+    }
+
+    const operator: '+' | '-' = isAddition ? '+' : '-';
+    const expectedAnswer = isAddition ? a + b : a - b;
+
+    this.activeChallenge = {
+      a,
+      b,
+      operator,
+      question: `${a} ${operator} ${b}`,
+      expectedAnswer
+    };
+
+    return this.activeChallenge;
   }
 
-  public setGuardianPin(pin: string): boolean {
-    if (!/^\d{4}$/.test(pin)) {
+  public verifyGuardianChallenge(input: string | number): boolean {
+    if (!this.activeChallenge) {
       return false;
     }
-    this.state.guardianPin = pin;
-    this.save();
-    return true;
-  }
-
-  public verifyGuardianPin(pin: string): boolean {
-    if (!this.state.guardianPin) {
-      return true;
+    const parsed = typeof input === 'number' ? input : parseInt(input.trim(), 10);
+    if (Number.isNaN(parsed)) {
+      return false;
     }
-    return this.state.guardianPin === pin;
+    return parsed === this.activeChallenge.expectedAnswer;
   }
 
   // --- Local Child Profiles & Progress ---
