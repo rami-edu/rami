@@ -12,6 +12,7 @@
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>Rami — The Wonder Tree</title>
     <link rel="preload" as="image" href="./tree-of-knowledge.jpg" />
+    <link rel="preload" as="image" href="./rami-logo.png" />
     <style>
       * {
         box-sizing: border-box;
@@ -40,7 +41,7 @@
         width: 100%;
         height: 100%;
       }
-      /* Instant Pre-Engine Loading Screen with Tree of Knowledge & Animal Instructors */
+      /* Instant Pre-Engine Loading Screen with Tree of Knowledge & Centered Rami Logo */
       #initial-loading-screen {
         position: absolute;
         inset: 0;
@@ -48,7 +49,7 @@
         background: #0f1c11 url('./tree-of-knowledge.jpg') center center / cover no-repeat;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
+        justify-content: center;
         align-items: center;
         transition: opacity 0.45s ease;
       }
@@ -56,22 +57,11 @@
         opacity: 0;
         pointer-events: none;
       }
-      .loading-banner {
-        width: 100%;
-        background: rgba(11, 22, 14, 0.85);
-        border-top: 2px solid #52b788;
-        padding: 24px 16px;
-        text-align: center;
-        backdrop-filter: blur(6px);
-      }
-      .loading-banner h1 {
-        font-size: 28px;
-        color: #95d5b2;
-        margin-bottom: 6px;
-      }
-      .loading-banner p {
-        font-size: 16px;
-        color: #d8f3dc;
+      .loading-logo {
+        width: min(72vw, 480px);
+        max-height: 45vh;
+        object-fit: contain;
+        filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.72));
       }
       /* Top HUD Overlay */
       #hud-overlay {
@@ -232,10 +222,7 @@
   <body>
     <div id="app">
       <div id="initial-loading-screen">
-        <div class="loading-banner">
-          <h1>🌳 Project Rami — The Tree of Knowledge</h1>
-          <p>Awakening the Animal Instructors...</p>
-        </div>
+        <img src="./rami-logo.png" alt="" class="loading-logo" />
       </div>
 
       <div id="game-container"></div>

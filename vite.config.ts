@@ -12,6 +12,7 @@ export default defineConfig({
         'apple-touch-icon.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'rami-logo.png',
         'tree-of-knowledge.jpg',
         'forest-background.jpg',
         'minigame-background.jpg',
