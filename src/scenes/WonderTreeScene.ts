@@ -52,7 +52,6 @@ export class WonderTreeScene extends Phaser.Scene {
   private avatarSprite!: Phaser.GameObjects.Image;
   private nameLabel!: Phaser.GameObjects.Text;
   private emojiLabel!: Phaser.GameObjects.Text;
-  private footerHint!: Phaser.GameObjects.Text;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: {
     W: Phaser.Input.Keyboard.Key;
@@ -110,7 +109,6 @@ export class WonderTreeScene extends Phaser.Scene {
     this.createPortals(world.portals);
     this.createPlayer();
     this.setupControls();
-    this.createFooterHint();
     this.layoutScene(this.scale.width, this.scale.height);
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
@@ -372,25 +370,6 @@ export class WonderTreeScene extends Phaser.Scene {
     });
   }
 
-  private createFooterHint(): void {
-    const { width, height } = this.scale;
-    this.footerHint = this.add
-      .text(
-        width / 2,
-        height - 24,
-        'Tap any Treehouse Portal or use Arrow Keys / WASD to explore • Keys 1-4: Emotes (💡 👍 👏 👋)',
-        {
-          fontSize: '13px',
-          color: '#d8f3dc',
-          backgroundColor: '#162418cc',
-          padding: { x: 12, y: 6 },
-          align: 'center'
-        }
-      )
-      .setOrigin(0.5)
-      .setDepth(30);
-  }
-
   /**
    * Computes background image placement and maps normalized (0..1) tree coordinates
    * directly onto the rendered Wonder Tree artwork so portals stay anchored to the
@@ -444,14 +423,6 @@ export class WonderTreeScene extends Phaser.Scene {
         75 * dpr,
         height - 65 * dpr
       );
-    }
-
-    if (this.footerHint) {
-      this.footerHint
-        .setPosition(width / 2, height - 22 * dpr)
-        .setFontSize(13 * dpr)
-        .setPadding(12 * dpr, 6 * dpr, 12 * dpr, 6 * dpr)
-        .setWordWrapWidth(width - 24 * dpr);
     }
   }
 
