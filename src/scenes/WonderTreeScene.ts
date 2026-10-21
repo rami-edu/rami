@@ -318,10 +318,10 @@ export class WonderTreeScene extends Phaser.Scene {
     treeScale: number;
   } {
     const dpr = this.getDpr();
-    const maxFitScale = (width * 0.96) / 760;
-    const treeScale = Math.min(dpr * 1.05, maxFitScale);
+    const maxFitScale = (width * 0.98) / 960;
+    const treeScale = Math.min(dpr * 1.18, maxFitScale);
     const treeBaseX = width / 2;
-    const treeBaseY = height - 42 * dpr;
+    const treeBaseY = height - 36 * dpr;
     return { treeBaseX, treeBaseY, treeScale };
   }
 
