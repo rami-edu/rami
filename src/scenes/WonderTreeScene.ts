@@ -50,7 +50,7 @@ export class WonderTreeScene extends Phaser.Scene {
   private portals: PortalInstance[] = [];
   private fireflies: Firefly[] = [];
   private activeMinigame = false;
-  private cooldownPortalId: string | null = null;
+  private pendingClickedPortal: PortalInstance | null = null;
   private readonly baseSpeed = 250;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
 
@@ -229,7 +229,7 @@ export class WonderTreeScene extends Phaser.Scene {
     }
 
     const hitZone = this.add
-      .circle(0, 0, 36, 0x000000, 0.01)
+      .circle(0, 0, 52, 0x000000, 0.01)
       .setInteractive({ useHandCursor: true });
 
     const iconText = this.add
@@ -239,7 +239,8 @@ export class WonderTreeScene extends Phaser.Scene {
     // Carved wooden bark plaque beneath the tree hole
     const bannerBg = this.add
       .rectangle(0, 56, 178, 32, 0x26170c, 0.92)
-      .setStrokeStyle(2, theme.ringColor);
+      .setStrokeStyle(2, theme.ringColor)
+      .setInteractive({ useHandCursor: true });
 
     const titleLabel = this.add
       .text(0, 50, anchor.minigame, {
@@ -292,15 +293,19 @@ export class WonderTreeScene extends Phaser.Scene {
       hitZone
     };
 
-    hitZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    const onPortalClick = (pointer: Phaser.Input.Pointer) => {
       pointer.event.stopPropagation();
       if (!this.activeMinigame) {
+        this.pendingClickedPortal = instance;
         this.targetPos = new Phaser.Math.Vector2(
           instance.worldX,
           instance.worldY
         );
       }
-    });
+    };
+
+    hitZone.on('pointerdown', onPortalClick);
+    bannerBg.on('pointerdown', onPortalClick);
 
     this.portals.push(instance);
     if (this.scale.width > 0) {
@@ -412,6 +417,7 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.activeMinigame) return;
+      this.pendingClickedPortal = null;
       this.targetPos = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
     });
   }
@@ -516,6 +522,7 @@ export class WonderTreeScene extends Phaser.Scene {
 
     if (vx !== 0 || vy !== 0) {
       this.targetPos = null;
+      this.pendingClickedPortal = null;
       const len = Math.hypot(vx, vy);
       this.playerContainer.x += (vx / len) * speed * dt;
       this.playerContainer.y += (vy / len) * speed * dt;
@@ -559,26 +566,20 @@ export class WonderTreeScene extends Phaser.Scene {
       Math.min(1, dt * 6)
     );
 
-    let insideAnyPortal = false;
-    for (const p of this.portals) {
+    // Only enter a portal if the user explicitly clicked on that portal
+    if (this.pendingClickedPortal) {
+      const targetPortal = this.pendingClickedPortal;
       const dist = Phaser.Math.Distance.Between(
         this.playerContainer.x,
         this.playerContainer.y,
-        p.worldX,
-        p.worldY
+        targetPortal.worldX,
+        targetPortal.worldY
       );
       if (dist < 42 * dpr) {
-        insideAnyPortal = true;
-        if (this.cooldownPortalId !== p.anchor.id) {
-          this.cooldownPortalId = p.anchor.id;
-          this.enterPortal(p);
-        }
-        break;
+        this.pendingClickedPortal = null;
+        this.targetPos = null;
+        this.enterPortal(targetPortal);
       }
-    }
-
-    if (!insideAnyPortal) {
-      this.cooldownPortalId = null;
     }
   }
 
