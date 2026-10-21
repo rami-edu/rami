@@ -113,9 +113,12 @@ export class MinigameActivityScene extends Phaser.Scene {
 
     const btnLabel = this.add
       .text(14, 0, 'Return to Wonder Tree', {
+        fontFamily:
+          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fontSize: '18px',
-        color: '#fff3b0',
-        fontStyle: 'bold'
+        color: '#d8f3dc',
+        fontStyle: '600',
+        resolution: 2
       })
       .setOrigin(0.5);
 

@@ -9,6 +9,9 @@ interface AcornLevel {
   hint: string;
 }
 
+const UI_FONT =
+  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
 const LEVELS: AcornLevel[] = [
   { level: 1, targetWeight: 3, hint: 'Warm-up! Add 3 acorns to balance the pebble.' },
   { level: 2, targetWeight: 5, hint: 'Level 2: Match the forest stone of weight 5!' },
@@ -82,6 +85,7 @@ const AcornScaleMinigame: MinigameModule = {
 
     const title = scene.add
       .text(0, -190, 'Acorn Scale — Level 1', {
+        fontFamily: UI_FONT,
         fontSize: '26px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -90,6 +94,7 @@ const AcornScaleMinigame: MinigameModule = {
 
     const subtitle = scene.add
       .text(0, -145, '', {
+        fontFamily: UI_FONT,
         fontSize: '18px',
         color: '#d8f3dc'
       })
@@ -97,6 +102,7 @@ const AcornScaleMinigame: MinigameModule = {
 
     const statusText = scene.add
       .text(0, 20, '', {
+        fontFamily: UI_FONT,
         fontSize: '28px',
         color: '#ffd166',
         fontStyle: 'bold'

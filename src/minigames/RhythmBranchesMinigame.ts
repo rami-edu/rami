@@ -3,6 +3,9 @@ import type { MinigameModule } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
+const UI_FONT =
+  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
 const LEAF_DEFS = [
   { label: '🍃 Do', x: -200, color: 0x52b788 },
   { label: '🌿 Re', x: -100, color: 0x74c69d },
@@ -84,6 +87,7 @@ const RhythmBranchesMinigame: MinigameModule = {
 
     const title = scene.add
       .text(0, -190, 'Rhythm in the Branches — Level 1', {
+        fontFamily: UI_FONT,
         fontSize: '24px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -92,6 +96,7 @@ const RhythmBranchesMinigame: MinigameModule = {
 
     const subtitle = scene.add
       .text(0, -142, '', {
+        fontFamily: UI_FONT,
         fontSize: '17px',
         color: '#d8f3dc',
         align: 'center'
@@ -100,6 +105,7 @@ const RhythmBranchesMinigame: MinigameModule = {
 
     const scoreDisplay = scene.add
       .text(0, 48, 'Tap the first note in the target melody!', {
+        fontFamily: UI_FONT,
         fontSize: '21px',
         color: '#ffd166',
         fontStyle: 'bold'

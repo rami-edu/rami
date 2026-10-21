@@ -10,6 +10,9 @@ import {
 } from '../objects/DynamicWonderTree';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
+const UI_FONT_FAMILY =
+  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
 interface PortalInstance {
   anchor: TreeHollowAnchor;
   worldX: number;
@@ -274,32 +277,37 @@ export class WonderTreeScene extends Phaser.Scene {
     // High-resolution 256x256 vector-rendered topic medallion inside the tree hollow
     const logoImg = this.add
       .image(0, -2, topicLogoKey)
-      .setDisplaySize(54, 54)
+      .setDisplaySize(58, 58)
       .setOrigin(0.5);
 
-    // Carved wooden bark plaque beneath the tree hole
+    // Main-UI-matched badge beneath the tree hole
     const bannerBg = this.add
-      .rectangle(0, 56, 192, 34, 0x26170c, 0.92)
-      .setStrokeStyle(2, theme.ringColor)
+      .rectangle(0, 62, 276, 52, 0x162418, 0.92)
+      .setStrokeStyle(2.5, theme.ringColor)
       .setInteractive({ useHandCursor: true });
 
     const pillarBadgeImg = this.add
-      .image(-78, 56, pillarLogoKey)
-      .setDisplaySize(24, 24)
+      .image(-112, 62, pillarLogoKey)
+      .setDisplaySize(34, 34)
       .setOrigin(0.5);
 
     const titleLabel = this.add
-      .text(8, 50, anchor.minigame, {
-        fontSize: '12px',
-        color: '#fff3b0',
-        fontStyle: 'bold'
+      .text(12, 52, anchor.minigame, {
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: '18px',
+        color: '#d8f3dc',
+        fontStyle: '700',
+        resolution: 2
       })
       .setOrigin(0.5);
 
     const subLabel = this.add
-      .text(8, 63, `${pillar.title} • ${topic.title}`, {
-        fontSize: '9.5px',
-        color: '#d8f3dc'
+      .text(12, 73, `${pillar.title} • ${topic.title}`, {
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: '13px',
+        color: '#95d5b2',
+        fontStyle: '600',
+        resolution: 2
       })
       .setOrigin(0.5);
 
@@ -393,6 +401,7 @@ export class WonderTreeScene extends Phaser.Scene {
     width: number,
     height: number
   ): void {
+    const dpr = this.getDpr();
     const { treeBaseX, treeBaseY, treeScale } = this.getTreeTransform(
       width,
       height
@@ -401,7 +410,9 @@ export class WonderTreeScene extends Phaser.Scene {
     const py = treeBaseY + p.anchor.localY * treeScale;
     p.worldX = px;
     p.worldY = py;
-    p.container.setPosition(px, py).setScale(treeScale);
+    // Keep portal badges & titles comfortably readable at native UI scale
+    const portalUiScale = Math.max(treeScale, dpr * 0.88);
+    p.container.setPosition(px, py).setScale(portalUiScale);
   }
 
   private createPlayer(): void {
@@ -434,11 +445,13 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.nameLabel = this.add
       .text(0, 54, activeProfile?.explorerName ?? userManager.getUsername(), {
-        fontSize: '13px',
-        color: '#fff3b0',
-        fontStyle: 'bold',
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: '14px',
+        color: '#d8f3dc',
+        fontStyle: '600',
         backgroundColor: '#162418dd',
-        padding: { x: 8, y: 3 }
+        padding: { x: 10, y: 4 },
+        resolution: 2
       })
       .setOrigin(0.5);
 

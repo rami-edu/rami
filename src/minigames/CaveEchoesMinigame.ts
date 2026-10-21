@@ -3,6 +3,9 @@ import type { MinigameModule } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
+const UI_FONT =
+  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
 const CRYSTALS = [
   { idx: 0, name: 'Emerald (1)', shortName: 'Emerald', x: -160, color: 0x52b788 },
   { idx: 1, name: 'Ruby (2)', shortName: 'Ruby', x: 0, color: 0xe63946 },
@@ -82,6 +85,7 @@ const CaveEchoesMinigame: MinigameModule = {
 
     const title = scene.add
       .text(0, -190, 'Cave Echoes — Level 1', {
+        fontFamily: UI_FONT,
         fontSize: '24px',
         color: '#95d5b2',
         fontStyle: 'bold'
@@ -90,6 +94,7 @@ const CaveEchoesMinigame: MinigameModule = {
 
     const status = scene.add
       .text(0, -140, '', {
+        fontFamily: UI_FONT,
         fontSize: '17px',
         color: '#d8f3dc',
         align: 'center',
@@ -99,6 +104,7 @@ const CaveEchoesMinigame: MinigameModule = {
 
     const feedback = scene.add
       .text(0, 62, '', {
+        fontFamily: UI_FONT,
         fontSize: '22px',
         color: '#ffd166',
         fontStyle: 'bold'
