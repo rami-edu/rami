@@ -6,6 +6,7 @@ import { profileManager, ProfileManager } from './managers/ProfileManager';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
+  const installBtn = document.getElementById('btn-install-pwa');
   const guardianBtn = document.getElementById('btn-guardian');
   const closeGuardianBtn = document.getElementById('btn-close-guardian');
   const cancelGateBtn = document.getElementById('btn-cancel-gate');
@@ -123,6 +124,38 @@ function setupHudAndGuardianModal(): void {
   };
 
   guardianBtn?.addEventListener('click', openMathGate);
+
+  // PWA Install Prompt Handling
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  }
+  let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e as BeforeInstallPromptEvent;
+    if (installBtn) {
+      installBtn.style.display = 'inline-block';
+    }
+  });
+
+  installBtn?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    await deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted' && installBtn) {
+      installBtn.style.display = 'none';
+    }
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+  });
 
   verifyMathBtn?.addEventListener('click', tryUnlockDashboard);
 
