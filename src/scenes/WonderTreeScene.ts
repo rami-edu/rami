@@ -633,12 +633,74 @@ export class WonderTreeScene extends Phaser.Scene {
         this.scene.remove(dynamicSceneKey);
 
         this.layoutScene(this.scale.width, this.scale.height);
-        this.cameras.main.fadeIn(350, 11, 22, 14);
-        this.activeMinigame = false;
+        this.playReturnPortalArrival(portal.x, portal.y);
       }
     });
 
     this.scene.sleep('WonderTreeScene');
     this.scene.add(dynamicSceneKey, activityScene, true);
+  }
+
+  /**
+   * Plays the reverse (collapsing, counter-clockwise) golden-celestial portal
+   * vortex on the main WonderTreeScene when the player returns from an activity.
+   */
+  private playReturnPortalArrival(portalX: number, portalY: number): void {
+    const { width, height } = this.scale;
+    const dpr = this.getDpr();
+    const maxDim = Math.hypot(width, height);
+
+    const swirlContainer = this.add.container(portalX, portalY).setDepth(85);
+    const vortexArms = this.add.graphics();
+    const returnColors = [0xffd166, 0x48cae4, 0xf4a261, 0x90e0ef, 0xffe66d];
+
+    for (let arm = 0; arm < 6; arm++) {
+      const baseAngle = (arm / 6) * Math.PI * 2;
+      const color = returnColors[arm % returnColors.length];
+      vortexArms.lineStyle(5 * dpr, color, 0.9);
+      vortexArms.beginPath();
+      for (let step = 0; step <= 45; step++) {
+        const t = step / 45;
+        const r = t * 240 * dpr;
+        const theta = baseAngle - t * Math.PI * 3.5;
+        const sx = Math.cos(theta) * r;
+        const sy = Math.sin(theta) * r;
+        if (step === 0) {
+          vortexArms.moveTo(sx, sy);
+        } else {
+          vortexArms.lineTo(sx, sy);
+        }
+      }
+      vortexArms.strokePath();
+    }
+
+    swirlContainer.add(vortexArms);
+    swirlContainer.setScale((maxDim / (220 * dpr)) * 0.9);
+
+    this.playerContainer
+      .setPosition(portalX, portalY)
+      .setScale(0.05)
+      .setRotation(-Math.PI * 3);
+
+    this.tweens.add({
+      targets: swirlContainer,
+      rotation: -Math.PI * 3,
+      scale: 0.05,
+      alpha: 0,
+      duration: 650,
+      ease: 'Cubic.easeOut',
+      onComplete: () => swirlContainer.destroy()
+    });
+
+    this.tweens.add({
+      targets: this.playerContainer,
+      scale: dpr,
+      rotation: 0,
+      duration: 650,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.activeMinigame = false;
+      }
+    });
   }
 }

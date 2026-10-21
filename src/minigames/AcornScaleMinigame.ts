@@ -26,7 +26,7 @@ const AcornScaleMinigame: MinigameModule = {
     backgroundKey: 'bg_acorn_scale',
     backgroundUrl: './minigame-background.jpg'
   },
-  launch(scene: Phaser.Scene, onComplete: () => void) {
+  launch(scene: Phaser.Scene, _onComplete: () => void) {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const container = scene.add
@@ -166,7 +166,7 @@ const AcornScaleMinigame: MinigameModule = {
     updateScale();
 
     const addBtn = scene.add
-      .text(-130, 105, '➕ Add Acorn', {
+      .text(-95, 85, '➕ Add Acorn', {
         fontSize: '20px',
         backgroundColor: '#2d6a4f',
         color: '#ffffff',
@@ -183,7 +183,7 @@ const AcornScaleMinigame: MinigameModule = {
       });
 
     const removeBtn = scene.add
-      .text(20, 105, '➖ Remove', {
+      .text(95, 85, '➖ Remove', {
         fontSize: '20px',
         backgroundColor: '#3a5a40',
         color: '#ffffff',
@@ -199,21 +199,6 @@ const AcornScaleMinigame: MinigameModule = {
         }
       });
 
-    const exitBtn = scene.add
-      .text(175, 105, '🚪 Back to Tree', {
-        fontSize: '20px',
-        backgroundColor: '#1b4332',
-        color: '#d8f3dc',
-        padding: { x: 16, y: 10 }
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        scene.scale.off('resize', onResize);
-        container.destroy();
-        onComplete();
-      });
-
     container.add([
       bg,
       title,
@@ -223,7 +208,6 @@ const AcornScaleMinigame: MinigameModule = {
       statusText,
       addBtn,
       removeBtn,
-      exitBtn,
       toastContainer
     ]);
   }

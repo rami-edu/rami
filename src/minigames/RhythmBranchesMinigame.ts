@@ -28,7 +28,7 @@ const RhythmBranchesMinigame: MinigameModule = {
     backgroundKey: 'bg_rhythm_branches',
     backgroundUrl: './rhythm-background.jpg'
   },
-  launch(scene: Phaser.Scene, onComplete: () => void) {
+  launch(scene: Phaser.Scene, _onComplete: () => void) {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const container = scene.add
@@ -199,22 +199,7 @@ const RhythmBranchesMinigame: MinigameModule = {
       container.add([circle, label]);
     });
 
-    const exitBtn = scene.add
-      .text(0, 140, '🚪 Return to The Wonder Tree', {
-        fontSize: '20px',
-        backgroundColor: '#1b4332',
-        color: '#d8f3dc',
-        padding: { x: 18, y: 10 }
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        scene.scale.off('resize', onResize);
-        container.destroy();
-        onComplete();
-      });
-
-    container.add([exitBtn, toastContainer]);
+    container.add([toastContainer]);
   }
 };
 
