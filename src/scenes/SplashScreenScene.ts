@@ -31,6 +31,12 @@ export class SplashScreenScene extends Phaser.Scene {
     this.load.image('treeOfKnowledge', './tree-of-knowledge.jpg');
     this.load.image('forestBackground', './forest-background.jpg');
     this.load.image('minigameBackground', './minigame-background.jpg');
+    this.load.image('avatar_dino', './avatars/dino.png');
+    this.load.image('avatar_raccoon', './avatars/raccoon.png');
+    this.load.image('avatar_owl', './avatars/owl.png');
+    this.load.image('avatar_fox', './avatars/fox.png');
+    this.load.image('avatar_bear', './avatars/bear.png');
+    this.load.image('avatar_otter', './avatars/otter.png');
   }
 
   public create(): void {

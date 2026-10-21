@@ -20,6 +20,10 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     profiles.setActiveProfile(p2.id);
     expect(profiles.getActiveProfile()?.nickname).toBe('Leo');
     expect(profiles.getActiveProfile()?.explorerName).toBe('Emerald Fox');
+    expect(profiles.getActiveProfile()?.avatarId).toBe('fox');
+
+    profiles.setProfileAvatar('owl');
+    expect(profiles.getActiveProfile()?.avatarId).toBe('owl');
   });
 
   it('tracks minigame completion locally per profile', () => {

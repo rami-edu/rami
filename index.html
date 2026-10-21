@@ -158,10 +158,49 @@
         background: #1b2e1e;
         border: 2px solid #52b788;
         border-radius: 16px;
-        max-width: 480px;
+        max-width: 540px;
+        max-height: 92vh;
+        overflow-y: auto;
         width: 100%;
         padding: 24px;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      }
+      .avatar-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 10px 0 16px 0;
+      }
+      .avatar-card {
+        background: #0f1c11;
+        border: 2px solid #2d6a4f;
+        border-radius: 12px;
+        padding: 8px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      }
+      .avatar-card:hover {
+        transform: translateY(-2px);
+        border-color: #74c69d;
+      }
+      .avatar-card.selected {
+        background: #23422b;
+        border-color: #ffd166;
+        box-shadow: 0 0 12px rgba(255, 209, 102, 0.35);
+      }
+      .avatar-card img {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+      }
+      .avatar-card span {
+        font-size: 12px;
+        font-weight: 600;
+        color: #d8f3dc;
       }
       .modal-card h2 {
         color: #95d5b2;
@@ -203,7 +242,7 @@
 
       <div id="hud-overlay">
         <div class="hud-badge">
-          <span>🌿 Explorer:</span>
+          <img id="hud-avatar-img" src="./avatars/dino.png" alt="Avatar" style="width: 28px; height: 28px; object-fit: contain;" />
           <strong id="hud-username">Loading...</strong>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
@@ -234,9 +273,13 @@
 
           <div id="guardian-dashboard-step" style="display: none;">
             <h2>Guardian Dashboard (COPPA Safe)</h2>
-            <p>Manage local child profiles and inspect progress metrics across Solving, Creativity, and Logic minigames.</p>
+            <p>Manage local child profiles, choose their animal explorer avatar, and inspect progress metrics.</p>
+            <div style="font-size: 13px; font-weight: 600; color: #95d5b2; margin-bottom: 4px;">
+              Choose Animal Avatar for Active Explorer:
+            </div>
+            <div id="avatar-selector-grid" class="avatar-grid"></div>
             <div class="form-row">
-              <input id="input-child-name" type="text" placeholder="Child nickname (e.g. Alice)" />
+              <input id="input-child-name" type="text" placeholder="New child nickname (e.g. Alice)" />
               <button id="btn-add-child" class="hud-btn">Add Profile</button>
             </div>
             <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>

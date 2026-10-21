@@ -15,6 +15,7 @@ export default defineConfig({
         'tree-of-knowledge.jpg',
         'forest-background.jpg',
         'minigame-background.jpg',
+        'avatars/*.png',
         'world.json'
       ],
       workbox: {

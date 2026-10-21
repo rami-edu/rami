@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { userManager } from '../managers/UserManager';
-import { profileManager } from '../managers/ProfileManager';
+import { profileManager, ProfileManager } from '../managers/ProfileManager';
 import { minigameLoader } from '../managers/MinigameLoader';
 import { MinigameActivityScene } from './MinigameActivityScene';
 
@@ -49,7 +49,7 @@ interface Firefly {
 export class WonderTreeScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
   private playerContainer!: Phaser.GameObjects.Container;
-  private avatarIcon!: Phaser.GameObjects.Text;
+  private avatarSprite!: Phaser.GameObjects.Image;
   private nameLabel!: Phaser.GameObjects.Text;
   private emojiLabel!: Phaser.GameObjects.Text;
   private footerHint!: Phaser.GameObjects.Text;
@@ -83,6 +83,11 @@ export class WonderTreeScene extends Phaser.Scene {
     }
     if (!this.textures.exists('minigameBackground')) {
       this.load.image('minigameBackground', './minigame-background.jpg');
+    }
+    for (const av of ProfileManager.ANIMAL_AVATARS) {
+      if (!this.textures.exists(av.textureKey)) {
+        this.load.image(av.textureKey, av.spritePath);
+      }
     }
   }
 
@@ -119,8 +124,9 @@ export class WonderTreeScene extends Phaser.Scene {
       if (this.nameLabel) {
         this.nameLabel.setText(active?.explorerName ?? userManager.getUsername());
       }
-      if (this.avatarIcon && active?.avatarEmoji) {
-        this.avatarIcon.setText(active.avatarEmoji);
+      if (this.avatarSprite && active) {
+        const desc = ProfileManager.getAvatarDescriptor(active.avatarId);
+        this.avatarSprite.setTexture(desc.textureKey);
       }
     }) as EventListener);
   }
@@ -292,22 +298,35 @@ export class WonderTreeScene extends Phaser.Scene {
 
   private createPlayer(): void {
     const activeProfile = profileManager.getActiveProfile();
+    const avatarDesc = ProfileManager.getAvatarDescriptor(
+      activeProfile?.avatarId ?? activeProfile?.avatarEmoji
+    );
     const { width, height } = this.scale;
     this.playerContainer = this.add
       .container(width * 0.5, height * 0.78)
       .setDepth(20);
 
-    const shadow = this.add.ellipse(0, 22, 42, 16, 0x000000, 0.45);
-    const outerGlow = this.add.circle(0, 0, 26, 0xffd166, 0.25);
-    const body = this.add
-      .circle(0, 0, 21, 0x2d6a4f)
-      .setStrokeStyle(3, 0xffd166);
-    this.avatarIcon = this.add
-      .text(0, 0, activeProfile?.avatarEmoji ?? '🦕', { fontSize: '25px' })
-      .setOrigin(0.5);
+    const shadow = this.add.ellipse(0, 38, 62, 20, 0x000000, 0.42);
+    const outerGlow = this.add.circle(0, -4, 42, 0xffd166, 0.16);
+
+    this.avatarSprite = this.add
+      .image(0, -6, avatarDesc.textureKey)
+      .setScale(0.38)
+      .setOrigin(0.5, 0.5);
+
+    // Subtle idle breathing animation on the sprite
+    this.tweens.add({
+      targets: this.avatarSprite,
+      scaleY: 0.4,
+      scaleX: 0.37,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     this.nameLabel = this.add
-      .text(0, 36, activeProfile?.explorerName ?? userManager.getUsername(), {
+      .text(0, 54, activeProfile?.explorerName ?? userManager.getUsername(), {
         fontSize: '13px',
         color: '#fff3b0',
         fontStyle: 'bold',
@@ -317,7 +336,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.emojiLabel = this.add
-      .text(0, -42, '', {
+      .text(0, -64, '', {
         fontSize: '28px'
       })
       .setOrigin(0.5);
@@ -325,8 +344,7 @@ export class WonderTreeScene extends Phaser.Scene {
     this.playerContainer.add([
       shadow,
       outerGlow,
-      body,
-      this.avatarIcon,
+      this.avatarSprite,
       this.nameLabel,
       this.emojiLabel
     ]);
@@ -481,6 +499,8 @@ export class WonderTreeScene extends Phaser.Scene {
       const len = Math.hypot(vx, vy);
       this.playerContainer.x += (vx / len) * speed * dt;
       this.playerContainer.y += (vy / len) * speed * dt;
+      if (vx < -0.05) this.avatarSprite.setFlipX(true);
+      else if (vx > 0.05) this.avatarSprite.setFlipX(false);
     } else if (this.targetPos) {
       const dx = this.targetPos.x - this.playerContainer.x;
       const dy = this.targetPos.y - this.playerContainer.y;
@@ -488,6 +508,8 @@ export class WonderTreeScene extends Phaser.Scene {
       if (dist > 6 * dpr) {
         this.playerContainer.x += (dx / dist) * speed * dt;
         this.playerContainer.y += (dy / dist) * speed * dt;
+        if (dx < -2) this.avatarSprite.setFlipX(true);
+        else if (dx > 2) this.avatarSprite.setFlipX(false);
       } else {
         this.targetPos = null;
       }

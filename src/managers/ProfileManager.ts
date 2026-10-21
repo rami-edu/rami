@@ -5,11 +5,22 @@ export interface MinigameStats {
   lastPlayedAt: number;
 }
 
+export type AnimalAvatarId = 'dino' | 'raccoon' | 'owl' | 'fox' | 'bear' | 'otter';
+
+export interface AnimalAvatarDescriptor {
+  id: AnimalAvatarId;
+  name: string;
+  emoji: string;
+  spritePath: string;
+  textureKey: string;
+}
+
 export interface PlayerProfile {
   id: string;
   nickname: string;
   explorerName: string; // COPPA-safe auto-generated name (e.g. "Quartz Dinosaur")
   avatarEmoji: string;
+  avatarId: AnimalAvatarId;
   createdAt: number;
   progress: Record<string, MinigameStats>;
 }
@@ -36,6 +47,60 @@ export class ProfileManager {
   private static readonly STORAGE_KEY = 'rami_local_state_v1';
 
   public static readonly AVATARS = ['🦕', '🦝', '🦉', '🦊', '🐻', '🦦'] as const;
+
+  public static readonly ANIMAL_AVATARS: readonly AnimalAvatarDescriptor[] = [
+    {
+      id: 'dino',
+      name: 'Dinosaur',
+      emoji: '🦕',
+      spritePath: './avatars/dino.png',
+      textureKey: 'avatar_dino'
+    },
+    {
+      id: 'raccoon',
+      name: 'Raccoon',
+      emoji: '🦝',
+      spritePath: './avatars/raccoon.png',
+      textureKey: 'avatar_raccoon'
+    },
+    {
+      id: 'owl',
+      name: 'Owl',
+      emoji: '🦉',
+      spritePath: './avatars/owl.png',
+      textureKey: 'avatar_owl'
+    },
+    {
+      id: 'fox',
+      name: 'Fox',
+      emoji: '🦊',
+      spritePath: './avatars/fox.png',
+      textureKey: 'avatar_fox'
+    },
+    {
+      id: 'bear',
+      name: 'Bear',
+      emoji: '🐻',
+      spritePath: './avatars/bear.png',
+      textureKey: 'avatar_bear'
+    },
+    {
+      id: 'otter',
+      name: 'Otter',
+      emoji: '🦦',
+      spritePath: './avatars/otter.png',
+      textureKey: 'avatar_otter'
+    }
+  ] as const;
+
+  public static getAvatarDescriptor(
+    idOrEmoji?: string
+  ): AnimalAvatarDescriptor {
+    const found = ProfileManager.ANIMAL_AVATARS.find(
+      (a) => a.id === idOrEmoji || a.emoji === idOrEmoji
+    );
+    return found ?? ProfileManager.ANIMAL_AVATARS[0];
+  }
 
   private state: LocalStoreData = {
     activeProfileId: null,
@@ -80,6 +145,14 @@ export class ProfileManager {
           const parsed = JSON.parse(raw);
           if (parsed.state) {
             this.state = parsed.state;
+            // Ensure backwards compatibility for profiles saved before avatarId
+            for (const p of Object.values(this.state.profiles)) {
+              if (!p.avatarId) {
+                const desc = ProfileManager.getAvatarDescriptor(p.avatarEmoji);
+                p.avatarId = desc.id;
+                p.avatarEmoji = desc.emoji;
+              }
+            }
           }
           if (typeof parsed.nextId === 'number') {
             this.nextId = parsed.nextId;
@@ -91,7 +164,7 @@ export class ProfileManager {
     }
   }
 
-  // --- On-Device Guardian Math Gate (2-digit arithmetic required each entry) ---
+  // --- On-Device Guardian Math Gate (2-digit arithmetic < 100 required each entry) ---
 
   public generateGuardianChallenge(): GuardianMathChallenge {
     const isAddition = Math.random() < 0.5;
@@ -138,18 +211,20 @@ export class ProfileManager {
 
   public createProfile(
     nickname: string,
-    avatarEmoji: string = ProfileManager.AVATARS[0],
+    avatarIdOrEmoji: string = 'dino',
     customExplorerName?: string
   ): PlayerProfile {
     const id = `profile_${this.nextId++}`;
     const userGen = new UserManager();
     const explorerName = customExplorerName ?? userGen.generateUsername();
+    const desc = ProfileManager.getAvatarDescriptor(avatarIdOrEmoji);
 
     const profile: PlayerProfile = {
       id,
       nickname: nickname.trim() || 'Explorer',
       explorerName,
-      avatarEmoji,
+      avatarEmoji: desc.emoji,
+      avatarId: desc.id,
       createdAt: Date.now(),
       progress: {}
     };
@@ -158,6 +233,22 @@ export class ProfileManager {
     if (!this.state.activeProfileId) {
       this.state.activeProfileId = id;
     }
+    this.save();
+    return profile;
+  }
+
+  public setProfileAvatar(
+    avatarId: AnimalAvatarId,
+    profileId?: string
+  ): PlayerProfile | null {
+    const targetId = profileId ?? this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return null;
+    }
+    const desc = ProfileManager.getAvatarDescriptor(avatarId);
+    const profile = this.state.profiles[targetId];
+    profile.avatarId = desc.id;
+    profile.avatarEmoji = desc.emoji;
     this.save();
     return profile;
   }

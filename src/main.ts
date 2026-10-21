@@ -2,10 +2,18 @@ import Phaser from 'phaser';
 import { SplashScreenScene } from './scenes/SplashScreenScene';
 import { WonderTreeScene } from './scenes/WonderTreeScene';
 import { userManager } from './managers/UserManager';
-import { profileManager, ProfileManager } from './managers/ProfileManager';
+import {
+  profileManager,
+  ProfileManager,
+  type AnimalAvatarId
+} from './managers/ProfileManager';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
+  const hudAvatarImg = document.getElementById(
+    'hud-avatar-img'
+  ) as HTMLImageElement | null;
+  const avatarGridEl = document.getElementById('avatar-selector-grid');
   const installBtn = document.getElementById('btn-install-pwa');
   const guardianBtn = document.getElementById('btn-guardian');
   const closeGuardianBtn = document.getElementById('btn-close-guardian');
@@ -35,19 +43,58 @@ function setupHudAndGuardianModal(): void {
     );
   }
 
+  let selectedAvatarId: AnimalAvatarId =
+    profileManager.getActiveProfile()?.avatarId ?? 'dino';
+
   const syncHud = () => {
     const active = profileManager.getActiveProfile();
-    if (usernameEl) {
-      usernameEl.textContent = active
-        ? `${active.avatarEmoji} ${active.explorerName} (${active.nickname})`
-        : userManager.getUsername();
+    if (active) {
+      selectedAvatarId = active.avatarId;
+      const desc = ProfileManager.getAvatarDescriptor(active.avatarId);
+      if (hudAvatarImg) {
+        hudAvatarImg.src = desc.spritePath;
+      }
+      if (usernameEl) {
+        usernameEl.textContent = `${active.explorerName} (${active.nickname})`;
+      }
+    } else if (usernameEl) {
+      usernameEl.textContent = userManager.getUsername();
     }
     window.dispatchEvent(new CustomEvent('rami:profile-changed'));
   };
 
   syncHud();
 
+  const renderAvatarSelector = () => {
+    if (!avatarGridEl) return;
+    const active = profileManager.getActiveProfile();
+    const currentId = active?.avatarId ?? selectedAvatarId;
+
+    avatarGridEl.innerHTML = ProfileManager.ANIMAL_AVATARS.map((av) => {
+      const isSelected = av.id === currentId;
+      return `<div class="avatar-card ${isSelected ? 'selected' : ''}" data-avatar-id="${av.id}">
+        <img src="${av.spritePath}" alt="${av.name}" />
+        <span>${av.name}</span>
+      </div>`;
+    }).join('');
+
+    avatarGridEl
+      .querySelectorAll<HTMLElement>('[data-avatar-id]')
+      .forEach((card) => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-avatar-id') as AnimalAvatarId | null;
+          if (!id) return;
+          selectedAvatarId = id;
+          profileManager.setProfileAvatar(id);
+          syncHud();
+          renderAvatarSelector();
+          renderProfiles();
+        });
+      });
+  };
+
   const renderProfiles = () => {
+    renderAvatarSelector();
     if (!profilesList) return;
     const profiles = profileManager.getAllProfiles();
     const active = profileManager.getActiveProfile();
@@ -55,14 +102,18 @@ function setupHudAndGuardianModal(): void {
     profilesList.innerHTML = profiles
       .map((p) => {
         const isCurrent = active?.id === p.id;
+        const desc = ProfileManager.getAvatarDescriptor(p.avatarId);
         const completedTotal = Object.values(p.progress).reduce(
           (acc, item) => acc + item.completedCount,
           0
         );
         return `<div style="padding: 8px 0; border-bottom: 1px solid #2d6a4f; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong>${p.avatarEmoji} ${p.nickname}</strong> — <span>${p.explorerName}</span>
-            <div style="font-size: 12px; color: #95d5b2;">Minigames played: ${completedTotal}</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="${desc.spritePath}" alt="${desc.name}" style="width: 38px; height: 38px; object-fit: contain;" />
+            <div>
+              <strong>${p.nickname}</strong> — <span>${p.explorerName}</span>
+              <div style="font-size: 12px; color: #95d5b2;">Avatar: ${desc.name} • Minigames played: ${completedTotal}</div>
+            </div>
           </div>
           <button data-select-profile="${p.id}" class="hud-btn" style="padding: 4px 12px; font-size: 12px;">
             ${isCurrent ? '✓ Active' : 'Switch'}
@@ -217,12 +268,7 @@ function setupHudAndGuardianModal(): void {
   addChildBtn?.addEventListener('click', () => {
     const name = childNameInput?.value.trim();
     if (!name) return;
-    const avatarIdx =
-      profileManager.getAllProfiles().length % ProfileManager.AVATARS.length;
-    const created = profileManager.createProfile(
-      name,
-      ProfileManager.AVATARS[avatarIdx]
-    );
+    const created = profileManager.createProfile(name, selectedAvatarId);
     profileManager.setActiveProfile(created.id);
     if (childNameInput) childNameInput.value = '';
     syncHud();
