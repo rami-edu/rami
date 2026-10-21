@@ -15,6 +15,8 @@ export default defineConfig({
         'tree-of-knowledge.jpg',
         'forest-background.jpg',
         'minigame-background.jpg',
+        'rhythm-background.jpg',
+        'cave-echoes-background.jpg',
         'avatars/*.png',
         'world.json'
       ],

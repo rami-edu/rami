@@ -7,7 +7,9 @@ const RhythmBranchesMinigame: MinigameModule = {
     title: 'Rhythm in the Branches',
     pillar: 'Creative (Music)',
     description:
-      'Tap glowing leaves in sequence to compose a forest melody!'
+      'Tap glowing leaves in sequence to compose a forest melody!',
+    backgroundKey: 'bg_rhythm_branches',
+    backgroundUrl: './rhythm-background.jpg'
   },
   launch(scene: Phaser.Scene, onComplete: () => void) {
     const { width, height } = scene.scale;

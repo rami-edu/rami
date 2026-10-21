@@ -3,6 +3,8 @@ export interface MinigameDescriptor {
   title: string;
   pillar: string;
   description: string;
+  backgroundKey: string;
+  backgroundUrl: string;
 }
 
 export interface MinigameModule {

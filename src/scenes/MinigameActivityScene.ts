@@ -10,8 +10,8 @@ export interface MinigameActivityConfig {
 /**
  * Dedicated full-screen Phaser.Scene created dynamically when the player enters
  * a portal and completely destroyed (scene.remove) when the player leaves.
- * Features its own interior tree-hollow classroom background so the main hub
- * is completely hidden.
+ * Loads and renders the activity's unique high-quality background illustration
+ * so the main hub is completely hidden.
  */
 export class MinigameActivityScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
@@ -26,17 +26,19 @@ export class MinigameActivityScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    if (!this.textures.exists('minigameBackground')) {
-      this.load.image('minigameBackground', './minigame-background.jpg');
+    const { backgroundKey, backgroundUrl } = this.activityModule.descriptor;
+    if (!this.textures.exists(backgroundKey)) {
+      this.load.image(backgroundKey, backgroundUrl);
     }
   }
 
   public create(): void {
     const { width, height } = this.scale;
+    const { backgroundKey } = this.activityModule.descriptor;
 
-    // Full-screen interior tree-hollow classroom background
+    // Full-screen activity-specific storybook background
     this.bgImage = this.add
-      .image(width / 2, height / 2, 'minigameBackground')
+      .image(width / 2, height / 2, backgroundKey)
       .setDepth(0);
 
     this.layoutBackground(width, height);

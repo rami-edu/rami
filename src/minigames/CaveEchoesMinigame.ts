@@ -7,7 +7,9 @@ const CaveEchoesMinigame: MinigameModule = {
     title: 'Cave Echoes (The Clockwork Tower)',
     pillar: 'Solving (Memory)',
     description:
-      'Memorize and repeat the glowing sequence on the ancient stalactites!'
+      'Memorize and repeat the glowing sequence on the ancient stalactites!',
+    backgroundKey: 'bg_cave_echoes',
+    backgroundUrl: './cave-echoes-background.jpg'
   },
   launch(scene: Phaser.Scene, onComplete: () => void) {
     const { width, height } = scene.scale;

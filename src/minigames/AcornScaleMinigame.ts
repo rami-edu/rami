@@ -7,7 +7,9 @@ const AcornScaleMinigame: MinigameModule = {
     title: 'Acorn Scale',
     pillar: 'Solving (Math)',
     description:
-      'Visual equations: Place the exact number of acorns on the scale to match the rock weight!'
+      'Visual equations: Place the exact number of acorns on the scale to match the rock weight!',
+    backgroundKey: 'bg_acorn_scale',
+    backgroundUrl: './minigame-background.jpg'
   },
   launch(scene: Phaser.Scene, onComplete: () => void) {
     const targetWeight = Phaser.Math.Between(3, 8);
