@@ -2,19 +2,16 @@ import Phaser from 'phaser';
 
 /**
  * SplashScreenScene — Displays the illustrated "Tree of Knowledge" background
- * with the custom Rami emblem centered on screen and zero text.
+ * with the custom Rami emblem animated in the center of the screen and the
+ * loading progress bar directly below the logo (no text, no loading circle).
  */
 export class SplashScreenScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
   private logoImage!: Phaser.GameObjects.Image;
   private progressTrack!: Phaser.GameObjects.Rectangle;
   private progressFill!: Phaser.GameObjects.Rectangle;
-  private graphics!: Phaser.GameObjects.Graphics;
-  private timePassed = 0;
   private progressRatio = 0;
   private logoPulseScale = 1;
-  private readonly rotationSpeed = 5.0;
-  private readonly dotsCount = 8;
   private readonly splashDuration = 3200;
 
   constructor() {
@@ -50,11 +47,11 @@ export class SplashScreenScene extends Phaser.Scene {
     this.logoImage = this.add.image(width / 2, height / 2, 'ramiLogo');
 
     this.progressTrack = this.add
-      .rectangle(width / 2, height - 48, 280, 12, 0x0f1c11, 0.85)
+      .rectangle(width / 2, height / 2 + 120, 280, 14, 0x0f1c11, 0.88)
       .setStrokeStyle(2, 0x74c69d);
 
     this.progressFill = this.add
-      .rectangle(width / 2 - 138, height - 48, 4, 8, 0x80ed99)
+      .rectangle(width / 2 - 138, height / 2 + 120, 4, 10, 0x80ed99)
       .setOrigin(0, 0.5);
 
     this.tweens.add({
@@ -66,14 +63,12 @@ export class SplashScreenScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this,
-      logoPulseScale: 1.04,
-      duration: 1200,
+      logoPulseScale: 1.05,
+      duration: 1100,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
-
-    this.graphics = this.add.graphics();
 
     this.layoutScene(width, height);
 
@@ -113,13 +108,22 @@ export class SplashScreenScene extends Phaser.Scene {
     this.bgImage.setPosition(width / 2, height / 2).setScale(coverScale);
 
     const baseLogoScale = this.getBaseLogoScale(width, height);
+    const renderedLogoWidth = this.logoImage.width * baseLogoScale;
+    const renderedLogoHeight = this.logoImage.height * baseLogoScale;
+
+    const logoY = height / 2 - 14 * dpr;
     this.logoImage
-      .setPosition(width / 2, height / 2)
+      .setPosition(width / 2, logoY)
       .setScale(baseLogoScale * this.logoPulseScale);
 
-    const barWidth = Math.min(340 * dpr, width - 110 * dpr);
-    const barHeight = 12 * dpr;
-    const barY = height - 44 * dpr;
+    // Place the loading bar directly below the Rami logo
+    const barWidth = Math.min(
+      Math.max(220 * dpr, renderedLogoWidth * 0.72),
+      width - 64 * dpr
+    );
+    const barHeight = 14 * dpr;
+    const barY = logoY + renderedLogoHeight / 2 + 24 * dpr;
+
     this.progressTrack
       .setPosition(width / 2, barY)
       .setSize(barWidth, barHeight)
@@ -133,34 +137,21 @@ export class SplashScreenScene extends Phaser.Scene {
       );
   }
 
-  public update(_time: number, delta: number): void {
+  public update(): void {
     const { width, height } = this.scale;
     const dpr = this.getDpr();
-    const dt = delta / 1000;
-    this.timePassed += dt * this.rotationSpeed;
 
     const baseLogoScale = this.getBaseLogoScale(width, height);
+    const renderedLogoWidth = this.logoImage.width * baseLogoScale;
     this.logoImage.setScale(baseLogoScale * this.logoPulseScale);
 
-    const barWidth = Math.min(340 * dpr, width - 110 * dpr);
+    const barWidth = Math.min(
+      Math.max(220 * dpr, renderedLogoWidth * 0.72),
+      width - 64 * dpr
+    );
     this.progressFill.width = Math.max(
       4 * dpr,
       (barWidth - 4 * dpr) * this.progressRatio
     );
-
-    this.graphics.clear();
-    const centerX = width / 2 + barWidth / 2 + 28 * dpr;
-    const centerY = height - 44 * dpr;
-    const radius = 16 * dpr;
-
-    for (let i = 0; i < this.dotsCount; i++) {
-      const angle = (i / this.dotsCount) * Math.PI * 2 + this.timePassed;
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-      const alpha = 1.0 - i / this.dotsCount;
-
-      this.graphics.fillStyle(0x80ed99, alpha);
-      this.graphics.fillCircle(x, y, 3.5 * dpr);
-    }
   }
 }
