@@ -1,77 +1,62 @@
-# Technical and Design Documentation: Project Rami (Base Version)
+# Technical and Design Specification: Project Rami (Local-First Single-Player TypeScript Edition)
 
-Below is the complete specification for the architecture, mechanics, and security of the Rami educational ecosystem. This document is structured to serve as a baseline guide for automated development using AI agents.
+Below is the complete specification for the architecture, mechanics, and privacy-by-design structure of the Rami educational ecosystem. This document serves as the baseline guide for development and automated generation using AI agents.
 
 ---
 
 ## 1. Project Overview
-**Rami** is a massive multiplayer educational platform aimed at children. The main environment is an isometric 2D world ("The Wonder Tree") where users navigate using predefined avatars. The game relies on an on-demand loading architecture to support thousands of minigames without bloating the app size, while ensuring a strictly safe and supervised environment for minors.
+**Rami** is a **single-player, client-only, local-first** educational platform aimed at children. It runs entirely on the client device (Web browser, Android, or iOS) with **zero backend servers**. The main environment is an isometric 2D world ("The Wonder Tree") where users navigate using predefined avatars and enter portals that load educational minigames on demand.
 
 ---
 
 ## 2. Technology Stack
-* **Game Engine:** Godot (GDScript). Ideal for isometric 2D physics and cross-compilation.
-* **Main Target Platform:** Web and Android (native export via Godot), with an architecture ready for future expansions to iOS.
-* **Networking & Sharding:** Godot Multiplayer API. Will manage server instances (shards) so manageable groups of users can interact in the same virtual space in real-time.
-* **Asset Management:** Godot PCK files / ResourceLoader. Allows individual packaging of minigames, downloading them from a CDN or cloud server only when the user interacts with the corresponding portal.
-* **Environment Generation:** Native Godot scenes (`.tscn`). AI agents will directly generate or modify the coordinates, attributes, and parameters of the tree nodes and portals within the `.tscn` files, leveraging Godot's text-based scene format for easy version control and generation.
+* **Architecture:** 100% Client-Only / Local-First (`localStorage` / on-device storage). No backend server, no accounts server, no remote database.
+* **Language:** TypeScript (strict mode).
+* **Game Engine:** Phaser 3 (`src/scenes/`, `src/minigames/`). Ideal for isometric 2D rendering, touch/keyboard input, and responsive scaling across desktop and mobile.
+* **Bundler & Code Splitting:** Vite (`vite.config.ts`). Compiles each minigame in `src/minigames/` into an independent on-demand chunk.
+* **Target Platforms:**
+  * **Web:** Static build deployed automatically to **GitHub Pages** on every push to `main` via `.github/workflows/deploy.yml`.
+  * **Android & iOS:** Native mobile packaging powered by **Capacitor** (`capacitor.config.ts`).
+* **Environment Generation:** Data-driven `public/world.json` defining tree nodes and portals, paired with clean TypeScript modules.
 
 ---
 
-## 3. Godot Implementation Architecture
-The Godot implementation heavily relies on Autoloads (Singletons) to manage core game states across scenes:
-
-*   **`UserManager` (`user_manager.gd`)**: Handles the auto-generation of COPPA-compliant usernames to maintain a safe environment.
-*   **`NetworkManager` (`network_manager.gd`)**: Uses `ENetMultiplayerPeer` to manage server hosting and client connections, abstracting Godot's Multiplayer API.
-*   **`MinigameLoader` (`minigame_loader.gd`)**: Responsible for downloading minigame `.pck` files via `HTTPRequest`, caching them locally, and mounting them dynamically via `ProjectSettings.load_resource_pack`.
-
-### Headless Server Operations
-The project includes a `launch_server.sh` script. This script launches Godot with the `--headless --server` flags. `main.gd` parses the command line, detects the `--server` flag, and automatically triggers the `NetworkManager` to host a multiplayer shard without loading the graphical user interface.
+## 3. Core Architecture (`src/`)
+* **`UserManager` (`src/managers/UserManager.ts`)**: Handles the auto-generation and local persistence of COPPA-safe explorer names (`<Mineral/Plant> <Animal>`).
+* **`ProfileManager` (`src/managers/ProfileManager.ts`)**: Pure local-first profile and progress store. Manages multiple on-device child profiles, avatars, minigame completion statistics, and an optional 4-digit on-device Guardian PIN gate.
+* **`MinigameLoader` (`src/managers/MinigameLoader.ts`)**: Uses dynamic `import()` to load and cache minigame modules on demand when the player enters a portal.
+* **`SplashScreenScene` (`src/scenes/SplashScreenScene.ts`)**: Renders the animated nature-themed loading ring before entering the hub.
+* **`WonderTreeScene` (`src/scenes/WonderTreeScene.ts`)**: Renders the isometric Wonder Tree hub from `public/world.json`, handles keyboard and touch/pointer navigation, emotes, and portal triggers.
 
 ---
 
-## 4. User Architecture and Security (COPPA Compliant)
+## 4. Privacy & Local-First Profile Architecture (COPPA Safe by Design)
 
-Security and privacy are the core of the user management system. No personal data of the minor will be exposed or requested.
+Because Rami operates without any backend server, no personal data ever leaves the device.
 
-### Guardian Accounts (Parents/Teachers)
-* **Authentication:** Email, password, and 2FA validation.
-* **Dashboard:** Allows creating minor profiles, reviewing progress (Creativity, Solving, and Social metrics), and approving connection requests (e.g., linking the child's account with a teacher's class or with approved siblings/friends).
+### On-Device Guardian Dashboard (Parents/Teachers)
+* **Local Gate:** Optional 4-digit PIN stored locally on-device.
+* **Dashboard:** Allows creating/switching local child profiles and reviewing on-device progress across Solving, Creative, and Logic pillars.
 
-### Minor Accounts (Players)
-* **Name Generation (Auto-Namer):** Usernames are immutable and randomly generated by the system, combining a nature/mineral element with an animal.
-    * *Examples:* Quartz Dinosaur, Basalt Raccoon, Agate Owl.
-* **Strict Avatars:** Photo uploads are strictly prohibited. Users select from a gallery of 2D children's coloring book-style illustrations (e.g., the green dinosaur, the raccoon, the fox).
-* **Safe Communication:** Total absence of voice chat or free-text chat. Interactions in cooperative mode (Watcher Mode) are limited to a system of pings and contextual emojis (💡 to give a hint, 👍 to cheer).
+### Minor Profiles (Players)
+* **Name Generation (Auto-Namer):** Explorer names are randomly generated by combining a nature/mineral element with an animal (*Quartz Dinosaur*, *Basalt Raccoon*, *Agate Owl*).
+* **Strict Avatars:** Predefined 2D icons/illustrations (`🦕`, `🦝`, `🦉`, `🦊`, `🐻`, `🦦`).
 
 ---
 
-## 5. Core Gameplay and Network Loop
+## 5. Initial Minigames Module (Phase 1)
 
-### The Central Hub (The Wonder Tree)
-The world is composed of standard Godot `.tscn` scenes. When the user enters, the server assigns them a *Shard* (a server room with a maximum limit of, for example, 30 simultaneous players) to prevent visual and network saturation.
+These 10 base minigames cover multiple educational pillars and serve as templates for AI to generate future iterations.
 
-### Dynamic Minigame Loading (PCK Files)
-1.  The player moves their avatar towards a portal building (e.g., "The Clockwork Tower").
-2.  The system checks if the minigame's *PCK file* is already cached on the Android device.
-3.  If not, it shows a brief educational animation (intro video) while downloading the package in the background using an HTTPRequest and `ProjectSettings.load_resource_pack`.
-4.  The player is transferred to a specific multiplayer sub-room for that minigame.
-
----
-
-## 6. Initial Minigames Module (Phase 1)
-
-These 10 base minigames cover multiple educational pillars and serve as a template for AI to generate future iterations.
-
-| ID | Minigame Name | Educational Pillar | Core Mechanic (GDScript / Godot) |
+| ID | Minigame Name | Educational Pillar | Core Mechanic (TypeScript / Phaser 3) |
 | :--- | :--- | :--- | :--- |
-| **01** | **Cave Echoes** | Solving (Memory) | Classic "Simon Says". Memorize and repeat light and sound sequences on stalactites. |
-| **02** | **Magic Keyboard** | Solving (Typing) | Falling letters. The player must type the correct letter on the Android on-screen keyboard before it hits the ground. |
+| **01** | **Cave Echoes** | Solving (Memory) | Classic "Simon Says". Memorize and repeat light and sound sequences on stalactites (`CaveEchoesMinigame.ts`). |
+| **02** | **Magic Keyboard** | Solving (Typing) | Falling letters. The player types or taps the correct letter before it hits the ground. |
 | **03** | **Sap Pipes** | Solving (Logic) | Connection puzzle. Rotate isometric tiles so the sap flows from the root to the leaf. |
 | **04** | **Fossil Builds** | Solving (Spatial) | Tangram-style puzzle. Drag and drop geometric bones to form a dinosaur silhouette. |
 | **05** | **The Color Lab** | Creative (Art) | Primary color mixing. Combine red, blue, and yellow drops to achieve the exact color requested by the portal. |
-| **06** | **Rhythm in the Branches** | Creative (Music) | Tap leaves at the exact moment to the rhythm of a simple melody, generating a visual score. |
-| **07** | **Acorn Scale** | Solving (Math) | Visual equations. Place the correct amount of acorns on a scale to match the weight of a rock marked with a number. |
-| **08** | **Forest Shadows** | Solving (Geometry) | Match rotating 3D objects with their 2D shadow projected on a wall. |
-| **09** | **Floating Words** | Solving (Language) | Balloons with syllables rise up the screen; the player must pop them in order to form a simple word. |
-| **10** | **The Co-op Bridge** | Social / Logic | *Strictly co-op minigame.* One player sees the obstacles, the other controls the switches. Requires heavy use of the multiplayer emoji (hint) system. |
+| **06** | **Rhythm in the Branches** | Creative (Music) | Tap leaves to compose a visual melody (`RhythmBranchesMinigame.ts`). |
+| **07** | **Acorn Scale** | Solving (Math) | Visual equations. Place the right number of acorns on a scale to match the weight of a numbered rock (`AcornScaleMinigame.ts`). |
+| **08** | **Forest Shadows** | Solving (Geometry) | Match rotating objects with their 2D shadow projected on a wall. |
+| **09** | **Floating Words** | Solving (Language) | Balloons with syllables rise up the screen; pop them in order to form a simple word. |
+| **10** | **The Companion Bridge** | Logic / Planning | Single-player dual-character puzzle: coordinate switches with an AI forest companion using visual cues (`💡`, `👍`). |

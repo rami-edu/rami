@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Rami — The Wonder Tree</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #162418;
+        color: #f0f7f4;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+      }
+      #app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #game-container {
+        width: 100%;
+        height: 100%;
+      }
+      /* Top HUD Overlay */
+      #hud-overlay {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+        z-index: 10;
+      }
+      .hud-badge {
+        pointer-events: auto;
+        background: rgba(22, 36, 24, 0.85);
+        border: 2px solid #52b788;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #d8f3dc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hud-btn {
+        pointer-events: auto;
+        background: #2d6a4f;
+        border: 2px solid #74c69d;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #ffffff;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+      .hud-btn:hover {
+        background: #40916c;
+        transform: translateY(-1px);
+      }
+      /* Guardian Dashboard Modal */
+      #guardian-modal {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 20, 12, 0.82);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        padding: 16px;
+      }
+      #guardian-modal.open {
+        display: flex;
+      }
+      .modal-card {
+        background: #1b2e1e;
+        border: 2px solid #52b788;
+        border-radius: 16px;
+        max-width: 480px;
+        width: 100%;
+        padding: 24px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      }
+      .modal-card h2 {
+        color: #95d5b2;
+        margin-bottom: 8px;
+      }
+      .modal-card p {
+        font-size: 14px;
+        color: #b7e4c7;
+        margin-bottom: 16px;
+        line-height: 1.4;
+      }
+      .form-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .form-row input {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #40916c;
+        background: #0f1c11;
+        color: #fff;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-container"></div>
+
+      <div id="hud-overlay">
+        <div class="hud-badge">
+          <span>🌿 Explorer:</span>
+          <strong id="hud-username">Loading...</strong>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-reroll-name" class="hud-btn" title="Generate new COPPA-safe username">🎲 New Name</button>
+          <button id="btn-guardian" class="hud-btn">🔒 Guardian Dashboard</button>
+        </div>
+      </div>
+
+      <div id="guardian-modal">
+        <div class="modal-card">
+          <h2>Guardian Dashboard (COPPA Safe)</h2>
+          <p>Manage local child profiles and inspect progress metrics across Solving, Creativity, and Logic minigames.</p>
+          <div class="form-row">
+            <input id="input-child-name" type="text" placeholder="Child nickname (e.g. Alice)" />
+            <button id="btn-add-child" class="hud-btn">Add Profile</button>
+          </div>
+          <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+            <button id="btn-close-guardian" class="hud-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
