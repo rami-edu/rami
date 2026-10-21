@@ -10,7 +10,22 @@ const CaveEchoesMinigame: MinigameModule = {
       'Memorize and repeat the glowing sequence on the ancient stalactites!'
   },
   launch(scene: Phaser.Scene, onComplete: () => void) {
-    const container = scene.add.container(640, 360).setDepth(100);
+    const { width, height } = scene.scale;
+    const container = scene.add
+      .container(width / 2, height / 2)
+      .setDepth(100)
+      .setScale(Math.min(1, (width - 24) / 760, (height - 40) / 460));
+
+    const onResize = (gameSize: Phaser.Structs.Size) => {
+      if (container.active) {
+        container
+          .setPosition(gameSize.width / 2, gameSize.height / 2)
+          .setScale(
+            Math.min(1, (gameSize.width - 24) / 760, (gameSize.height - 40) / 460)
+          );
+      }
+    };
+    scene.scale.on('resize', onResize);
 
     const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.96);
     bg.setStrokeStyle(4, 0x52b788);
@@ -101,6 +116,7 @@ const CaveEchoesMinigame: MinigameModule = {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
+        scene.scale.off('resize', onResize);
         container.destroy();
         onComplete();
       });
