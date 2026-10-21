@@ -28,12 +28,23 @@ interface PortalInstance {
   normX: number;
   normY: number;
   container: Phaser.GameObjects.Container;
-  zone: Phaser.GameObjects.Arc;
+  hitZone: Phaser.GameObjects.Arc;
+}
+
+interface Firefly {
+  dot: Phaser.GameObjects.Arc;
+  glow: Phaser.GameObjects.Arc;
+  normX: number;
+  normY: number;
+  speedX: number;
+  speedY: number;
+  phase: number;
 }
 
 /**
- * WonderTreeScene — Client-only, local-first isometric 2D hub rendered at
- * native Retina/HiDPI physical pixel resolution in both landscape and portrait.
+ * WonderTreeScene — Client-only, local-first isometric 2D hub featuring the
+ * hand-painted Wonder Tree sanctuary, animated lantern portals aligned with
+ * the treehouse nooks, drifting golden fireflies, and native HiDPI rendering.
  */
 export class WonderTreeScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
@@ -51,9 +62,10 @@ export class WonderTreeScene extends Phaser.Scene {
   };
   private targetPos: Phaser.Math.Vector2 | null = null;
   private portals: PortalInstance[] = [];
+  private fireflies: Firefly[] = [];
   private activeMinigame = false;
   private cooldownPortalId: string | null = null;
-  private readonly baseSpeed = 220;
+  private readonly baseSpeed = 230;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
 
   constructor() {
@@ -78,17 +90,18 @@ export class WonderTreeScene extends Phaser.Scene {
     const world: WorldData = this.cache.json.get('worldData') ?? {
       nodes: [
         { id: 'root_01', type: 'BigRoot', x: 640, y: 600 },
-        { id: 'branch_left', type: 'Branch', x: 400, y: 400 },
-        { id: 'branch_right', type: 'Branch', x: 880, y: 400 }
+        { id: 'branch_left', type: 'Branch', x: 460, y: 460 },
+        { id: 'branch_right', type: 'Branch', x: 850, y: 240 }
       ],
       portals: [
-        { id: 'portal_math', minigame: 'Acorn Scale', x: 350, y: 350 },
-        { id: 'portal_music', minigame: 'Rhythm in the Branches', x: 930, y: 350 },
-        { id: 'portal_hub', minigame: 'The Clockwork Tower', x: 640, y: 300 }
+        { id: 'portal_math', minigame: 'Acorn Scale', x: 455, y: 470 },
+        { id: 'portal_hub', minigame: 'The Clockwork Tower', x: 680, y: 335 },
+        { id: 'portal_music', minigame: 'Rhythm in the Branches', x: 865, y: 235 }
       ]
     };
 
     this.drawForestBackground();
+    this.createAmbientFireflies();
     this.createPortals(world.portals);
     this.createPlayer();
     this.setupControls();
@@ -119,51 +132,152 @@ export class WonderTreeScene extends Phaser.Scene {
       .setDepth(0);
   }
 
+  private createAmbientFireflies(): void {
+    this.fireflies = [];
+    const { width, height } = this.scale;
+    const count = 22;
+
+    for (let i = 0; i < count; i++) {
+      const normX = 0.08 + Math.random() * 0.84;
+      const normY = 0.12 + Math.random() * 0.78;
+      const glow = this.add
+        .circle(normX * width, normY * height, 10, 0xffe66d, 0.22)
+        .setDepth(3);
+      const dot = this.add
+        .circle(normX * width, normY * height, 3.2, 0xfff3b0, 0.9)
+        .setDepth(4);
+
+      this.fireflies.push({
+        dot,
+        glow,
+        normX,
+        normY,
+        speedX: (Math.random() - 0.5) * 0.018,
+        speedY: (Math.random() - 0.5) * 0.014,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  private getPortalTheme(minigame: string): {
+    icon: string;
+    ringColor: number;
+    glowColor: number;
+    subtitle: string;
+  } {
+    if (minigame.includes('Acorn')) {
+      return {
+        icon: '⚖️',
+        ringColor: 0xffd166,
+        glowColor: 0xf4a261,
+        subtitle: 'Math Cottage'
+      };
+    }
+    if (minigame.includes('Rhythm')) {
+      return {
+        icon: '🎵',
+        ringColor: 0x80ed99,
+        glowColor: 0x52b788,
+        subtitle: 'Canopy Stage'
+      };
+    }
+    return {
+      icon: '🔮',
+      ringColor: 0x90e0ef,
+      glowColor: 0x48cae4,
+      subtitle: 'Memory Hollow'
+    };
+  }
+
   private createPortals(portalDefs: WorldPortal[]): void {
     this.portals = [];
     for (const p of portalDefs) {
       const normX = p.x / 1280;
       const normY = p.y / 720;
+      const theme = this.getPortalTheme(p.minigame);
 
-      const container = this.add.container(p.x, p.y).setDepth(6);
+      const container = this.add.container(p.x, p.y).setDepth(10);
 
-      const platform = this.add
-        .polygon(0, 18, [0, -24, 48, 0, 0, 24, -48, 0], 0x2d6a4f, 0.85)
-        .setStrokeStyle(2, 0x95d5b2);
+      // Soft outer golden-emerald aura
+      const outerAura = this.add.circle(0, 0, 44, theme.glowColor, 0.22);
 
-      const zone = this.add
-        .circle(0, -6, 34, 0x52b788, 0.4)
-        .setStrokeStyle(3, 0xb7e4c7)
+      // Rotating ornate rune ring
+      const runeRing = this.add.graphics();
+      runeRing.lineStyle(2.5, theme.ringColor, 0.85);
+      runeRing.strokeCircle(0, 0, 34);
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        runeRing.fillStyle(0xfff3b0, 0.95);
+        runeRing.fillCircle(Math.cos(angle) * 34, Math.sin(angle) * 34, 3);
+      }
+
+      // Warm lantern medallion core
+      const hitZone = this.add
+        .circle(0, 0, 27, 0x162418, 0.78)
+        .setStrokeStyle(3, theme.ringColor)
         .setInteractive({ useHandCursor: true });
 
-      this.tweens.add({
-        targets: zone,
-        scale: 1.12,
-        duration: 1100,
-        yoyo: true,
-        repeat: -1
-      });
+      const iconText = this.add
+        .text(0, 0, theme.icon, { fontSize: '26px' })
+        .setOrigin(0.5);
 
-      const label = this.add
-        .text(0, -54, `🌀 ${p.minigame}`, {
-          fontSize: '15px',
-          color: '#ffffff',
-          backgroundColor: '#1b4332dd',
-          padding: { x: 8, y: 4 }
+      // Storybook wooden sign banner above the portal
+      const bannerBg = this.add
+        .rectangle(0, -56, 195, 38, 0x1b2e1e, 0.92)
+        .setStrokeStyle(2, theme.ringColor);
+
+      const titleLabel = this.add
+        .text(0, -62, p.minigame, {
+          fontSize: '13px',
+          color: '#fff3b0',
+          fontStyle: 'bold'
         })
         .setOrigin(0.5);
 
-      container.add([platform, zone, label]);
+      const subLabel = this.add
+        .text(0, -47, `✨ ${theme.subtitle}`, {
+          fontSize: '10px',
+          color: '#b7e4c7'
+        })
+        .setOrigin(0.5);
+
+      // Gentle breathing & rotation tweens
+      this.tweens.add({
+        targets: outerAura,
+        scale: 1.24,
+        alpha: 0.42,
+        duration: 1400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.tweens.add({
+        targets: runeRing,
+        rotation: Math.PI * 2,
+        duration: 14000,
+        repeat: -1
+      });
+
+      container.add([
+        outerAura,
+        runeRing,
+        hitZone,
+        iconText,
+        bannerBg,
+        titleLabel,
+        subLabel
+      ]);
 
       const instance: PortalInstance = {
         data: { ...p },
         normX,
         normY,
         container,
-        zone
+        hitZone
       };
 
-      zone.on('pointerdown', () => {
+      hitZone.on('pointerdown', () => {
         if (!this.activeMinigame) {
           this.targetPos = new Phaser.Math.Vector2(
             instance.data.x,
@@ -180,34 +294,37 @@ export class WonderTreeScene extends Phaser.Scene {
     const activeProfile = profileManager.getActiveProfile();
     const { width, height } = this.scale;
     this.playerContainer = this.add
-      .container(width * 0.5, height * 0.68)
+      .container(width * 0.5, height * 0.78)
       .setDepth(20);
 
-    const shadow = this.add.ellipse(0, 20, 38, 16, 0x000000, 0.45);
+    const shadow = this.add.ellipse(0, 22, 42, 16, 0x000000, 0.45);
+    const outerGlow = this.add.circle(0, 0, 26, 0xffd166, 0.25);
     const body = this.add
-      .circle(0, 0, 20, 0x80ed99)
-      .setStrokeStyle(3, 0x1b4332);
+      .circle(0, 0, 21, 0x2d6a4f)
+      .setStrokeStyle(3, 0xffd166);
     this.avatarIcon = this.add
-      .text(0, 0, activeProfile?.avatarEmoji ?? '🦕', { fontSize: '24px' })
+      .text(0, 0, activeProfile?.avatarEmoji ?? '🦕', { fontSize: '25px' })
       .setOrigin(0.5);
 
     this.nameLabel = this.add
-      .text(0, 34, activeProfile?.explorerName ?? userManager.getUsername(), {
-        fontSize: '14px',
-        color: '#d8f3dc',
-        backgroundColor: '#081c15dd',
-        padding: { x: 6, y: 2 }
+      .text(0, 36, activeProfile?.explorerName ?? userManager.getUsername(), {
+        fontSize: '13px',
+        color: '#fff3b0',
+        fontStyle: 'bold',
+        backgroundColor: '#162418dd',
+        padding: { x: 8, y: 3 }
       })
       .setOrigin(0.5);
 
     this.emojiLabel = this.add
-      .text(0, -40, '', {
+      .text(0, -42, '', {
         fontSize: '28px'
       })
       .setOrigin(0.5);
 
     this.playerContainer.add([
       shadow,
+      outerGlow,
       body,
       this.avatarIcon,
       this.nameLabel,
@@ -243,12 +360,12 @@ export class WonderTreeScene extends Phaser.Scene {
       .text(
         width / 2,
         height - 24,
-        'Move: Arrow Keys / WASD / Tap or Click • Emotes: Keys 1-4 (💡 👍 👏 👋) • Walk into a Portal to play',
+        'Tap any Treehouse Portal or use Arrow Keys / WASD to explore • Keys 1-4: Emotes (💡 👍 👏 👋)',
         {
           fontSize: '13px',
-          color: '#b7e4c7',
-          backgroundColor: '#0f1c11dd',
-          padding: { x: 10, y: 6 },
+          color: '#d8f3dc',
+          backgroundColor: '#162418cc',
+          padding: { x: 12, y: 6 },
           align: 'center'
         }
       )
@@ -256,27 +373,45 @@ export class WonderTreeScene extends Phaser.Scene {
       .setDepth(30);
   }
 
+  /**
+   * Computes background image placement and maps normalized (0..1) tree coordinates
+   * directly onto the rendered Wonder Tree artwork so portals stay anchored to the
+   * treehouse nooks across both landscape and portrait screens.
+   */
   private layoutScene(width: number, height: number): void {
     const dpr = this.getDpr();
+
+    let bgLeft = 0;
+    let bgTop = 0;
+    let renderedW = width;
+    let renderedH = height;
 
     if (this.bgImage) {
       const scaleX = width / this.bgImage.width;
       const scaleY = height / this.bgImage.height;
-      this.bgImage
-        .setPosition(width / 2, height / 2)
-        .setScale(Math.max(scaleX, scaleY));
+      const coverScale = Math.max(scaleX, scaleY);
+      this.bgImage.setPosition(width / 2, height / 2).setScale(coverScale);
+
+      renderedW = this.bgImage.width * coverScale;
+      renderedH = this.bgImage.height * coverScale;
+      bgLeft = width / 2 - renderedW / 2;
+      bgTop = height / 2 - renderedH / 2;
     }
 
     for (const p of this.portals) {
-      const px = Phaser.Math.Clamp(p.normX * width, 75 * dpr, width - 75 * dpr);
-      const py = Phaser.Math.Clamp(
-        p.normY * height,
-        110 * dpr,
-        height - 110 * dpr
-      );
+      // Anchor portals to the Wonder Tree nooks, clamped safely inside the screen
+      const rawX = bgLeft + p.normX * renderedW;
+      const rawY = bgTop + p.normY * renderedH;
+      const px = Phaser.Math.Clamp(rawX, 95 * dpr, width - 95 * dpr);
+      const py = Phaser.Math.Clamp(rawY, 115 * dpr, height - 110 * dpr);
       p.data.x = px;
       p.data.y = py;
       p.container.setPosition(px, py).setScale(dpr);
+    }
+
+    for (const f of this.fireflies) {
+      f.dot.setScale(dpr);
+      f.glow.setScale(dpr);
     }
 
     if (this.playerContainer) {
@@ -295,9 +430,9 @@ export class WonderTreeScene extends Phaser.Scene {
 
     if (this.footerHint) {
       this.footerHint
-        .setPosition(width / 2, height - 24 * dpr)
+        .setPosition(width / 2, height - 22 * dpr)
         .setFontSize(13 * dpr)
-        .setPadding(10 * dpr, 6 * dpr, 10 * dpr, 6 * dpr)
+        .setPadding(12 * dpr, 6 * dpr, 12 * dpr, 6 * dpr)
         .setWordWrapWidth(width - 24 * dpr);
     }
   }
@@ -311,13 +446,28 @@ export class WonderTreeScene extends Phaser.Scene {
     });
   }
 
-  public update(_time: number, delta: number): void {
-    if (this.activeMinigame) return;
-
+  public update(time: number, delta: number): void {
     const { width, height } = this.scale;
     const dpr = this.getDpr();
-    const speed = this.baseSpeed * dpr;
     const dt = delta / 1000;
+
+    // Animate drifting golden forest fireflies
+    for (const f of this.fireflies) {
+      f.normX += f.speedX * dt;
+      f.normY += f.speedY * dt;
+      if (f.normX < 0.05 || f.normX > 0.95) f.speedX *= -1;
+      if (f.normY < 0.08 || f.normY > 0.9) f.speedY *= -1;
+
+      const fx = f.normX * width;
+      const fy = f.normY * height;
+      const pulse = 0.55 + 0.45 * Math.sin(time * 0.003 + f.phase);
+      f.dot.setPosition(fx, fy).setAlpha(pulse);
+      f.glow.setPosition(fx, fy).setAlpha(pulse * 0.28);
+    }
+
+    if (this.activeMinigame) return;
+
+    const speed = this.baseSpeed * dpr;
     let vx = 0;
     let vy = 0;
 
@@ -394,7 +544,6 @@ export class WonderTreeScene extends Phaser.Scene {
         .container(portalX, portalY)
         .setDepth(85);
 
-      // Full-screen dark forest backdrop fade
       const veil = this.add
         .circle(0, 0, maxDim, 0x0b160e, 0)
         .setOrigin(0.5);
@@ -407,7 +556,6 @@ export class WonderTreeScene extends Phaser.Scene {
         ease: 'Sine.easeIn'
       });
 
-      // Concentric spiral arms & glowing runes rotating and expanding
       const vortexArms = this.add.graphics();
       const ringColors = [0x95d5b2, 0x52b788, 0x74c69d, 0xffd166, 0x40916c];
       for (let arm = 0; arm < 6; arm++) {
@@ -429,7 +577,6 @@ export class WonderTreeScene extends Phaser.Scene {
         }
         vortexArms.strokePath();
 
-        // Glowing orb particles along the spiral
         const orbDist = (45 + arm * 28) * dpr;
         const orb = this.add.circle(
           Math.cos(baseAngle) * orbDist,
@@ -444,7 +591,6 @@ export class WonderTreeScene extends Phaser.Scene {
       swirlContainer.add(vortexArms);
       swirlContainer.setScale(0.15);
 
-      // Spin and expand the swirling vortex to engulf the screen
       this.tweens.add({
         targets: swirlContainer,
         rotation: Math.PI * 3.5,
@@ -453,7 +599,6 @@ export class WonderTreeScene extends Phaser.Scene {
         ease: 'Cubic.easeIn'
       });
 
-      // Pull and spin the player into the center of the portal
       this.tweens.add({
         targets: this.playerContainer,
         x: portalX,
@@ -474,18 +619,15 @@ export class WonderTreeScene extends Phaser.Scene {
     this.activeMinigame = true;
     this.targetPos = null;
 
-    // Run both the swirling portal animation and on-demand module fetch
     const [swirlOverlay, mod] = await Promise.all([
       this.playSwirlingPortalTransition(portal.x, portal.y),
       minigameLoader.loadMinigame(portal.minigame)
     ]);
 
-    // Clean up swirl and restore player transform before sleeping the hub scene
     swirlOverlay.destroy();
     const dpr = this.getDpr();
     this.playerContainer.setRotation(0).setScale(dpr);
 
-    // Create a brand-new dedicated Phaser.Scene for the portal activity
     const dynamicSceneKey = `MinigameActivity_${portal.id}_${Date.now()}`;
 
     const activityScene = new MinigameActivityScene({
@@ -494,7 +636,6 @@ export class WonderTreeScene extends Phaser.Scene {
       onExit: () => {
         profileManager.recordMinigameCompletion(portal.minigame);
 
-        // Wake the WonderTreeScene hub and completely destroy the activity scene
         this.scene.wake('WonderTreeScene');
         this.scene.remove(dynamicSceneKey);
 
@@ -504,7 +645,6 @@ export class WonderTreeScene extends Phaser.Scene {
       }
     });
 
-    // Sleep the main hub scene so it is completely hidden and inactive
     this.scene.sleep('WonderTreeScene');
     this.scene.add(dynamicSceneKey, activityScene, true);
   }
