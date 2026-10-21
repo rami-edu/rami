@@ -77,6 +77,11 @@ export class WonderTreeScene extends Phaser.Scene {
   }
 
   public create(): void {
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) {
+      hudOverlay.style.display = 'flex';
+    }
+
     this.portals = [];
     this.drawStaticForestBackground();
     this.createAmbientFireflies();

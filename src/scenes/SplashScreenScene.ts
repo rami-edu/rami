@@ -39,6 +39,11 @@ export class SplashScreenScene extends Phaser.Scene {
   }
 
   public create(): void {
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) {
+      hudOverlay.style.display = 'none';
+    }
+
     const { width, height } = this.scale;
 
     this.bgImage = this.add.image(width / 2, height / 2, 'treeOfKnowledge');
