@@ -3,8 +3,7 @@ import Phaser from 'phaser';
 /**
  * SplashScreenScene — Displays the illustrated "Tree of Knowledge" filled with
  * animal instructors (owl astronomer, dinosaur geometer, raccoon chemist, fox
- * musician, and bear mathematician) occupying the entire viewport in both
- * horizontal (landscape) and vertical (portrait) orientations.
+ * musician, and bear mathematician) at full native Retina/HiDPI resolution.
  */
 export class SplashScreenScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
@@ -18,11 +17,14 @@ export class SplashScreenScene extends Phaser.Scene {
   private progressRatio = 0;
   private readonly rotationSpeed = 5.0;
   private readonly dotsCount = 8;
-  private readonly radius = 18.0;
   private readonly splashDuration = 3200;
 
   constructor() {
     super({ key: 'SplashScreenScene' });
+  }
+
+  private getDpr(): number {
+    return Math.min(window.devicePixelRatio || 1, 3);
   }
 
   public preload(): void {
@@ -44,8 +46,7 @@ export class SplashScreenScene extends Phaser.Scene {
         fontSize: '28px',
         color: '#95d5b2',
         fontStyle: 'bold',
-        align: 'center',
-        wordWrap: { width: width - 32 }
+        align: 'center'
       })
       .setOrigin(0.5);
 
@@ -57,8 +58,7 @@ export class SplashScreenScene extends Phaser.Scene {
         {
           fontSize: '16px',
           color: '#d8f3dc',
-          align: 'center',
-          wordWrap: { width: width - 32 }
+          align: 'center'
         }
       )
       .setOrigin(0.5);
@@ -100,55 +100,73 @@ export class SplashScreenScene extends Phaser.Scene {
   }
 
   private layoutScene(width: number, height: number): void {
+    const dpr = this.getDpr();
+    const cssWidth = width / dpr;
+    const isCompact = cssWidth < 600;
+
     const scaleX = width / this.bgImage.width;
     const scaleY = height / this.bgImage.height;
     const coverScale = Math.max(scaleX, scaleY);
     this.bgImage.setPosition(width / 2, height / 2).setScale(coverScale);
 
-    const bannerHeight = width < 600 ? 185 : 170;
+    const bannerHeight = (isCompact ? 185 : 170) * dpr;
     const bannerY = height - bannerHeight / 2;
     this.bannerRect
       .setPosition(width / 2, bannerY)
-      .setSize(width, bannerHeight);
+      .setSize(width, bannerHeight)
+      .setStrokeStyle(2 * dpr, 0x52b788);
 
-    const isCompact = width < 600;
     this.titleText
-      .setPosition(width / 2, height - bannerHeight + 42)
-      .setFontSize(isCompact ? 20 : 28)
-      .setWordWrapWidth(width - 32);
+      .setPosition(width / 2, height - bannerHeight + 42 * dpr)
+      .setFontSize((isCompact ? 20 : 28) * dpr)
+      .setWordWrapWidth(width - 32 * dpr);
 
     this.subtitleText
-      .setPosition(width / 2, height - bannerHeight + 88)
-      .setFontSize(isCompact ? 14 : 16)
-      .setWordWrapWidth(width - 32);
+      .setPosition(width / 2, height - bannerHeight + 88 * dpr)
+      .setFontSize((isCompact ? 14 : 16) * dpr)
+      .setWordWrapWidth(width - 32 * dpr);
 
-    const barWidth = Math.min(340, width - 110);
-    const barY = height - 38;
-    this.progressTrack.setPosition(width / 2, barY).setSize(barWidth, 12);
-    this.progressFill.setPosition(width / 2 - barWidth / 2 + 2, barY);
-    this.progressFill.width = Math.max(4, (barWidth - 4) * this.progressRatio);
+    const barWidth = Math.min(340 * dpr, width - 110 * dpr);
+    const barHeight = 12 * dpr;
+    const barY = height - 38 * dpr;
+    this.progressTrack
+      .setPosition(width / 2, barY)
+      .setSize(barWidth, barHeight)
+      .setStrokeStyle(1.5 * dpr, 0x74c69d);
+
+    this.progressFill
+      .setPosition(width / 2 - barWidth / 2 + 2 * dpr, barY)
+      .setSize(
+        Math.max(4 * dpr, (barWidth - 4 * dpr) * this.progressRatio),
+        barHeight - 4 * dpr
+      );
   }
 
   public update(_time: number, delta: number): void {
     const { width, height } = this.scale;
+    const dpr = this.getDpr();
     const dt = delta / 1000;
     this.timePassed += dt * this.rotationSpeed;
 
-    const barWidth = Math.min(340, width - 110);
-    this.progressFill.width = Math.max(4, (barWidth - 4) * this.progressRatio);
+    const barWidth = Math.min(340 * dpr, width - 110 * dpr);
+    this.progressFill.width = Math.max(
+      4 * dpr,
+      (barWidth - 4 * dpr) * this.progressRatio
+    );
 
     this.graphics.clear();
-    const centerX = width / 2 + barWidth / 2 + 28;
-    const centerY = height - 38;
+    const centerX = width / 2 + barWidth / 2 + 28 * dpr;
+    const centerY = height - 38 * dpr;
+    const radius = 16 * dpr;
 
     for (let i = 0; i < this.dotsCount; i++) {
       const angle = (i / this.dotsCount) * Math.PI * 2 + this.timePassed;
-      const x = centerX + Math.cos(angle) * this.radius;
-      const y = centerY + Math.sin(angle) * this.radius;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
       const alpha = 1.0 - i / this.dotsCount;
 
       this.graphics.fillStyle(0x80ed99, alpha);
-      this.graphics.fillCircle(x, y, 3.5);
+      this.graphics.fillCircle(x, y, 3.5 * dpr);
     }
   }
 }

@@ -14,17 +14,25 @@ const AcornScaleMinigame: MinigameModule = {
     let currentAcorns = 0;
 
     const { width, height } = scene.scale;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const container = scene.add
       .container(width / 2, height / 2)
       .setDepth(100)
-      .setScale(Math.min(1, (width - 24) / 760, (height - 40) / 460));
+      .setScale(
+        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 460)
+      );
 
     const onResize = (gameSize: Phaser.Structs.Size) => {
       if (container.active) {
+        const curDpr = Math.min(window.devicePixelRatio || 1, 3);
         container
           .setPosition(gameSize.width / 2, gameSize.height / 2)
           .setScale(
-            Math.min(1, (gameSize.width - 24) / 760, (gameSize.height - 40) / 460)
+            Math.min(
+              curDpr,
+              (gameSize.width - 24 * curDpr) / 760,
+              (gameSize.height - 40 * curDpr) / 460
+            )
           );
       }
     };

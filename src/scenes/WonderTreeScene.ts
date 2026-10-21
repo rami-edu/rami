@@ -26,14 +26,13 @@ interface PortalInstance {
   data: WorldPortal;
   normX: number;
   normY: number;
-  platform: Phaser.GameObjects.Polygon;
+  container: Phaser.GameObjects.Container;
   zone: Phaser.GameObjects.Arc;
-  label: Phaser.GameObjects.Text;
 }
 
 /**
- * WonderTreeScene — Client-only, local-first isometric 2D hub occupying 100% of
- * the screen in both horizontal (landscape) and vertical (portrait) modes.
+ * WonderTreeScene — Client-only, local-first isometric 2D hub rendered at
+ * native Retina/HiDPI physical pixel resolution in both landscape and portrait.
  */
 export class WonderTreeScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
@@ -53,11 +52,15 @@ export class WonderTreeScene extends Phaser.Scene {
   private portals: PortalInstance[] = [];
   private activeMinigame = false;
   private cooldownPortalId: string | null = null;
-  private readonly speed = 220;
+  private readonly baseSpeed = 220;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
 
   constructor() {
     super({ key: 'WonderTreeScene' });
+  }
+
+  private getDpr(): number {
+    return Math.min(window.devicePixelRatio || 1, 3);
   }
 
   public preload(): void {
@@ -118,15 +121,15 @@ export class WonderTreeScene extends Phaser.Scene {
       const normX = p.x / 1280;
       const normY = p.y / 720;
 
+      const container = this.add.container(p.x, p.y).setDepth(6);
+
       const platform = this.add
-        .polygon(p.x, p.y + 18, [0, -24, 48, 0, 0, 24, -48, 0], 0x2d6a4f, 0.85)
-        .setStrokeStyle(2, 0x95d5b2)
-        .setDepth(5);
+        .polygon(0, 18, [0, -24, 48, 0, 0, 24, -48, 0], 0x2d6a4f, 0.85)
+        .setStrokeStyle(2, 0x95d5b2);
 
       const zone = this.add
-        .circle(p.x, p.y - 6, 34, 0x52b788, 0.4)
+        .circle(0, -6, 34, 0x52b788, 0.4)
         .setStrokeStyle(3, 0xb7e4c7)
-        .setDepth(6)
         .setInteractive({ useHandCursor: true });
 
       this.tweens.add({
@@ -138,22 +141,22 @@ export class WonderTreeScene extends Phaser.Scene {
       });
 
       const label = this.add
-        .text(p.x, p.y - 54, `🌀 ${p.minigame}`, {
+        .text(0, -54, `🌀 ${p.minigame}`, {
           fontSize: '15px',
           color: '#ffffff',
           backgroundColor: '#1b4332dd',
           padding: { x: 8, y: 4 }
         })
-        .setOrigin(0.5)
-        .setDepth(7);
+        .setOrigin(0.5);
+
+      container.add([platform, zone, label]);
 
       const instance: PortalInstance = {
         data: { ...p },
         normX,
         normY,
-        platform,
-        zone,
-        label
+        container,
+        zone
       };
 
       zone.on('pointerdown', () => {
@@ -242,8 +245,7 @@ export class WonderTreeScene extends Phaser.Scene {
           color: '#b7e4c7',
           backgroundColor: '#0f1c11dd',
           padding: { x: 10, y: 6 },
-          align: 'center',
-          wordWrap: { width: width - 24 }
+          align: 'center'
         }
       )
       .setOrigin(0.5)
@@ -251,6 +253,8 @@ export class WonderTreeScene extends Phaser.Scene {
   }
 
   private layoutScene(width: number, height: number): void {
+    const dpr = this.getDpr();
+
     if (this.bgImage) {
       const scaleX = width / this.bgImage.width;
       const scaleY = height / this.bgImage.height;
@@ -260,32 +264,37 @@ export class WonderTreeScene extends Phaser.Scene {
     }
 
     for (const p of this.portals) {
-      const px = Phaser.Math.Clamp(p.normX * width, 75, width - 75);
-      const py = Phaser.Math.Clamp(p.normY * height, 110, height - 110);
+      const px = Phaser.Math.Clamp(p.normX * width, 75 * dpr, width - 75 * dpr);
+      const py = Phaser.Math.Clamp(
+        p.normY * height,
+        110 * dpr,
+        height - 110 * dpr
+      );
       p.data.x = px;
       p.data.y = py;
-      p.platform.setPosition(px, py + 18);
-      p.zone.setPosition(px, py - 6);
-      p.label.setPosition(px, py - 54);
+      p.container.setPosition(px, py).setScale(dpr);
     }
 
     if (this.playerContainer) {
+      this.playerContainer.setScale(dpr);
       this.playerContainer.x = Phaser.Math.Clamp(
         this.playerContainer.x,
-        40,
-        width - 40
+        40 * dpr,
+        width - 40 * dpr
       );
       this.playerContainer.y = Phaser.Math.Clamp(
         this.playerContainer.y,
-        75,
-        height - 65
+        75 * dpr,
+        height - 65 * dpr
       );
     }
 
     if (this.footerHint) {
       this.footerHint
-        .setPosition(width / 2, height - 24)
-        .setWordWrapWidth(width - 24);
+        .setPosition(width / 2, height - 24 * dpr)
+        .setFontSize(13 * dpr)
+        .setPadding(10 * dpr, 6 * dpr, 10 * dpr, 6 * dpr)
+        .setWordWrapWidth(width - 24 * dpr);
     }
   }
 
@@ -302,6 +311,8 @@ export class WonderTreeScene extends Phaser.Scene {
     if (this.activeMinigame) return;
 
     const { width, height } = this.scale;
+    const dpr = this.getDpr();
+    const speed = this.baseSpeed * dpr;
     const dt = delta / 1000;
     let vx = 0;
     let vy = 0;
@@ -314,15 +325,15 @@ export class WonderTreeScene extends Phaser.Scene {
     if (vx !== 0 || vy !== 0) {
       this.targetPos = null;
       const len = Math.hypot(vx, vy);
-      this.playerContainer.x += (vx / len) * this.speed * dt;
-      this.playerContainer.y += (vy / len) * this.speed * dt;
+      this.playerContainer.x += (vx / len) * speed * dt;
+      this.playerContainer.y += (vy / len) * speed * dt;
     } else if (this.targetPos) {
       const dx = this.targetPos.x - this.playerContainer.x;
       const dy = this.targetPos.y - this.playerContainer.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 6) {
-        this.playerContainer.x += (dx / dist) * this.speed * dt;
-        this.playerContainer.y += (dy / dist) * this.speed * dt;
+      if (dist > 6 * dpr) {
+        this.playerContainer.x += (dx / dist) * speed * dt;
+        this.playerContainer.y += (dy / dist) * speed * dt;
       } else {
         this.targetPos = null;
       }
@@ -330,13 +341,13 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.playerContainer.x = Phaser.Math.Clamp(
       this.playerContainer.x,
-      40,
-      width - 40
+      40 * dpr,
+      width - 40 * dpr
     );
     this.playerContainer.y = Phaser.Math.Clamp(
       this.playerContainer.y,
-      75,
-      height - 65
+      75 * dpr,
+      height - 65 * dpr
     );
 
     let insideAnyPortal = false;
@@ -347,7 +358,7 @@ export class WonderTreeScene extends Phaser.Scene {
         p.data.x,
         p.data.y
       );
-      if (dist < 42) {
+      if (dist < 42 * dpr) {
         insideAnyPortal = true;
         if (this.cooldownPortalId !== p.data.id) {
           this.cooldownPortalId = p.data.id;
@@ -367,12 +378,13 @@ export class WonderTreeScene extends Phaser.Scene {
     this.targetPos = null;
 
     const { width, height } = this.scale;
+    const dpr = this.getDpr();
     const loadingText = this.add
       .text(width / 2, height / 2, `📦 Loading "${portal.minigame}"...`, {
-        fontSize: '20px',
+        fontSize: `${Math.round(20 * dpr)}px`,
         color: '#ffffff',
         backgroundColor: '#1b4332',
-        padding: { x: 16, y: 10 }
+        padding: { x: 16 * dpr, y: 10 * dpr }
       })
       .setOrigin(0.5)
       .setDepth(90);

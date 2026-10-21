@@ -218,17 +218,32 @@ function setupHudAndGuardianModal(): void {
 
 setupHudAndGuardianModal();
 
+const dpr = Math.min(window.devicePixelRatio || 1, 3);
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: Math.round(window.innerWidth * dpr),
+  height: Math.round(window.innerHeight * dpr),
   backgroundColor: '#162418',
+  render: {
+    antialias: true,
+    roundPixels: false
+  },
   scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.NO_CENTER
+    mode: Phaser.Scale.NONE,
+    zoom: 1 / dpr
   },
   scene: [SplashScreenScene, WonderTreeScene]
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+window.addEventListener('resize', () => {
+  const currentDpr = Math.min(window.devicePixelRatio || 1, 3);
+  game.scale.setZoom(1 / currentDpr);
+  game.scale.resize(
+    Math.round(window.innerWidth * currentDpr),
+    Math.round(window.innerHeight * currentDpr)
+  );
+});
