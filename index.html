@@ -211,7 +211,6 @@
           <strong id="hud-username">Loading...</strong>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App</button>
           <button id="btn-guardian" class="hud-btn" title="Hold for 3 seconds to open Guardian Dashboard">
             <div id="btn-guardian-fill"></div>
             <span>🔒 Hold 3s</span>
@@ -245,7 +244,10 @@
               <button id="btn-add-child" class="hud-btn">Add Profile</button>
             </div>
             <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
-            <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 8px;">
+              <div>
+                <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App on Device</button>
+              </div>
               <button id="btn-close-guardian" class="hud-btn">Close</button>
             </div>
           </div>
