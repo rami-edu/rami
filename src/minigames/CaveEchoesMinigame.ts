@@ -1,5 +1,20 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
+import { profileManager } from '../managers/ProfileManager';
+
+const CRYSTALS = [
+  { idx: 0, name: 'Emerald (1)', shortName: 'Emerald', x: -160, color: 0x52b788 },
+  { idx: 1, name: 'Ruby (2)', shortName: 'Ruby', x: 0, color: 0xe63946 },
+  { idx: 2, name: 'Sapphire (3)', shortName: 'Sapphire', x: 160, color: 0x4cc9f0 }
+];
+
+const ECHO_LEVELS: number[][] = [
+  [0, 2, 1],             // Level 1: 3 crystals
+  [1, 0, 2, 0],          // Level 2: 4 crystals
+  [2, 1, 2, 0, 1],       // Level 3: 5 crystals
+  [0, 1, 2, 1, 0, 2],    // Level 4: 6 crystals
+  [2, 0, 1, 1, 2, 0, 1]  // Level 5: 7 crystals
+];
 
 const CaveEchoesMinigame: MinigameModule = {
   descriptor: {
@@ -37,49 +52,80 @@ const CaveEchoesMinigame: MinigameModule = {
     };
     scene.scale.on('resize', onResize);
 
+    let levelIndex = 0;
+    let step = 0;
+    let transitioning = false;
+
     const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
     bg.setStrokeStyle(4, 0x52b788);
 
     const title = scene.add
-      .text(0, -185, '🔮 Cave Echoes — Solving (Memory)', {
+      .text(0, -190, '🔮 Cave Echoes — Level 1', {
         fontSize: '24px',
         color: '#95d5b2',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    const pattern = [0, 2, 1];
-    let step = 0;
-
     const status = scene.add
-      .text(
-        0,
-        -135,
-        'Repeat the echo sequence: Emerald (1) → Sapphire (3) → Ruby (2)',
-        {
-          fontSize: '18px',
-          color: '#d8f3dc'
-        }
-      )
+      .text(0, -140, '', {
+        fontSize: '17px',
+        color: '#d8f3dc',
+        align: 'center',
+        wordWrap: { width: 700 }
+      })
       .setOrigin(0.5);
 
     const feedback = scene.add
-      .text(0, 55, 'Progress: 0 / 3', {
+      .text(0, 62, '', {
         fontSize: '22px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    const crystals = [
-      { idx: 0, name: '1: Emerald', x: -160, color: 0x52b788 },
-      { idx: 1, name: '2: Ruby', x: 0, color: 0xe63946 },
-      { idx: 2, name: '3: Sapphire', x: 160, color: 0x4cc9f0 }
-    ];
+    // Level Completion Notification Banner
+    const toastContainer = scene.add
+      .container(0, -30)
+      .setDepth(120)
+      .setVisible(false)
+      .setScale(0.5);
+
+    const toastBg = scene.add
+      .rectangle(0, 0, 520, 110, 0x1b4332, 0.98)
+      .setStrokeStyle(4, 0xffd166);
+
+    const toastText = scene.add
+      .text(0, 0, '', {
+        fontSize: '22px',
+        color: '#fff3b0',
+        fontStyle: 'bold',
+        align: 'center'
+      })
+      .setOrigin(0.5);
+
+    toastContainer.add([toastBg, toastText]);
+
+    const getCurrentPattern = (): number[] => {
+      return ECHO_LEVELS[levelIndex % ECHO_LEVELS.length];
+    };
+
+    const updateLevelHeader = () => {
+      const displayLevel = levelIndex + 1;
+      const pattern = getCurrentPattern();
+      const seqNames = pattern.map((idx) => CRYSTALS[idx].shortName).join(' → ');
+      title.setText(`🔮 Cave Echoes — Level ${displayLevel}`);
+      status.setText(`Repeat the crystal sequence: ${seqNames}`);
+      feedback
+        .setText(`Progress: ${step} / ${pattern.length}`)
+        .setColor('#ffd166');
+    };
+
+    updateLevelHeader();
 
     container.add([bg, title, status, feedback]);
 
-    for (const c of crystals) {
+    for (const c of CRYSTALS) {
       const gem = scene.add
         .polygon(c.x, -30, [0, -45, 35, 0, 0, 45, -35, 0], c.color)
         .setStrokeStyle(3, 0xffffff)
@@ -90,25 +136,55 @@ const CaveEchoesMinigame: MinigameModule = {
         .setOrigin(0.5);
 
       gem.on('pointerdown', () => {
+        if (transitioning) return;
+
         scene.tweens.add({
           targets: gem,
           scale: 1.2,
           duration: 100,
           yoyo: true
         });
+
+        const pattern = getCurrentPattern();
         if (c.idx === pattern[step]) {
           step++;
           if (step === pattern.length) {
-            feedback.setText('✨ Echo Sequence Complete! Great Memory! ✨');
-            feedback.setColor('#80ed99');
+            transitioning = true;
+            const completedLvl = levelIndex + 1;
+            profileManager.recordMinigameCompletion(
+              'The Clockwork Tower',
+              undefined,
+              completedLvl
+            );
+
+            levelIndex += 1;
             step = 0;
+
+            toastText.setText(
+              `🎉 Level ${completedLvl} Echo Complete!\nAdvancing to Level ${levelIndex + 1}...`
+            );
+            toastContainer.setVisible(true).setScale(0.5);
+
+            scene.tweens.add({
+              targets: toastContainer,
+              scale: 1,
+              duration: 280,
+              ease: 'Back.easeOut'
+            });
+
+            scene.time.delayedCall(1500, () => {
+              if (!container.active) return;
+              toastContainer.setVisible(false);
+              transitioning = false;
+              updateLevelHeader();
+            });
           } else {
             feedback.setText(`Progress: ${step} / ${pattern.length}`);
-            feedback.setColor('#ffd166');
+            feedback.setColor('#80ed99');
           }
         } else {
           step = 0;
-          feedback.setText('Try again from the start! (Emerald → Sapphire → Ruby)');
+          feedback.setText('Oops! Sequence reset — try again from the first crystal!');
           feedback.setColor('#ffadad');
         }
       });
@@ -131,7 +207,7 @@ const CaveEchoesMinigame: MinigameModule = {
         onComplete();
       });
 
-    container.add(exitBtn);
+    container.add([exitBtn, toastContainer]);
   }
 };
 

@@ -2,6 +2,7 @@ import { UserManager } from './UserManager';
 
 export interface MinigameStats {
   completedCount: number;
+  highestLevel: number;
   lastPlayedAt: number;
 }
 
@@ -289,7 +290,8 @@ export class ProfileManager {
 
   public recordMinigameCompletion(
     minigameId: string,
-    profileId?: string
+    profileId?: string,
+    levelCompleted?: number
   ): MinigameStats | null {
     const targetId = profileId ?? this.state.activeProfileId;
     if (!targetId || !this.state.profiles[targetId]) {
@@ -299,14 +301,32 @@ export class ProfileManager {
     const profile = this.state.profiles[targetId];
     const existing = profile.progress[minigameId] ?? {
       completedCount: 0,
+      highestLevel: 1,
       lastPlayedAt: 0
     };
 
     existing.completedCount += 1;
+    if (levelCompleted !== undefined) {
+      existing.highestLevel = Math.max(
+        existing.highestLevel ?? 1,
+        levelCompleted
+      );
+    } else {
+      existing.highestLevel = (existing.highestLevel ?? 1) + 1;
+    }
     existing.lastPlayedAt = Date.now();
     profile.progress[minigameId] = existing;
     this.save();
     return existing;
+  }
+
+  public getMinigameLevel(minigameId: string, profileId?: string): number {
+    const targetId = profileId ?? this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return 1;
+    }
+    const stats = this.state.profiles[targetId].progress[minigameId];
+    return stats?.highestLevel ?? 1;
   }
 }
 
