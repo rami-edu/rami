@@ -23,9 +23,9 @@ interface WorldData {
 }
 
 /**
- * WonderTreeScene — Client-only, local-first isometric 2D hub.
- * The child navigates with keyboard or touch/click, triggers expressive emotes,
- * and enters on-demand minigame portals whose progress is saved locally on-device.
+ * WonderTreeScene — Client-only, local-first isometric 2D hub set against a
+ * static storybook forest background. The child navigates with keyboard or
+ * touch/click, triggers expressive emotes, and enters on-demand minigame portals.
  */
 export class WonderTreeScene extends Phaser.Scene {
   private playerContainer!: Phaser.GameObjects.Container;
@@ -55,6 +55,9 @@ export class WonderTreeScene extends Phaser.Scene {
 
   public preload(): void {
     this.load.json('worldData', './world.json');
+    if (!this.textures.exists('forestBackground')) {
+      this.load.image('forestBackground', './forest-background.jpg');
+    }
   }
 
   public create(): void {
@@ -71,8 +74,7 @@ export class WonderTreeScene extends Phaser.Scene {
       ]
     };
 
-    this.drawIsometricGrid();
-    this.drawTreeStructure(world);
+    this.drawForestBackground();
     this.createPortals(world.portals);
     this.createPlayer();
     this.setupControls();
@@ -89,54 +91,25 @@ export class WonderTreeScene extends Phaser.Scene {
     }) as EventListener);
   }
 
-  private drawIsometricGrid(): void {
-    const grid = this.add.graphics();
-    grid.lineStyle(1, 0x2d6a4f, 0.28);
-
-    const tileW = 64;
-    const tileH = 32;
-    for (let r = -12; r <= 24; r++) {
-      for (let c = -12; c <= 24; c++) {
-        const isoX = 640 + (c - r) * (tileW / 2);
-        const isoY = 120 + (c + r) * (tileH / 2);
-        grid.strokePoints(
-          [
-            { x: isoX, y: isoY },
-            { x: isoX + tileW / 2, y: isoY + tileH / 2 },
-            { x: isoX, y: isoY + tileH },
-            { x: isoX - tileW / 2, y: isoY + tileH / 2 }
-          ],
-          true
-        );
-      }
-    }
-  }
-
-  private drawTreeStructure(world: WorldData): void {
-    const treeGraphics = this.add.graphics();
-
-    const root = world.nodes[0] ?? { x: 640, y: 600 };
-    treeGraphics.lineStyle(18, 0x5c4033, 0.9);
-    for (const node of world.nodes) {
-      treeGraphics.lineBetween(root.x, root.y, node.x, node.y);
-      this.add.circle(node.x, node.y, 28, 0x3a5a40).setStrokeStyle(3, 0x74c69d);
-    }
-
-    treeGraphics.lineStyle(10, 0x7f5539, 0.75);
-    for (const portal of world.portals) {
-      treeGraphics.lineBetween(640, 480, portal.x, portal.y);
-    }
+  private drawForestBackground(): void {
+    const { width, height } = this.scale;
+    const bg = this.add.image(width / 2, height / 2, 'forestBackground');
+    const scaleX = width / bg.width;
+    const scaleY = height / bg.height;
+    bg.setScale(Math.max(scaleX, scaleY)).setDepth(0);
   }
 
   private createPortals(portalDefs: WorldPortal[]): void {
     for (const p of portalDefs) {
       this.add
-        .polygon(p.x, p.y + 18, [0, -24, 48, 0, 0, 24, -48, 0], 0x2d6a4f, 0.9)
-        .setStrokeStyle(2, 0x95d5b2);
+        .polygon(p.x, p.y + 18, [0, -24, 48, 0, 0, 24, -48, 0], 0x2d6a4f, 0.85)
+        .setStrokeStyle(2, 0x95d5b2)
+        .setDepth(5);
 
       const zone = this.add
-        .circle(p.x, p.y - 6, 34, 0x52b788, 0.35)
+        .circle(p.x, p.y - 6, 34, 0x52b788, 0.4)
         .setStrokeStyle(3, 0xb7e4c7)
+        .setDepth(6)
         .setInteractive({ useHandCursor: true });
 
       this.tweens.add({
@@ -151,10 +124,11 @@ export class WonderTreeScene extends Phaser.Scene {
         .text(p.x, p.y - 54, `🌀 ${p.minigame}`, {
           fontSize: '15px',
           color: '#ffffff',
-          backgroundColor: '#1b4332cc',
+          backgroundColor: '#1b4332dd',
           padding: { x: 8, y: 4 }
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setDepth(7);
 
       zone.on('pointerdown', () => {
         if (!this.activeMinigame) {
@@ -170,7 +144,7 @@ export class WonderTreeScene extends Phaser.Scene {
     const activeProfile = profileManager.getActiveProfile();
     this.playerContainer = this.add.container(640, 480).setDepth(20);
 
-    const shadow = this.add.ellipse(0, 20, 38, 16, 0x000000, 0.4);
+    const shadow = this.add.ellipse(0, 20, 38, 16, 0x000000, 0.45);
     const body = this.add
       .circle(0, 0, 20, 0x80ed99)
       .setStrokeStyle(3, 0x1b4332);
@@ -182,7 +156,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .text(0, 34, activeProfile?.explorerName ?? userManager.getUsername(), {
         fontSize: '14px',
         color: '#d8f3dc',
-        backgroundColor: '#081c15cc',
+        backgroundColor: '#081c15dd',
         padding: { x: 6, y: 2 }
       })
       .setOrigin(0.5);
@@ -233,7 +207,7 @@ export class WonderTreeScene extends Phaser.Scene {
         {
           fontSize: '14px',
           color: '#b7e4c7',
-          backgroundColor: '#0f1c11cc',
+          backgroundColor: '#0f1c11dd',
           padding: { x: 12, y: 6 }
         }
       )
