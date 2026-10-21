@@ -9,34 +9,34 @@
     {
       "id": "branch_left",
       "type": "Branch",
-      "x": 460,
-      "y": 460
+      "x": 408,
+      "y": 586
     },
     {
       "id": "branch_right",
       "type": "Branch",
-      "x": 850,
-      "y": 240
+      "x": 876,
+      "y": 166
     }
   ],
   "portals": [
     {
       "id": "portal_math",
       "minigame": "Acorn Scale",
-      "x": 455,
-      "y": 470
+      "x": 408,
+      "y": 586
     },
     {
       "id": "portal_hub",
       "minigame": "The Clockwork Tower",
-      "x": 680,
-      "y": 335
+      "x": 655,
+      "y": 308
     },
     {
       "id": "portal_music",
       "minigame": "Rhythm in the Branches",
-      "x": 865,
-      "y": 235
+      "x": 876,
+      "y": 166
     }
   ]
 }

@@ -98,9 +98,9 @@ export class WonderTreeScene extends Phaser.Scene {
         { id: 'branch_right', type: 'Branch', x: 850, y: 240 }
       ],
       portals: [
-        { id: 'portal_math', minigame: 'Acorn Scale', x: 455, y: 470 },
-        { id: 'portal_hub', minigame: 'The Clockwork Tower', x: 680, y: 335 },
-        { id: 'portal_music', minigame: 'Rhythm in the Branches', x: 865, y: 235 }
+        { id: 'portal_math', minigame: 'Acorn Scale', x: 408, y: 586 },
+        { id: 'portal_hub', minigame: 'The Clockwork Tower', x: 655, y: 308 },
+        { id: 'portal_music', minigame: 'Rhythm in the Branches', x: 876, y: 166 }
       ]
     };
 
@@ -202,70 +202,86 @@ export class WonderTreeScene extends Phaser.Scene {
 
       const container = this.add.container(p.x, p.y).setDepth(10);
 
-      // Soft outer golden-emerald aura
-      const outerAura = this.add.circle(0, 0, 44, theme.glowColor, 0.22);
+      // Organic recessed bark shadow & hollow rim inside the tree trunk
+      const barkRim = this.add
+        .ellipse(0, 0, 74, 86, 0x1e120a, 0.52)
+        .setStrokeStyle(4, 0x3b2414, 0.9);
 
-      // Rotating ornate rune ring
-      const runeRing = this.add.graphics();
-      runeRing.lineStyle(2.5, theme.ringColor, 0.85);
-      runeRing.strokeCircle(0, 0, 34);
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        runeRing.fillStyle(0xfff3b0, 0.95);
-        runeRing.fillCircle(Math.cos(angle) * 34, Math.sin(angle) * 34, 3);
+      // Warm inner tree-hole glow that blends with the painted hollow
+      const innerHollowGlow = this.add
+        .ellipse(0, 2, 58, 68, theme.glowColor, 0.28)
+        .setStrokeStyle(2, theme.ringColor, 0.75);
+
+      // Subtle swirling portal wisps inside the tree hole
+      const vortexWisps = this.add.graphics();
+      vortexWisps.lineStyle(2, theme.ringColor, 0.7);
+      for (let arm = 0; arm < 4; arm++) {
+        const startAngle = (arm / 4) * Math.PI * 2;
+        vortexWisps.beginPath();
+        for (let s = 0; s <= 16; s++) {
+          const t = s / 16;
+          const r = 6 + t * 18;
+          const a = startAngle + t * Math.PI * 1.4;
+          const wx = Math.cos(a) * r;
+          const wy = Math.sin(a) * r;
+          if (s === 0) vortexWisps.moveTo(wx, wy);
+          else vortexWisps.lineTo(wx, wy);
+        }
+        vortexWisps.strokePath();
       }
 
-      // Warm lantern medallion core
+      // Interactive tree-hole hit area
       const hitZone = this.add
-        .circle(0, 0, 27, 0x162418, 0.78)
-        .setStrokeStyle(3, theme.ringColor)
+        .circle(0, 0, 34, 0x000000, 0.01)
         .setInteractive({ useHandCursor: true });
 
       const iconText = this.add
-        .text(0, 0, theme.icon, { fontSize: '26px' })
+        .text(0, -2, theme.icon, { fontSize: '24px' })
         .setOrigin(0.5);
 
-      // Storybook wooden sign banner above the portal
+      // Compact carved wooden bark plaque tucked beneath the tree hole
       const bannerBg = this.add
-        .rectangle(0, -56, 195, 38, 0x1b2e1e, 0.92)
+        .rectangle(0, 56, 176, 32, 0x26170c, 0.9)
         .setStrokeStyle(2, theme.ringColor);
 
       const titleLabel = this.add
-        .text(0, -62, p.minigame, {
-          fontSize: '13px',
+        .text(0, 50, p.minigame, {
+          fontSize: '12px',
           color: '#fff3b0',
           fontStyle: 'bold'
         })
         .setOrigin(0.5);
 
       const subLabel = this.add
-        .text(0, -47, `✨ ${theme.subtitle}`, {
-          fontSize: '10px',
-          color: '#b7e4c7'
+        .text(0, 63, `✨ ${theme.subtitle}`, {
+          fontSize: '9.5px',
+          color: '#d8f3dc'
         })
         .setOrigin(0.5);
 
-      // Gentle breathing & rotation tweens
+      // Gentle breathing & inner swirl tweens inside the tree hollow
       this.tweens.add({
-        targets: outerAura,
-        scale: 1.24,
-        alpha: 0.42,
-        duration: 1400,
+        targets: innerHollowGlow,
+        scaleX: 1.12,
+        scaleY: 1.12,
+        alpha: 0.48,
+        duration: 1500,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
 
       this.tweens.add({
-        targets: runeRing,
+        targets: vortexWisps,
         rotation: Math.PI * 2,
-        duration: 14000,
+        duration: 10000,
         repeat: -1
       });
 
       container.add([
-        outerAura,
-        runeRing,
+        barkRim,
+        innerHollowGlow,
+        vortexWisps,
         hitZone,
         iconText,
         bannerBg,
@@ -396,11 +412,11 @@ export class WonderTreeScene extends Phaser.Scene {
     }
 
     for (const p of this.portals) {
-      // Anchor portals to the Wonder Tree nooks, clamped safely inside the screen
+      // Anchor portals directly inside the painted tree hollows
       const rawX = bgLeft + p.normX * renderedW;
       const rawY = bgTop + p.normY * renderedH;
-      const px = Phaser.Math.Clamp(rawX, 95 * dpr, width - 95 * dpr);
-      const py = Phaser.Math.Clamp(rawY, 115 * dpr, height - 110 * dpr);
+      const px = Phaser.Math.Clamp(rawX, 75 * dpr, width - 75 * dpr);
+      const py = Phaser.Math.Clamp(rawY, 55 * dpr, height - 80 * dpr);
       p.data.x = px;
       p.data.y = py;
       p.container.setPosition(px, py).setScale(dpr);
