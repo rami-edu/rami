@@ -24,7 +24,7 @@ interface TrunkSpineNode {
   leanAngle: number;
 }
 
-const UNIQUE_ACTIVITIES: Array<{
+export const TIER_ACTIVITIES: Array<{
   id: string;
   minigame: string;
   glowHex: string;
@@ -63,31 +63,27 @@ function createSeededRng(seed: number): () => number {
 /**
  * DynamicWonderTree — Explicit, procedurally generated 2D hand-drawn ancient
  * Camphor Tree (Cinnamomum camphora):
- * - Characteristic decurrent camphor growth habit: colossal, squat, deeply
- *   fluted warm ash-brown trunk that divides low into thick, sinuous S-curved
- *   co-dominant fractal limbs supporting a wide, billowing umbrella dome crown.
- * - Glossy bright yellow-green / spring chartreuse camphor foliage clouds with
- *   signature bronze-coral new leaf flushes and dark camphor berries.
- * - Uses Leonardo da Vinci's cross-sectional pipe model (r^alpha = r1^alpha + r2^alpha)
- *   for asymmetric recursive fractal branching.
+ * - Grows upward automatically whenever a new activity is unlocked (no manual button).
+ * - Seamless trunk-to-crown fork transition with a lush, continuous umbrella
+ *   dome of overlapping Camphor foliage clouds so the top of the tree never
+ *   looks cut off against the sky.
  */
 export class DynamicWonderTree {
   private scene: Phaser.Scene;
   private rootContainer: Phaser.GameObjects.Container;
   private crownContainer: Phaser.GameObjects.Container;
-  private sproutBudContainer!: Phaser.GameObjects.Container;
   private tiers: TierVisual[] = [];
   private spineNodes: TrunkSpineNode[] = [];
   private allAnchors: TreeHollowAnchor[] = [];
   private placedActivities = new Set<string>();
-  private readonly tierHeight = 320;
-  private readonly baseTrunkHalfWidth = 305;
+  private readonly tierHeight = 300;
+  private readonly baseTrunkHalfWidth = 295;
   private onNewAnchorCreated?: (anchor: TreeHollowAnchor) => void;
   private onTreeGrew?: (newTotalTiers: number) => void;
 
   constructor(
     scene: Phaser.Scene,
-    initialTiers = 2,
+    initialUnlockedTiers = 1,
     onNewAnchorCreated?: (anchor: TreeHollowAnchor) => void,
     onTreeGrew?: (newTotalTiers: number) => void
   ) {
@@ -99,18 +95,22 @@ export class DynamicWonderTree {
     this.crownContainer = scene.add.container(0, 0).setDepth(8);
     this.rootContainer.add(this.crownContainer);
 
-    // Camphor trees have a muscular, slightly leaning base trunk
     this.spineNodes.push({
-      centerX: -22,
+      centerX: -18,
       halfWidth: this.baseTrunkHalfWidth,
-      leanAngle: -0.08
+      leanAngle: -0.07
     });
 
-    for (let t = 0; t < initialTiers; t++) {
+    const clampedInitial = Phaser.Math.Clamp(
+      initialUnlockedTiers,
+      1,
+      TIER_ACTIVITIES.length
+    );
+    for (let t = 0; t < clampedInitial; t++) {
       this.appendTier(t, false);
     }
 
-    this.rebuildCamphorDomeCrownAndSproutBud();
+    this.rebuildCamphorDomeCrown(false);
   }
 
   public getContainer(): Phaser.GameObjects.Container {
@@ -126,20 +126,32 @@ export class DynamicWonderTree {
   }
 
   public getTotalLogicalHeight(): number {
-    return this.tiers.length * this.tierHeight + 370;
+    return this.tiers.length * this.tierHeight + 420;
   }
 
   /**
-   * Dynamically grows a new asymmetric fractal Camphor tier upwards.
+   * Automatically grows the tree upwards to match the number of unlocked
+   * activities (up to `TIER_ACTIVITIES.length`).
    */
-  public growUpwards(animate = true): TreeHollowAnchor[] {
-    const nextTierIndex = this.tiers.length;
-    const created = this.appendTier(nextTierIndex, animate);
-    this.rebuildCamphorDomeCrownAndSproutBud(animate);
-    if (this.onTreeGrew) {
-      this.onTreeGrew(this.tiers.length);
+  public syncUnlockedTiers(targetTierCount: number, animate = true): boolean {
+    const clampedTarget = Phaser.Math.Clamp(
+      targetTierCount,
+      1,
+      TIER_ACTIVITIES.length
+    );
+    let grew = false;
+    while (this.tiers.length < clampedTarget) {
+      const nextTierIndex = this.tiers.length;
+      this.appendTier(nextTierIndex, animate);
+      grew = true;
     }
-    return created;
+    if (grew) {
+      this.rebuildCamphorDomeCrown(animate);
+      if (this.onTreeGrew) {
+        this.onTreeGrew(this.tiers.length);
+      }
+    }
+    return grew;
   }
 
   private getOrComputeSpineNode(tierIndex: number): TrunkSpineNode {
@@ -149,10 +161,9 @@ export class DynamicWonderTree {
       const rng = createSeededRng(idx * 9173 + 2027);
 
       const swingDir = idx % 2 === 1 ? 1 : -1;
-      const deltaX = swingDir * (38 + rng() * 32) + (rng() - 0.5) * 18;
-      const nextCenterX = Phaser.Math.Clamp(prev.centerX + deltaX, -95, 95);
-      // Camphor trunk divides into massive co-dominant limbs as it rises
-      const nextHalfW = Math.max(155, prev.halfWidth * (0.83 + rng() * 0.05));
+      const deltaX = swingDir * (34 + rng() * 28) + (rng() - 0.5) * 14;
+      const nextCenterX = Phaser.Math.Clamp(prev.centerX + deltaX, -85, 85);
+      const nextHalfW = Math.max(150, prev.halfWidth * (0.82 + rng() * 0.04));
       const nextLean = (nextCenterX - prev.centerX) / this.tierHeight;
 
       this.spineNodes.push({
@@ -162,6 +173,18 @@ export class DynamicWonderTree {
       });
     }
     return this.spineNodes[tierIndex];
+  }
+
+  private getWallXAtNode(
+    tierIndex: number,
+    node: TrunkSpineNode,
+    midX: number
+  ): { leftX: number; rightX: number } {
+    const leftX =
+      midX + node.centerX - node.halfWidth * (0.95 + (tierIndex % 2) * 0.1);
+    const rightX =
+      midX + node.centerX + node.halfWidth * (1.05 - (tierIndex % 2) * 0.1);
+    return { leftX, rightX };
   }
 
   private appendTier(tierIndex: number, animate: boolean): TreeHollowAnchor[] {
@@ -183,7 +206,13 @@ export class DynamicWonderTree {
     if (ctx && canvasTex) {
       ctx.save();
       ctx.scale(dpr, dpr);
-      this.drawCamphorFractalTier(ctx, canvasW, canvasH, tierIndex, createdAnchors);
+      this.drawCamphorFractalTier(
+        ctx,
+        canvasW,
+        canvasH,
+        tierIndex,
+        createdAnchors
+      );
       ctx.restore();
       canvasTex.refresh();
     }
@@ -206,7 +235,7 @@ export class DynamicWonderTree {
         scaleX: 1,
         scaleY: 1,
         alpha: 1,
-        duration: 750,
+        duration: 850,
         ease: 'Back.easeOut'
       });
     }
@@ -229,20 +258,21 @@ export class DynamicWonderTree {
   }
 
   /**
-   * Renders the signature broad, billowing umbrella-dome crown of an ancient
-   * Camphor tree (Cinnamomum camphora), supported by 5 co-dominant S-curved
-   * fractal boughs radiating into dense cumulus-like chartreuse-emerald leaf clouds.
+   * Renders a full, organic Camphor umbrella-dome crown that seamlessly
+   * continues the uppermost trunk walls (`leftTopX`..`rightTopX`), splits into
+   * tapering S-curved co-dominant limbs, and blankets the entire upper tree in
+   * dense, overlapping Camphor foliage clouds so the trunk never looks cut off.
    */
-  private rebuildCamphorDomeCrownAndSproutBud(animate = false): void {
+  private rebuildCamphorDomeCrown(animate = false): void {
     this.crownContainer.removeAll(true);
 
     const topTierIdx = this.tiers.length;
     const topNode = this.getOrComputeSpineNode(topTierIdx);
-    const crownBaseY = -topTierIdx * this.tierHeight + 16;
+    const crownBaseY = -topTierIdx * this.tierHeight;
 
     const texKey = `camphor_tree_crown_${topTierIdx}_${Date.now()}`;
     const canvasW = 1680;
-    const canvasH = 500;
+    const canvasH = 600;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const canvasTex = this.scene.textures.createCanvas(
@@ -254,8 +284,11 @@ export class DynamicWonderTree {
     if (ctx && canvasTex) {
       ctx.save();
       ctx.scale(dpr, dpr);
-      const cx = canvasW / 2 + topNode.centerX;
-      const cy = canvasH - 65;
+      const midX = canvasW / 2;
+      const cx = midX + topNode.centerX;
+      // Seam line at `cy` aligns with `topY` of the highest trunk tier
+      const cy = canvasH - 110;
+      const { leftX, rightX } = this.getWallXAtNode(topTierIdx, topNode, midX);
       const rng = createSeededRng(topTierIdx * 4099 + 109);
 
       const foliageQueue: Array<{
@@ -266,43 +299,100 @@ export class DynamicWonderTree {
         seed: number;
       }> = [];
 
-      // 1. Background dome canopy clouds (deep camphor shadow green)
-      this.drawCamphorFoliageCloud(ctx, cx - 390, cy - 175, 235, 118, 13, false);
-      this.drawCamphorFoliageCloud(ctx, cx + 385, cy - 170, 240, 120, 29, false);
-      this.drawCamphorFoliageCloud(ctx, cx - 185, cy - 235, 260, 130, 43, false);
-      this.drawCamphorFoliageCloud(ctx, cx + 190, cy - 230, 260, 130, 61, false);
-      this.drawCamphorFoliageCloud(ctx, cx, cy - 265, 295, 142, 89, false);
+      // 1. Deep background Camphor umbrella dome clouds (completely filling sky gaps)
+      this.drawCamphorFoliageCloud(ctx, cx - 440, cy - 135, 250, 125, 11, false);
+      this.drawCamphorFoliageCloud(ctx, cx + 440, cy - 130, 250, 125, 23, false);
+      this.drawCamphorFoliageCloud(ctx, cx - 260, cy - 220, 280, 140, 37, false);
+      this.drawCamphorFoliageCloud(ctx, cx + 260, cy - 215, 280, 140, 53, false);
+      this.drawCamphorFoliageCloud(ctx, cx, cy - 265, 320, 155, 71, false);
+      this.drawCamphorFoliageCloud(ctx, cx - 140, cy - 95, 240, 120, 83, false);
+      this.drawCamphorFoliageCloud(ctx, cx + 140, cy - 95, 240, 120, 97, false);
 
-      // 2. Co-dominant S-curved fractal Camphor crown limbs fanning into the dome
+      // 2. Seamless Upper Trunk Crown Fork: starts at exact [leftX, rightX] of
+      //    the top tier and tapers smoothly into the 3 main crown bough bases
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(leftX, cy + 18);
+      ctx.bezierCurveTo(
+        leftX + 12,
+        cy - 45,
+        cx - topNode.halfWidth * 0.65,
+        cy - 95,
+        cx - topNode.halfWidth * 0.42,
+        cy - 125
+      );
+      ctx.quadraticCurveTo(cx, cy - 155, cx + topNode.halfWidth * 0.42, cy - 125);
+      ctx.bezierCurveTo(
+        cx + topNode.halfWidth * 0.65,
+        cy - 95,
+        rightX - 12,
+        cy - 45,
+        rightX,
+        cy + 18
+      );
+      ctx.closePath();
+      ctx.fillStyle = '#756556';
+      ctx.fill();
+
+      // Stroke only the outer left and right tapering walls (no flat horizontal line)
+      ctx.strokeStyle = '#241b14';
+      ctx.lineWidth = 5.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(leftX, cy + 16);
+      ctx.bezierCurveTo(
+        leftX + 12,
+        cy - 45,
+        cx - topNode.halfWidth * 0.65,
+        cy - 95,
+        cx - topNode.halfWidth * 0.42,
+        cy - 125
+      );
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(rightX, cy + 16);
+      ctx.bezierCurveTo(
+        rightX - 12,
+        cy - 45,
+        cx + topNode.halfWidth * 0.65,
+        cy - 95,
+        cx + topNode.halfWidth * 0.42,
+        cy - 125
+      );
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Co-dominant S-curved fractal Camphor crown limbs fanning into the dome
       this.drawRecursiveCamphorBranch(
         ctx,
-        cx - topNode.halfWidth * 0.58,
-        cy + 10,
-        -Math.PI * 0.82 + (rng() - 0.5) * 0.08,
+        cx - topNode.halfWidth * 0.56,
+        cy - 25,
+        -Math.PI * 0.84 + (rng() - 0.5) * 0.08,
+        195,
+        topNode.halfWidth * 0.36,
+        4,
+        rng,
+        foliageQueue
+      );
+      this.drawRecursiveCamphorBranch(
+        ctx,
+        cx - topNode.halfWidth * 0.25,
+        cy - 65,
+        -Math.PI * 0.66 + (rng() - 0.5) * 0.08,
         185,
-        topNode.halfWidth * 0.44,
+        topNode.halfWidth * 0.38,
         4,
         rng,
         foliageQueue
       );
       this.drawRecursiveCamphorBranch(
         ctx,
-        cx - topNode.halfWidth * 0.22,
-        cy,
-        -Math.PI * 0.64 + (rng() - 0.5) * 0.08,
+        cx + 8,
+        cy - 85,
+        -Math.PI * 0.48 + (rng() - 0.5) * 0.08,
         175,
-        topNode.halfWidth * 0.46,
-        4,
-        rng,
-        foliageQueue
-      );
-      this.drawRecursiveCamphorBranch(
-        ctx,
-        cx + 12,
-        cy - 8,
-        -Math.PI * 0.47 + (rng() - 0.5) * 0.1,
-        165,
-        topNode.halfWidth * 0.44,
+        topNode.halfWidth * 0.38,
         4,
         rng,
         foliageQueue
@@ -310,100 +400,60 @@ export class DynamicWonderTree {
       this.drawRecursiveCamphorBranch(
         ctx,
         cx + topNode.halfWidth * 0.28,
-        cy + 4,
+        cy - 60,
         -Math.PI * 0.32 + (rng() - 0.5) * 0.08,
-        180,
-        topNode.halfWidth * 0.48,
+        185,
+        topNode.halfWidth * 0.38,
         4,
         rng,
         foliageQueue
       );
       this.drawRecursiveCamphorBranch(
         ctx,
-        cx + topNode.halfWidth * 0.6,
-        cy + 12,
-        -Math.PI * 0.16 + (rng() - 0.5) * 0.08,
-        190,
-        topNode.halfWidth * 0.42,
+        cx + topNode.halfWidth * 0.58,
+        cy - 20,
+        -Math.PI * 0.15 + (rng() - 0.5) * 0.08,
+        195,
+        topNode.halfWidth * 0.35,
         4,
         rng,
         foliageQueue
       );
 
-      // 3. Foreground sunlit chartreuse-emerald camphor foliage domes & bronze spring flushes
+      // 4. Foreground sunlit Camphor foliage clouds blanketing the upper fork and crown
+      this.drawCamphorFoliageCloud(ctx, cx - 175, cy - 55, 195, 95, 101, true);
+      this.drawCamphorFoliageCloud(ctx, cx + 175, cy - 55, 195, 95, 107, true);
+      this.drawCamphorFoliageCloud(ctx, cx, cy - 85, 215, 105, 113, true);
+
       for (const f of foliageQueue) {
         this.drawCamphorFoliageCloud(ctx, f.x, f.y, f.rx, f.ry, f.seed, true);
       }
+
+      // Apex sunlit crown dome clouds
+      this.drawCamphorFoliageCloud(ctx, cx - 155, cy - 235, 225, 112, 131, true);
+      this.drawCamphorFoliageCloud(ctx, cx + 155, cy - 230, 225, 112, 139, true);
+      this.drawCamphorFoliageCloud(ctx, cx, cy - 280, 255, 124, 149, true);
 
       ctx.restore();
       canvasTex.refresh();
     }
 
     const crownImg = this.scene.add
-      .image(0, crownBaseY - 185, texKey)
+      .image(0, crownBaseY - canvasH / 2 + 110, texKey)
       .setScale(1 / dpr);
     this.crownContainer.add(crownImg);
-
-    this.sproutBudContainer = this.scene.add.container(
-      topNode.centerX,
-      crownBaseY - 255
-    );
-
-    const budGlow = this.scene.add.circle(0, 0, 34, 0xffe66d, 0.3);
-    const budCircle = this.scene.add
-      .circle(0, 0, 24, 0x1b4332, 0.94)
-      .setStrokeStyle(3, 0xffd166)
-      .setInteractive({ useHandCursor: true });
-
-    const budIcon = this.scene.add
-      .text(0, 0, '🌱', { fontSize: '22px' })
-      .setOrigin(0.5);
-
-    const budLabel = this.scene.add
-      .text(0, -36, '✨ Grow New Branch', {
-        fontSize: '13px',
-        color: '#fff3b0',
-        fontStyle: 'bold',
-        backgroundColor: '#162418dd',
-        padding: { x: 9, y: 4 }
-      })
-      .setOrigin(0.5);
-
-    this.scene.tweens.add({
-      targets: budGlow,
-      scale: 1.3,
-      alpha: 0.5,
-      duration: 1200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
-    budCircle.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
-      this.growUpwards(true);
-    });
-
-    this.sproutBudContainer.add([budGlow, budCircle, budIcon, budLabel]);
-    this.crownContainer.add(this.sproutBudContainer);
 
     if (animate) {
       this.crownContainer.setAlpha(0.3);
       this.scene.tweens.add({
         targets: this.crownContainer,
         alpha: 1,
-        duration: 500,
+        duration: 600,
         ease: 'Sine.easeOut'
       });
     }
   }
 
-  /**
-   * Recursive Fractal Camphor Branch Generator:
-   * Camphor limbs are famous for their sinuous S-curved undulations (sweeping
-   * outward and then curving upward at the tips) and Leonardo da Vinci's
-   * area-preserving pipe rule (r_parent^2.15 = r_1^2.15 + r_2^2.15).
-   */
   private drawRecursiveCamphorBranch(
     ctx: CanvasRenderingContext2D,
     x0: number,
@@ -423,7 +473,6 @@ export class DynamicWonderTree {
   ): void {
     if (depth <= 0 || radius < 2.5) return;
 
-    // Characteristic Camphor S-curve: dip slightly then curl upwards toward sunlight
     const sWave = (rng() - 0.42) * 0.34;
     const x1 = x0 + Math.cos(angle) * length;
     const y1 = y0 + Math.sin(angle) * length;
@@ -464,12 +513,10 @@ export class DynamicWonderTree {
       ctx.closePath();
     };
 
-    // 1. Flat 2D Camphor ash-brown watercolor bark fill (#746455 / #68584a)
     buildSegmentPath();
     ctx.fillStyle = depth >= 3 ? '#756556' : '#665749';
     ctx.fill();
 
-    // 2. Flat 2D cel-shaded underside shadow
     ctx.save();
     buildSegmentPath();
     ctx.clip();
@@ -489,7 +536,6 @@ export class DynamicWonderTree {
     ctx.closePath();
     ctx.fill();
 
-    // Camphor furrowed bark lines along thicker limbs
     if (radius > 9) {
       ctx.strokeStyle = '#2b221b';
       ctx.lineWidth = Math.max(1.4, radius * 0.06);
@@ -511,7 +557,6 @@ export class DynamicWonderTree {
     }
     ctx.restore();
 
-    // 3. Hand-inked dip-pen outline
     buildSegmentPath();
     ctx.lineWidth = Math.max(2.2, Math.min(4.8, radius * 0.14));
     ctx.strokeStyle = '#241b14';
@@ -519,34 +564,28 @@ export class DynamicWonderTree {
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    // Lush epiphytic moss and ferns along horizontal Camphor boughs
     if (depth === 4 && Math.abs(Math.cos(angle)) > 0.42) {
       this.drawMossPatch(ctx, ctrl1X, ctrl1Y - radius * 0.68, radius * 0.98, 14);
     }
 
-    // Queue terminal Camphor leaf domes at outer fractal twigs
     if (depth <= 2) {
       foliageQueue.push({
         x: x1,
         y: y1 - 14,
-        rx: 84 + depth * 42 + rng() * 28,
-        ry: 48 + depth * 22 + rng() * 16,
+        rx: 92 + depth * 44 + rng() * 28,
+        ry: 52 + depth * 24 + rng() * 16,
         seed: Math.floor(rng() * 1000)
       });
     }
 
-    // 4. Recursive Asymmetric Fractal Bifurcation (Leonardo's pipe rule)
     const leonardoExp = 0.46;
     const rDominant = endRadius * Math.pow(splitRatio, leonardoExp);
     const rSecondary = endRadius * Math.pow(1 - splitRatio, leonardoExp);
 
     const sideSign = rng() > 0.48 ? 1 : -1;
-    // Camphor branches curve gently upward toward the canopy dome (-Math.PI/2)
-    const upwardPull = ( -Math.PI * 0.5 - angle ) * 0.14;
-    const angleDom =
-      angle + sideSign * (0.2 + rng() * 0.22) + upwardPull;
-    const angleSec =
-      angle - sideSign * (0.44 + rng() * 0.32) + upwardPull * 0.6;
+    const upwardPull = (-Math.PI * 0.5 - angle) * 0.14;
+    const angleDom = angle + sideSign * (0.2 + rng() * 0.22) + upwardPull;
+    const angleSec = angle - sideSign * (0.44 + rng() * 0.32) + upwardPull * 0.6;
 
     const lenDom = length * (0.75 + rng() * 0.12);
     const lenSec = length * (0.6 + rng() * 0.15);
@@ -622,7 +661,7 @@ export class DynamicWonderTree {
 
     // 1. Asymmetric S-Curved Camphor Boughs spreading wide to left and right
     const leftOriginY =
-      topY + (tierIndex % 2 === 0 ? 150 : 88) + (rng() - 0.5) * 22;
+      topY + (tierIndex % 2 === 0 ? 145 : 85) + (rng() - 0.5) * 22;
     const leftOriginX =
       Phaser.Math.Linear(topCx, botCx, (leftOriginY - topY) / this.tierHeight) -
       topNode.halfWidth * 0.74;
@@ -643,9 +682,13 @@ export class DynamicWonderTree {
     );
 
     const rightOriginY =
-      topY + (tierIndex % 2 === 0 ? 74 : 162) + (rng() - 0.5) * 22;
+      topY + (tierIndex % 2 === 0 ? 72 : 158) + (rng() - 0.5) * 22;
     const rightOriginX =
-      Phaser.Math.Linear(topCx, botCx, (rightOriginY - topY) / this.tierHeight) +
+      Phaser.Math.Linear(
+        topCx,
+        botCx,
+        (rightOriginY - topY) / this.tierHeight
+      ) +
       topNode.halfWidth * 0.76;
     const rightAngle =
       -(tierIndex % 2 === 0 ? 0.34 : 0.18) + (rng() - 0.5) * 0.08;
@@ -663,9 +706,8 @@ export class DynamicWonderTree {
       foliageQueue
     );
 
-    // Asymmetric secondary lateral Camphor limb
     const extraSide = tierIndex % 2 === 0 ? -1 : 1;
-    const extraY = topY + 215;
+    const extraY = topY + 205;
     const extraX =
       Phaser.Math.Linear(topCx, botCx, (extraY - topY) / this.tierHeight) +
       extraSide * topNode.halfWidth * 0.8;
@@ -690,17 +732,18 @@ export class DynamicWonderTree {
     // 3. Squat, Muscular, Deeply Fluted Ash-Brown Camphor Trunk & Coiling Roots
     this.drawCamphorFlutedTrunk(
       ctx,
+      midX,
       botCx,
       topCx,
       bottomY,
       topY,
-      bottomNode.halfWidth,
-      topNode.halfWidth,
+      bottomNode,
+      topNode,
       tierIndex,
       rng
     );
 
-    // 4. Foreground sunlit Camphor foliage clouds with bronze-coral spring leaf tips
+    // 4. Foreground sunlit Camphor foliage clouds
     for (let i = 1; i < foliageQueue.length; i += 2) {
       const f = foliageQueue[i];
       this.drawCamphorFoliageCloud(
@@ -725,119 +768,75 @@ export class DynamicWonderTree {
       tierIndex
     );
 
-    // 6. Natural Carved Tree Hollows (each unique activity appears strictly ONCE)
-    if (tierIndex === 0) {
-      const mathDef = UNIQUE_ACTIVITIES[0];
-      if (!this.placedActivities.has(mathDef.minigame)) {
-        this.placedActivities.add(mathDef.minigame);
-        const leftHollowX = botCx - 155;
-        const leftHollowY = bottomY - 76;
-        this.drawNaturalTreeHollow(
-          ctx,
-          leftHollowX,
-          leftHollowY,
-          52,
-          62,
-          mathDef.glowHex
-        );
-        outAnchors.push({
-          id: mathDef.id,
-          tierIndex: 0,
-          minigame: mathDef.minigame,
-          localX: leftHollowX - midX,
-          localY: leftHollowY - bottomY,
-          branchSide: mathDef.branchSide
-        });
-      }
+    // 6. One unique activity portal hollow per tier
+    const tierActivity = TIER_ACTIVITIES[tierIndex];
+    if (tierActivity && !this.placedActivities.has(tierActivity.minigame)) {
+      this.placedActivities.add(tierActivity.minigame);
+      const hollowX =
+        tierActivity.branchSide === 'left'
+          ? botCx - 145
+          : tierActivity.branchSide === 'right'
+            ? topCx + 155
+            : (botCx + topCx) * 0.5 + 32;
+      const hollowY =
+        tierIndex === 0 ? bottomY - 82 : topY + this.tierHeight * 0.44;
 
-      const hubDef = UNIQUE_ACTIVITIES[1];
-      if (!this.placedActivities.has(hubDef.minigame)) {
-        this.placedActivities.add(hubDef.minigame);
-        const centerHollowX = topCx + 45;
-        const centerHollowY = topY + 112;
-        this.drawNaturalTreeHollow(
-          ctx,
-          centerHollowX,
-          centerHollowY,
-          52,
-          62,
-          hubDef.glowHex
-        );
-        outAnchors.push({
-          id: hubDef.id,
-          tierIndex: 0,
-          minigame: hubDef.minigame,
-          localX: centerHollowX - midX,
-          localY: centerHollowY - bottomY,
-          branchSide: hubDef.branchSide
-        });
-      }
-    } else {
-      const nextActivity = UNIQUE_ACTIVITIES.find(
-        (act) => !this.placedActivities.has(act.minigame)
+      this.drawNaturalTreeHollow(
+        ctx,
+        hollowX,
+        hollowY,
+        52,
+        62,
+        tierActivity.glowHex
       );
-      if (nextActivity) {
-        this.placedActivities.add(nextActivity.minigame);
-        const hollowX =
-          nextActivity.branchSide === 'left'
-            ? topCx - 175
-            : nextActivity.branchSide === 'right'
-              ? topCx + 185
-              : topCx - 15;
-        const hollowY = topY + 118;
-        this.drawNaturalTreeHollow(
-          ctx,
-          hollowX,
-          hollowY,
-          50,
-          60,
-          nextActivity.glowHex
-        );
-        outAnchors.push({
-          id: nextActivity.id,
-          tierIndex,
-          minigame: nextActivity.minigame,
-          localX: hollowX - midX,
-          localY: hollowY - bottomY,
-          branchSide: nextActivity.branchSide
-        });
-      }
+      outAnchors.push({
+        id: tierActivity.id,
+        tierIndex,
+        minigame: tierActivity.minigame,
+        localX: hollowX - midX,
+        localY: hollowY - bottomY,
+        branchSide: tierActivity.branchSide
+      });
     }
   }
 
-  /**
-   * Draws the characteristic deeply fluted, muscular warm ash-grey-brown bark
-   * of an ancient Camphor tree (Cinnamomum camphora) in 2D hand-drawn style.
-   */
   private drawCamphorFlutedTrunk(
     ctx: CanvasRenderingContext2D,
+    midX: number,
     botCx: number,
     topCx: number,
     bottomY: number,
     topY: number,
-    bottomHalfW: number,
-    topHalfW: number,
+    bottomNode: TrunkSpineNode,
+    topNode: TrunkSpineNode,
     tierIndex: number,
     rng: () => number
   ): void {
     const includeRoots = tierIndex === 0;
+    const bottomHalfW = bottomNode.halfWidth;
+    const topHalfW = topNode.halfWidth;
     ctx.save();
 
-    const leftTopX = topCx - topHalfW * (0.94 + (tierIndex % 2) * 0.12);
-    const rightTopX = topCx + topHalfW * (1.06 - (tierIndex % 2) * 0.12);
-    const leftBotX = botCx - bottomHalfW * (0.94 + ((tierIndex + 1) % 2) * 0.12);
-    const rightBotX = botCx + bottomHalfW * (1.06 - ((tierIndex + 1) % 2) * 0.12);
+    const { leftX: leftBotX, rightX: rightBotX } = this.getWallXAtNode(
+      tierIndex,
+      bottomNode,
+      midX
+    );
+    const { leftX: leftTopX, rightX: rightTopX } = this.getWallXAtNode(
+      tierIndex + 1,
+      topNode,
+      midX
+    );
 
     const leftMidX1 =
-      Phaser.Math.Linear(leftTopX, leftBotX, 0.35) - 32 + (rng() - 0.5) * 28;
+      Phaser.Math.Linear(leftTopX, leftBotX, 0.35) - 32 + (rng() - 0.5) * 24;
     const leftMidX2 =
-      Phaser.Math.Linear(leftTopX, leftBotX, 0.72) + 20 + (rng() - 0.5) * 28;
+      Phaser.Math.Linear(leftTopX, leftBotX, 0.72) + 20 + (rng() - 0.5) * 24;
     const rightMidX1 =
-      Phaser.Math.Linear(rightTopX, rightBotX, 0.32) + 20 + (rng() - 0.5) * 28;
+      Phaser.Math.Linear(rightTopX, rightBotX, 0.32) + 20 + (rng() - 0.5) * 24;
     const rightMidX2 =
-      Phaser.Math.Linear(rightTopX, rightBotX, 0.68) - 28 + (rng() - 0.5) * 28;
+      Phaser.Math.Linear(rightTopX, rightBotX, 0.68) - 28 + (rng() - 0.5) * 24;
 
-    // On Tier 0, draw massive, coiling surface roots typical of ancient Camphor trees
     if (includeRoots) {
       const rootConfigs = [
         { startX: leftBotX + 30, angle: Math.PI - 0.28, len: 215, r: 52 },
@@ -862,14 +861,14 @@ export class DynamicWonderTree {
 
     const buildTrunkPath = () => {
       ctx.beginPath();
-      ctx.moveTo(leftTopX, topY);
+      ctx.moveTo(leftTopX, topY - 4);
       ctx.bezierCurveTo(
         leftMidX1,
         topY + this.tierHeight * 0.34,
         leftMidX2,
         topY + this.tierHeight * 0.68,
         includeRoots ? leftBotX - 110 : leftBotX,
-        bottomY + 8
+        bottomY + 12
       );
 
       if (includeRoots) {
@@ -892,7 +891,7 @@ export class DynamicWonderTree {
           bottomY + 10
         );
       } else {
-        ctx.lineTo(rightBotX, bottomY + 8);
+        ctx.lineTo(rightBotX, bottomY + 12);
       }
 
       ctx.bezierCurveTo(
@@ -901,22 +900,19 @@ export class DynamicWonderTree {
         rightMidX1,
         topY + this.tierHeight * 0.34,
         rightTopX,
-        topY
+        topY - 4
       );
       ctx.closePath();
     };
 
-    // 1. Flat 2D Camphor warm ash-brown base wash (#756556)
     buildTrunkPath();
     ctx.fillStyle = '#756556';
     ctx.fill();
 
-    // 2. Clip inside the trunk for 2D cel-shaded watercolor zones & fluted camphor bark plates
     ctx.save();
     buildTrunkPath();
     ctx.clip();
 
-    // Left-center sunlit warm taupe-ochre wash (#877665)
     ctx.fillStyle = '#877665';
     ctx.beginPath();
     ctx.moveTo(leftTopX - 40, topY - 10);
@@ -933,7 +929,6 @@ export class DynamicWonderTree {
     ctx.closePath();
     ctx.fill();
 
-    // Right cel-shaded shadow band (#56493e)
     ctx.fillStyle = '#56493e';
     ctx.beginPath();
     ctx.moveTo(topCx + topHalfW * 0.3, topY - 10);
@@ -951,7 +946,6 @@ export class DynamicWonderTree {
     ctx.closePath();
     ctx.fill();
 
-    // Camphor rough vertical-interlocking bark plates
     const plateColors = ['#68594b', '#7e6e5e', '#5d4f42', '#827160'];
     for (let p = 0; p < 18; p++) {
       const t = (p + 0.5) / 18;
@@ -967,7 +961,6 @@ export class DynamicWonderTree {
       ctx.fill();
     }
 
-    // 3. Deeply furrowed Y-forking Camphor bark fissures
     ctx.strokeStyle = '#241b14';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -986,7 +979,6 @@ export class DynamicWonderTree {
       );
     }
 
-    // Gnarled Camphor trunk burls / knots
     this.drawBarkKnot(
       ctx,
       topCx - topHalfW * (0.34 + rng() * 0.2),
@@ -1029,15 +1021,57 @@ export class DynamicWonderTree {
 
     ctx.restore();
 
-    // 4. Bold hand-inked dip-pen outer contour
-    buildTrunkPath();
+    // 4. Stroke ONLY the left and right outer walls (and root base on Tier 0)
+    //    so there is NEVER a horizontal cut line across the top of the trunk!
     ctx.lineWidth = 5.5;
     ctx.strokeStyle = '#241b14';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(leftTopX, topY - 2);
+    ctx.bezierCurveTo(
+      leftMidX1,
+      topY + this.tierHeight * 0.34,
+      leftMidX2,
+      topY + this.tierHeight * 0.68,
+      includeRoots ? leftBotX - 110 : leftBotX,
+      bottomY + 10
+    );
+    if (includeRoots) {
+      ctx.quadraticCurveTo(
+        botCx - bottomHalfW * 0.95,
+        bottomY + 48,
+        botCx - bottomHalfW * 0.42,
+        bottomY + 26
+      );
+      ctx.quadraticCurveTo(
+        botCx + bottomHalfW * 0.08,
+        bottomY + 54,
+        botCx + bottomHalfW * 0.55,
+        bottomY + 28
+      );
+      ctx.quadraticCurveTo(
+        botCx + bottomHalfW * 1.05,
+        bottomY + 50,
+        rightBotX + 125,
+        bottomY + 10
+      );
+    }
     ctx.stroke();
 
-    // 5. Lush mossy cushions on the Camphor trunk and roots
+    ctx.beginPath();
+    ctx.moveTo(includeRoots ? rightBotX + 125 : rightBotX, bottomY + 10);
+    ctx.bezierCurveTo(
+      rightMidX2,
+      topY + this.tierHeight * 0.68,
+      rightMidX1,
+      topY + this.tierHeight * 0.34,
+      rightTopX,
+      topY - 2
+    );
+    ctx.stroke();
+
     this.drawMossPatch(ctx, leftMidX1 + 20, topY + 75, 50, 21);
     this.drawMossPatch(ctx, rightMidX2 - 18, topY + 155, 54, 22);
     if (includeRoots) {
@@ -1206,7 +1240,6 @@ export class DynamicWonderTree {
       ctx.save();
       ctx.translate(lx + side * 10, ly);
       ctx.rotate(side * 0.55);
-      // Glossy oval-pointed Camphor/ivy leaf with 3 characteristic basal veins
       ctx.fillStyle = i % 3 === 0 ? '#a7db65' : '#6bbf59';
       ctx.strokeStyle = '#1e3f20';
       ctx.lineWidth = 2;
@@ -1300,7 +1333,8 @@ export class DynamicWonderTree {
       const sy = bottomY - t * (bottomY - topY);
       const spineX = Phaser.Math.Linear(botCx, topCx, t);
       const sx =
-        spineX + Math.sin(t * Math.PI * 1.3 + tierIndex) * (trunkHalfW * 0.45) * dir;
+        spineX +
+        Math.sin(t * Math.PI * 1.3 + tierIndex) * (trunkHalfW * 0.45) * dir;
 
       ctx.fillStyle = '#9c6b43';
       ctx.strokeStyle = '#241b14';
@@ -1361,13 +1395,6 @@ export class DynamicWonderTree {
     ctx.restore();
   }
 
-  /**
-   * Draws a billowing, rounded cumulus-like Camphor tree (Cinnamomum camphora)
-   * foliage dome:
-   * - Glossy bright spring yellow-green / chartreuse-emerald leaf layers
-   * - Characteristic bronze-coral / warm reddish-amber new leaf flush tips
-   * - Small dark blue-black camphor berries nestled in the leaf clusters
-   */
   private drawCamphorFoliageCloud(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -1421,7 +1448,6 @@ export class DynamicWonderTree {
     }
 
     if (includeSunlitFlushes) {
-      // Signature Cinnamomum camphora bronze-coral / warm reddish-amber new leaf flush tips
       for (let f = -1; f <= 1; f += 2) {
         const fx = cx + f * rx * 0.42;
         const fy = cy - ry * 0.52 + Math.sin(seed + f) * 8;
@@ -1434,7 +1460,6 @@ export class DynamicWonderTree {
         ctx.stroke();
       }
 
-      // Small cluster of dark blue-black camphor berries
       ctx.fillStyle = '#222b38';
       ctx.strokeStyle = '#0d131a';
       ctx.lineWidth = 1.5;
@@ -1448,7 +1473,6 @@ export class DynamicWonderTree {
       }
     }
 
-    // Hand-inked internal leaf cluster contour arcs
     ctx.strokeStyle = '#1e4223';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';

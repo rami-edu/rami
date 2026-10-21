@@ -5,6 +5,7 @@ import { minigameLoader } from '../managers/MinigameLoader';
 import { MinigameActivityScene } from './MinigameActivityScene';
 import {
   DynamicWonderTree,
+  TIER_ACTIVITIES,
   type TreeHollowAnchor
 } from '../objects/DynamicWonderTree';
 
@@ -86,10 +87,11 @@ export class WonderTreeScene extends Phaser.Scene {
     this.drawStaticForestBackground();
     this.createAmbientFireflies();
 
-    // Create the explicit, dynamically rendered hand-drawn Wonder Tree
+    // Create the explicit, dynamically rendered hand-drawn Camphor Wonder Tree
+    // initialized with the active profile's currently unlocked activity tiers
     this.wonderTree = new DynamicWonderTree(
       this,
-      2,
+      this.getUnlockedActivityCount(),
       (anchor) => {
         this.createDynamicPortalForAnchor(anchor);
       },
@@ -117,7 +119,32 @@ export class WonderTreeScene extends Phaser.Scene {
         const desc = ProfileManager.getAvatarDescriptor(current.avatarId);
         this.avatarSprite.setTexture(desc.textureKey);
       }
+      if (this.wonderTree) {
+        this.wonderTree.syncUnlockedTiers(this.getUnlockedActivityCount(), true);
+      }
     }) as EventListener);
+  }
+
+  /**
+   * Determines how many activity tiers are unlocked for the active profile.
+   * Tier 0 (Acorn Scale) is always unlocked; each subsequent activity unlocks
+   * automatically when the previous activity has been completed or leveled up.
+   */
+  private getUnlockedActivityCount(): number {
+    const active = profileManager.getActiveProfile();
+    if (!active) return 1;
+
+    let unlocked = 1;
+    for (let i = 0; i < TIER_ACTIVITIES.length - 1; i++) {
+      const actName = TIER_ACTIVITIES[i].minigame;
+      const stats = active.progress[actName];
+      if (stats && (stats.completedCount > 0 || stats.highestLevel > 0)) {
+        unlocked = i + 2;
+      } else {
+        break;
+      }
+    }
+    return unlocked;
   }
 
   /**
@@ -721,6 +748,10 @@ export class WonderTreeScene extends Phaser.Scene {
 
         this.scene.wake('WonderTreeScene');
         this.scene.remove(dynamicSceneKey);
+
+        // Automatically grow the tree upwards if a new activity was unlocked
+        const unlockedCount = this.getUnlockedActivityCount();
+        this.wonderTree.syncUnlockedTiers(unlockedCount, true);
 
         this.layoutScene(this.scale.width, this.scale.height);
         this.playReturnPortalArrival(portal.worldX, portal.worldY);
