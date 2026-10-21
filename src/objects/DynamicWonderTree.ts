@@ -18,6 +18,12 @@ interface TierVisual {
   anchors: TreeHollowAnchor[];
 }
 
+interface TrunkSpineNode {
+  centerX: number;
+  halfWidth: number;
+  leanAngle: number;
+}
+
 const UNIQUE_ACTIVITIES: Array<{
   id: string;
   minigame: string;
@@ -45,11 +51,25 @@ const UNIQUE_ACTIVITIES: Array<{
 ];
 
 /**
- * DynamicWonderTree — Explicit, procedurally rendered 2D hand-drawn storybook
- * Wonder Tree. Uses flat cel/watercolor washes, sketchy dip-pen ink linework,
- * gnarled bark plates, wood knots, pen cross-hatching, climbing ivy vines, and
- * scalloped ink-and-wash leaf clusters (zero 3D cylindrical shading).
- * Supports growing new wide branch tiers upwards dynamically at runtime.
+ * Deterministic seeded PRNG (Mulberry32) so fractal branching is organic,
+ * asymmetric, and reproducible across frames/resizes.
+ */
+function createSeededRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * DynamicWonderTree — Explicit, procedurally generated 2D hand-drawn fractal
+ * Wonder Tree. Uses an asymmetric recursive L-system / Leonardo da Vinci
+ * cross-sectional pipe model (r^alpha = r1^alpha + r2^alpha) with unequal
+ * split ratios, gnarled curving trunk spine, recursive root buttresses, and
+ * 5-level fractal branch bifurcations rendered in 2D pen-and-ink + watercolor.
  */
 export class DynamicWonderTree {
   private scene: Phaser.Scene;
@@ -57,10 +77,11 @@ export class DynamicWonderTree {
   private crownContainer: Phaser.GameObjects.Container;
   private sproutBudContainer!: Phaser.GameObjects.Container;
   private tiers: TierVisual[] = [];
+  private spineNodes: TrunkSpineNode[] = [];
   private allAnchors: TreeHollowAnchor[] = [];
   private placedActivities = new Set<string>();
-  private readonly tierHeight = 320;
-  private readonly baseTrunkHalfWidth = 285;
+  private readonly tierHeight = 330;
+  private readonly baseTrunkHalfWidth = 275;
   private onNewAnchorCreated?: (anchor: TreeHollowAnchor) => void;
   private onTreeGrew?: (newTotalTiers: number) => void;
 
@@ -78,11 +99,18 @@ export class DynamicWonderTree {
     this.crownContainer = scene.add.container(0, 0).setDepth(8);
     this.rootContainer.add(this.crownContainer);
 
+    // Initialize base spine node with a natural slight lean
+    this.spineNodes.push({
+      centerX: -18,
+      halfWidth: this.baseTrunkHalfWidth,
+      leanAngle: -0.09
+    });
+
     for (let t = 0; t < initialTiers; t++) {
       this.appendTier(t, false);
     }
 
-    this.rebuildCrownAndSproutBud();
+    this.rebuildFractalCrownAndSproutBud();
   }
 
   public getContainer(): Phaser.GameObjects.Container {
@@ -98,32 +126,50 @@ export class DynamicWonderTree {
   }
 
   public getTotalLogicalHeight(): number {
-    return this.tiers.length * this.tierHeight + 290;
+    return this.tiers.length * this.tierHeight + 340;
   }
 
   /**
-   * Dynamically grows a new wide branch tier upwards, generating new hand-drawn
-   * branches, foliage, wooden steps, and an activity portal hollow inside the new branch.
+   * Dynamically grows a new asymmetric fractal tier upwards from the current
+   * apical trunk spine node.
    */
   public growUpwards(animate = true): TreeHollowAnchor[] {
     const nextTierIndex = this.tiers.length;
     const created = this.appendTier(nextTierIndex, animate);
-    this.rebuildCrownAndSproutBud(animate);
+    this.rebuildFractalCrownAndSproutBud(animate);
     if (this.onTreeGrew) {
       this.onTreeGrew(this.tiers.length);
     }
     return created;
   }
 
-  private getTrunkHalfWidthAtTier(tierIndex: number): number {
-    // Keep the trunk monumental and wide as it rises
-    return Math.max(175, this.baseTrunkHalfWidth - tierIndex * 22);
+  private getOrComputeSpineNode(tierIndex: number): TrunkSpineNode {
+    while (this.spineNodes.length <= tierIndex) {
+      const idx = this.spineNodes.length;
+      const prev = this.spineNodes[idx - 1];
+      const rng = createSeededRng(idx * 9173 + 1337);
+
+      // Asymmetric organic meander of the main trunk spine
+      const swingDir = idx % 2 === 1 ? 1 : -1;
+      const deltaX = swingDir * (36 + rng() * 34) + (rng() - 0.5) * 18;
+      const nextCenterX = Phaser.Math.Clamp(prev.centerX + deltaX, -95, 95);
+      // Leonardo pipe-model taper as lateral fractal boughs split off
+      const nextHalfW = Math.max(145, prev.halfWidth * (0.84 + rng() * 0.05));
+      const nextLean = (nextCenterX - prev.centerX) / this.tierHeight;
+
+      this.spineNodes.push({
+        centerX: nextCenterX,
+        halfWidth: nextHalfW,
+        leanAngle: nextLean
+      });
+    }
+    return this.spineNodes[tierIndex];
   }
 
   private appendTier(tierIndex: number, animate: boolean): TreeHollowAnchor[] {
-    const texKey = `wonder_tree_tier_${tierIndex}_${Date.now()}`;
-    const canvasW = 1520;
-    const canvasH = 480;
+    const texKey = `wonder_tree_fractal_tier_${tierIndex}_${Date.now()}`;
+    const canvasW = 1640;
+    const canvasH = 520;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const canvasTex = this.scene.textures.createCanvas(
@@ -139,14 +185,14 @@ export class DynamicWonderTree {
     if (ctx && canvasTex) {
       ctx.save();
       ctx.scale(dpr, dpr);
-      this.drawHandDrawnTier(ctx, canvasW, canvasH, tierIndex, createdAnchors);
+      this.drawFractalTier(ctx, canvasW, canvasH, tierIndex, createdAnchors);
       ctx.restore();
       canvasTex.refresh();
     }
 
     const tierContainer = this.scene.add.container(0, tierBottomY);
     const img = this.scene.add
-      .image(0, -canvasH / 2 + 65, texKey)
+      .image(0, -canvasH / 2 + 80, texKey)
       .setScale(1 / dpr)
       .setOrigin(0.5, 0.5);
 
@@ -185,19 +231,19 @@ export class DynamicWonderTree {
   }
 
   /**
-   * Renders the wide, lush hand-drawn uppermost canopy crown and the interactive
-   * "Grow New Branch" golden bud at the top of the tree.
+   * Renders an asymmetric, multi-forked recursive fractal crown at the top of
+   * the tree along with the interactive "🌱 Grow New Branch" bud.
    */
-  private rebuildCrownAndSproutBud(animate = false): void {
+  private rebuildFractalCrownAndSproutBud(animate = false): void {
     this.crownContainer.removeAll(true);
 
     const topTierIdx = this.tiers.length;
-    const crownBaseY = -topTierIdx * this.tierHeight + 12;
-    const topHalfW = this.getTrunkHalfWidthAtTier(topTierIdx);
+    const topNode = this.getOrComputeSpineNode(topTierIdx);
+    const crownBaseY = -topTierIdx * this.tierHeight + 14;
 
-    const texKey = `wonder_tree_crown_${topTierIdx}_${Date.now()}`;
-    const canvasW = 1520;
-    const canvasH = 380;
+    const texKey = `wonder_tree_fractal_crown_${topTierIdx}_${Date.now()}`;
+    const canvasW = 1640;
+    const canvasH = 460;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const canvasTex = this.scene.textures.createCanvas(
@@ -209,33 +255,71 @@ export class DynamicWonderTree {
     if (ctx && canvasTex) {
       ctx.save();
       ctx.scale(dpr, dpr);
-      const cx = canvasW / 2;
-      const cy = canvasH - 55;
+      const cx = canvasW / 2 + topNode.centerX;
+      const cy = canvasH - 65;
+      const rng = createSeededRng(topTierIdx * 4099 + 77);
 
-      // Wide hand-inked crown boughs spreading far left and right
-      this.drawHandDrawnBranch(ctx, cx - topHalfW * 0.65, cy, cx - 440, cy - 135, 76, 28, -1, topTierIdx + 1);
-      this.drawHandDrawnBranch(ctx, cx + topHalfW * 0.65, cy, cx + 440, cy - 135, 76, 28, 1, topTierIdx + 2);
-      this.drawHandDrawnBranch(ctx, cx - topHalfW * 0.2, cy, cx - 180, cy - 175, 68, 26, -1, topTierIdx + 3);
-      this.drawHandDrawnBranch(ctx, cx + topHalfW * 0.2, cy, cx + 180, cy - 175, 68, 26, 1, topTierIdx + 4);
-      this.drawHandDrawnBranch(ctx, cx, cy, cx, cy - 195, 74, 30, 0, topTierIdx + 5);
+      const foliageQueue: Array<{
+        x: number;
+        y: number;
+        rx: number;
+        ry: number;
+        seed: number;
+      }> = [];
 
-      // Wide, overlapping storybook ink-and-watercolor leaf canopies
-      this.drawFoliageCluster(ctx, cx - 420, cy - 140, 195, 105, 11 + topTierIdx);
-      this.drawFoliageCluster(ctx, cx + 420, cy - 140, 195, 105, 23 + topTierIdx);
-      this.drawFoliageCluster(ctx, cx - 210, cy - 185, 225, 118, 37 + topTierIdx);
-      this.drawFoliageCluster(ctx, cx + 210, cy - 185, 225, 118, 51 + topTierIdx);
-      this.drawFoliageCluster(ctx, cx, cy - 210, 260, 128, 73 + topTierIdx);
+      // Asymmetric 3-way main crown fork using Leonardo's area-preserving rule
+      this.drawRecursiveFractalBranch(
+        ctx,
+        cx - topNode.halfWidth * 0.48,
+        cy,
+        -Math.PI * 0.76 + (rng() - 0.5) * 0.12,
+        155,
+        topNode.halfWidth * 0.46,
+        4,
+        rng,
+        foliageQueue
+      );
+      this.drawRecursiveFractalBranch(
+        ctx,
+        cx + topNode.halfWidth * 0.42,
+        cy + 8,
+        -Math.PI * 0.22 + (rng() - 0.5) * 0.12,
+        170,
+        topNode.halfWidth * 0.5,
+        4,
+        rng,
+        foliageQueue
+      );
+      this.drawRecursiveFractalBranch(
+        ctx,
+        cx - 8,
+        cy - 10,
+        -Math.PI * 0.53 + (rng() - 0.5) * 0.14,
+        140,
+        topNode.halfWidth * 0.44,
+        4,
+        rng,
+        foliageQueue
+      );
+
+      // Paint terminal leaf clusters gathered from the fractal twigs
+      for (const f of foliageQueue) {
+        this.drawFoliageCluster(ctx, f.x, f.y, f.rx, f.ry, f.seed);
+      }
 
       ctx.restore();
       canvasTex.refresh();
     }
 
     const crownImg = this.scene.add
-      .image(0, crownBaseY - 135, texKey)
+      .image(0, crownBaseY - 165, texKey)
       .setScale(1 / dpr);
     this.crownContainer.add(crownImg);
 
-    this.sproutBudContainer = this.scene.add.container(0, crownBaseY - 205);
+    this.sproutBudContainer = this.scene.add.container(
+      topNode.centerX,
+      crownBaseY - 235
+    );
 
     const budGlow = this.scene.add.circle(0, 0, 34, 0xffe66d, 0.3);
     const budCircle = this.scene.add
@@ -286,109 +370,322 @@ export class DynamicWonderTree {
     }
   }
 
-  private drawHandDrawnTier(
+  /**
+   * Recursive Fractal Branch Generator (Asymmetric L-System + Leonardo da Vinci's
+   * cross-sectional pipe rule: r_parent^2.15 = r_1^2.15 + r_2^2.15).
+   * Produces realistic, self-similar crooked boughs, secondary limbs, and twigs.
+   */
+  private drawRecursiveFractalBranch(
+    ctx: CanvasRenderingContext2D,
+    x0: number,
+    y0: number,
+    angle: number,
+    length: number,
+    radius: number,
+    depth: number,
+    rng: () => number,
+    foliageQueue: Array<{
+      x: number;
+      y: number;
+      rx: number;
+      ry: number;
+      seed: number;
+    }>
+  ): void {
+    if (depth <= 0 || radius < 2.5) return;
+
+    // Asymmetric natural curvature along this branch segment
+    const bend = (rng() - 0.46) * 0.28;
+    const x1 = x0 + Math.cos(angle) * length;
+    const y1 = y0 + Math.sin(angle) * length;
+
+    const midAngle = angle + bend;
+    const ctrlX = x0 + Math.cos(midAngle) * (length * 0.54);
+    const ctrlY = y0 + Math.sin(midAngle) * (length * 0.54);
+
+    // Leonardo da Vinci area-preserving split ratio p in [0.56, 0.72]
+    const splitRatio = 0.56 + rng() * 0.16;
+    const endRadius = radius * 0.76;
+
+    // Compute perpendicular normals for organic tapered Bezier polygon
+    const nx0 = -Math.sin(angle);
+    const ny0 = Math.cos(angle);
+    const nx1 = -Math.sin(angle + bend * 0.5);
+    const ny1 = Math.cos(angle + bend * 0.5);
+
+    const buildSegmentPath = () => {
+      ctx.beginPath();
+      ctx.moveTo(x0 + nx0 * radius, y0 + ny0 * radius);
+      ctx.quadraticCurveTo(
+        ctrlX + nx0 * (radius * 0.88),
+        ctrlY + ny0 * (radius * 0.88),
+        x1 + nx1 * endRadius,
+        y1 + ny1 * endRadius
+      );
+      ctx.lineTo(x1 - nx1 * endRadius, y1 - ny1 * endRadius);
+      ctx.quadraticCurveTo(
+        ctrlX - nx0 * (radius * 0.88),
+        ctrlY - ny0 * (radius * 0.88),
+        x0 - nx0 * radius,
+        y0 - ny0 * radius
+      );
+      ctx.closePath();
+    };
+
+    // 1. Flat 2D warm watercolor bark fill
+    buildSegmentPath();
+    ctx.fillStyle = depth >= 3 ? '#785238' : '#6c4830';
+    ctx.fill();
+
+    // 2. Flat 2D cel-shaded underside shadow band
+    ctx.save();
+    buildSegmentPath();
+    ctx.clip();
+
+    ctx.fillStyle = '#563824';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, x1, y1);
+    ctx.lineTo(x1 - nx1 * endRadius * 1.4, y1 + Math.abs(ny1) * endRadius * 1.4 + 20);
+    ctx.lineTo(x0 - nx0 * radius * 1.4, y0 + Math.abs(ny0) * radius * 1.4 + 20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sketchy internal pen bark lines on thicker limbs
+    if (radius > 10) {
+      ctx.strokeStyle = '#26160c';
+      ctx.lineWidth = Math.max(1.4, radius * 0.06);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(
+        x0 + Math.cos(angle) * (length * 0.15),
+        y0 + Math.sin(angle) * (length * 0.15)
+      );
+      ctx.quadraticCurveTo(
+        ctrlX,
+        ctrlY,
+        x1 - Math.cos(angle) * (length * 0.15),
+        y1 - Math.sin(angle) * (length * 0.15)
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 3. Hand-inked dip-pen outline
+    buildSegmentPath();
+    ctx.lineWidth = Math.max(2.2, Math.min(4.8, radius * 0.14));
+    ctx.strokeStyle = '#23140b';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Moss cushion on top of major horizontal-ish limbs
+    if (depth === 4 && Math.abs(Math.cos(angle)) > 0.45) {
+      this.drawMossPatch(ctx, ctrlX, ctrlY - radius * 0.65, radius * 0.95, 13);
+    }
+
+    // Queue terminal hand-drawn leaf clusters at outer fractal branches
+    if (depth <= 2) {
+      foliageQueue.push({
+        x: x1,
+        y: y1 - 12,
+        rx: 72 + depth * 36 + rng() * 24,
+        ry: 44 + depth * 20 + rng() * 14,
+        seed: Math.floor(rng() * 1000)
+      });
+    }
+
+    // 4. Recursive Asymmetric Fractal Bifurcation (and occasional Trifurcation)
+    const leonardoExp = 0.46; // 1 / 2.17
+    const rDominant = endRadius * Math.pow(splitRatio, leonardoExp);
+    const rSecondary = endRadius * Math.pow(1 - splitRatio, leonardoExp);
+
+    // Dominant child branch bends gently; secondary child branch angles away more steeply
+    const sideSign = rng() > 0.48 ? 1 : -1;
+    const angleDom =
+      angle + sideSign * (0.18 + rng() * 0.22) - Math.sin(angle) * 0.06;
+    const angleSec =
+      angle - sideSign * (0.42 + rng() * 0.34) - Math.sin(angle) * 0.08;
+
+    const lenDom = length * (0.74 + rng() * 0.12);
+    const lenSec = length * (0.58 + rng() * 0.16);
+
+    this.drawRecursiveFractalBranch(
+      ctx,
+      x1,
+      y1,
+      angleDom,
+      lenDom,
+      rDominant,
+      depth - 1,
+      rng,
+      foliageQueue
+    );
+
+    this.drawRecursiveFractalBranch(
+      ctx,
+      x1,
+      y1,
+      angleSec,
+      lenSec,
+      rSecondary,
+      depth - 1,
+      rng,
+      foliageQueue
+    );
+
+    // Occasional 3rd epicormic twig shoot for extra organic asymmetry
+    if (depth >= 3 && rng() > 0.42) {
+      const shootT = 0.45 + rng() * 0.25;
+      const sx = x0 + (x1 - x0) * shootT;
+      const sy = y0 + (y1 - y0) * shootT;
+      const shootAngle = angle + (rng() > 0.5 ? 0.65 : -0.68);
+      this.drawRecursiveFractalBranch(
+        ctx,
+        sx,
+        sy,
+        shootAngle,
+        length * 0.48,
+        radius * 0.38,
+        depth - 2,
+        rng,
+        foliageQueue
+      );
+    }
+  }
+
+  private drawFractalTier(
     ctx: CanvasRenderingContext2D,
     w: number,
     h: number,
     tierIndex: number,
     outAnchors: TreeHollowAnchor[]
   ): void {
-    const cx = w / 2;
-    const bottomY = h - 65;
+    const midX = w / 2;
+    const bottomY = h - 75;
     const topY = bottomY - this.tierHeight;
 
-    const bottomHalfW = this.getTrunkHalfWidthAtTier(tierIndex);
-    const topHalfW = this.getTrunkHalfWidthAtTier(tierIndex + 1);
+    const bottomNode = this.getOrComputeSpineNode(tierIndex);
+    const topNode = this.getOrComputeSpineNode(tierIndex + 1);
+    const rng = createSeededRng(tierIndex * 65537 + 42);
 
-    const isEven = tierIndex % 2 === 0;
-    const leftBranchEndX = cx - (isEven ? 510 : 545);
-    const leftBranchEndY = topY + (isEven ? 115 : 85);
-    const rightBranchEndX = cx + (isEven ? 540 : 500);
-    const rightBranchEndY = topY + (isEven ? 85 : 115);
+    const botCx = midX + bottomNode.centerX;
+    const topCx = midX + topNode.centerX;
 
-    // 1. Background leaf clusters behind the wide branches
-    this.drawFoliageCluster(
+    const foliageQueue: Array<{
+      x: number;
+      y: number;
+      rx: number;
+      ry: number;
+      seed: number;
+    }> = [];
+
+    // 1. Asymmetric Primary Fractal Boughs emerging at different heights and angles
+    // Left fractal bough (positioned asymmetrically vs right bough)
+    const leftOriginY =
+      topY + (tierIndex % 2 === 0 ? 155 : 92) + (rng() - 0.5) * 24;
+    const leftOriginX =
+       Phaser.Math.Linear(topCx, botCx, (leftOriginY - topY) / this.tierHeight) -
+      topNode.halfWidth * 0.72;
+    const leftAngle =
+      -Math.PI + (tierIndex % 2 === 0 ? 0.28 : 0.42) + (rng() - 0.5) * 0.1;
+    const leftLen = (tierIndex % 2 === 0 ? 195 : 155) + rng() * 30;
+
+    this.drawRecursiveFractalBranch(
       ctx,
-      leftBranchEndX - 35,
-      leftBranchEndY - 45,
-      210,
-      110,
-      tierIndex * 17 + 3
+      leftOriginX,
+      leftOriginY,
+      leftAngle,
+      leftLen,
+      48,
+      4,
+      rng,
+      foliageQueue
     );
-    this.drawFoliageCluster(
+
+    // Right fractal bough (at a distinctly different height, length, and angle!)
+    const rightOriginY =
+      topY + (tierIndex % 2 === 0 ? 78 : 168) + (rng() - 0.5) * 24;
+    const rightOriginX =
+      Phaser.Math.Linear(topCx, botCx, (rightOriginY - topY) / this.tierHeight) +
+      topNode.halfWidth * 0.74;
+    const rightAngle =
+      -(tierIndex % 2 === 0 ? 0.36 : 0.22) + (rng() - 0.5) * 0.1;
+    const rightLen = (tierIndex % 2 === 0 ? 165 : 205) + rng() * 30;
+
+    this.drawRecursiveFractalBranch(
       ctx,
-      rightBranchEndX + 35,
-      rightBranchEndY - 45,
-      210,
-      110,
-      tierIndex * 19 + 7
+      rightOriginX,
+      rightOriginY,
+      rightAngle,
+      rightLen,
+      50,
+      4,
+      rng,
+      foliageQueue
     );
 
-    // 2. Massive sweeping left & right hand-drawn boughs
-    this.drawHandDrawnBranch(
+    // Extra asymmetric mid-tier secondary limb on one side only
+    const extraSide = tierIndex % 2 === 0 ? -1 : 1;
+    const extraY = topY + 215;
+    const extraX =
+      Phaser.Math.Linear(topCx, botCx, (extraY - topY) / this.tierHeight) +
+      extraSide * topNode.halfWidth * 0.78;
+    this.drawRecursiveFractalBranch(
       ctx,
-      cx - topHalfW * 0.76,
-      topY + 110,
-      leftBranchEndX,
-      leftBranchEndY,
-      86,
+      extraX,
+      extraY,
+      extraSide < 0 ? -Math.PI + 0.18 : -0.18,
+      135,
       34,
-      -1,
-      tierIndex * 7 + 1
-    );
-    this.drawHandDrawnBranch(
-      ctx,
-      cx + topHalfW * 0.76,
-      topY + 95,
-      rightBranchEndX,
-      rightBranchEndY,
-      86,
-      34,
-      1,
-      tierIndex * 7 + 2
+      3,
+      rng,
+      foliageQueue
     );
 
-    // 3. Flat watercolor/cel-shaded 2D hand-drawn trunk with irregular ink plates, knots, and vines
-    this.drawTrunkBody2DHandDrawn(
+    // 2. Render background leaf clusters behind the trunk
+    for (let i = 0; i < foliageQueue.length; i += 2) {
+      const f = foliageQueue[i];
+      this.drawFoliageCluster(ctx, f.x, f.y, f.rx, f.ry, f.seed);
+    }
+
+    // 3. Asymmetric Gnarled 2D Hand-Drawn Trunk Segment & Fractal Root System
+    this.drawAsymmetricFractalTrunk(
       ctx,
-      cx,
+      botCx,
+      topCx,
       bottomY,
       topY,
-      bottomHalfW,
-      topHalfW,
+      bottomNode.halfWidth,
+      topNode.halfWidth,
+      tierIndex,
+      rng
+    );
+
+    // 4. Render foreground leaf clusters overlapping boughs
+    for (let i = 1; i < foliageQueue.length; i += 2) {
+      const f = foliageQueue[i];
+      this.drawFoliageCluster(ctx, f.x, f.y, f.rx * 0.9, f.ry * 0.9, f.seed + 7);
+    }
+
+    // 5. Winding asymmetric wooden steps following the trunk curve
+    this.drawWoodenStairway(
+      ctx,
+      botCx,
+      topCx,
+      bottomY,
+      topY,
+      bottomNode.halfWidth,
       tierIndex
     );
 
-    // 4. Foreground scalloped ink-and-wash leaf clusters overlapping branch tips
-    this.drawFoliageCluster(
-      ctx,
-      leftBranchEndX + 15,
-      leftBranchEndY - 68,
-      165,
-      90,
-      tierIndex * 29 + 11
-    );
-    this.drawFoliageCluster(
-      ctx,
-      rightBranchEndX - 15,
-      rightBranchEndY - 68,
-      165,
-      90,
-      tierIndex * 31 + 13
-    );
-
-    // 5. Hand-drawn wooden steps & rope railings winding across the colossal bark
-    this.drawWoodenStairway(ctx, cx, bottomY, topY, bottomHalfW, tierIndex);
-
-    // 6. Natural carved Tree Hollows inside the trunk and thick branch bases.
-    // Each activity appears strictly ONCE in the entire tree.
+    // 6. Natural Carved Tree Hollows (each unique activity appears strictly ONCE)
     if (tierIndex === 0) {
-      // Lower-left root hollow (Acorn Scale)
       const mathDef = UNIQUE_ACTIVITIES[0];
       if (!this.placedActivities.has(mathDef.minigame)) {
         this.placedActivities.add(mathDef.minigame);
-        const leftHollowX = cx - 165;
-        const leftHollowY = bottomY - 72;
+        const leftHollowX = botCx - 148;
+        const leftHollowY = bottomY - 76;
         this.drawNaturalTreeHollow(
           ctx,
           leftHollowX,
@@ -401,18 +698,17 @@ export class DynamicWonderTree {
           id: mathDef.id,
           tierIndex: 0,
           minigame: mathDef.minigame,
-          localX: leftHollowX - cx,
+          localX: leftHollowX - midX,
           localY: leftHollowY - bottomY,
           branchSide: mathDef.branchSide
         });
       }
 
-      // Central trunk hollow (The Clockwork Tower / Cave Echoes)
       const hubDef = UNIQUE_ACTIVITIES[1];
       if (!this.placedActivities.has(hubDef.minigame)) {
         this.placedActivities.add(hubDef.minigame);
-        const centerHollowX = cx + 38;
-        const centerHollowY = topY + 102;
+        const centerHollowX = topCx + 42;
+        const centerHollowY = topY + 112;
         this.drawNaturalTreeHollow(
           ctx,
           centerHollowX,
@@ -425,13 +721,12 @@ export class DynamicWonderTree {
           id: hubDef.id,
           tierIndex: 0,
           minigame: hubDef.minigame,
-          localX: centerHollowX - cx,
+          localX: centerHollowX - midX,
           localY: centerHollowY - bottomY,
           branchSide: hubDef.branchSide
         });
       }
     } else {
-      // Find the next unplaced unique activity (if any remain)
       const nextActivity = UNIQUE_ACTIVITIES.find(
         (act) => !this.placedActivities.has(act.minigame)
       );
@@ -439,11 +734,11 @@ export class DynamicWonderTree {
         this.placedActivities.add(nextActivity.minigame);
         const hollowX =
           nextActivity.branchSide === 'left'
-            ? cx - 185
+            ? topCx - 165
             : nextActivity.branchSide === 'right'
-              ? cx + 195
-              : cx;
-        const hollowY = topY + 112;
+              ? topCx + 175
+              : topCx - 15;
+        const hollowY = topY + 118;
         this.drawNaturalTreeHollow(
           ctx,
           hollowX,
@@ -456,7 +751,7 @@ export class DynamicWonderTree {
           id: nextActivity.id,
           tierIndex,
           minigame: nextActivity.minigame,
-          localX: hollowX - cx,
+          localX: hollowX - midX,
           localY: hollowY - bottomY,
           branchSide: nextActivity.branchSide
         });
@@ -465,241 +760,235 @@ export class DynamicWonderTree {
   }
 
   /**
-   * Draws the trunk using a pure 2D hand-drawn storybook aesthetic:
-   * - Flat warm watercolor paper wash (NO 3D cylindrical gradient)
-   * - Flat cel-shaded shadow band along the right edge and root crevices
-   * - Gnarled, asymmetric dip-pen ink contours (double-pass sketchy ink lines)
-   * - Short, broken vertical bark-plate pen strokes, wood knots, and cross-hatching
-   * - Hand-drawn climbing ivy vines with individual leaves
+   * Draws an asymmetric, gnarled 2D hand-drawn trunk segment whose left and right
+   * walls bulge and curve independently, with fractal branching roots on Tier 0.
    */
-  private drawTrunkBody2DHandDrawn(
+  private drawAsymmetricFractalTrunk(
     ctx: CanvasRenderingContext2D,
-    cx: number,
+    botCx: number,
+    topCx: number,
     bottomY: number,
     topY: number,
     bottomHalfW: number,
     topHalfW: number,
-    tierIndex: number
+    tierIndex: number,
+    rng: () => number
   ): void {
     const includeRoots = tierIndex === 0;
     ctx.save();
 
-    const buildTrunkPath = () => {
-      ctx.beginPath();
-      if (includeRoots) {
-        ctx.moveTo(cx - topHalfW, topY);
-        // Gnarled left trunk contour flaring into wide storybook roots
-        ctx.bezierCurveTo(
-          cx - topHalfW - 18,
-          topY + 110,
-          cx - bottomHalfW * 1.18,
-          bottomY - 85,
-          cx - bottomHalfW * 1.75,
-          bottomY + 34
-        );
-        // Irregular organic root toes
-        ctx.quadraticCurveTo(
-          cx - bottomHalfW * 1.25,
-          bottomY + 52,
-          cx - bottomHalfW * 0.82,
-          bottomY + 28
-        );
-        ctx.quadraticCurveTo(
-          cx - bottomHalfW * 0.35,
-          bottomY + 56,
-          cx + bottomHalfW * 0.15,
-          bottomY + 34
-        );
-        ctx.quadraticCurveTo(
-          cx + bottomHalfW * 0.78,
-          bottomY + 54,
-          cx + bottomHalfW * 1.75,
-          bottomY + 32
-        );
-        // Gnarled right trunk contour
-        ctx.bezierCurveTo(
-          cx + bottomHalfW * 1.18,
-          bottomY - 85,
-          cx + topHalfW + 16,
-          topY + 110,
-          cx + topHalfW,
-          topY
-        );
-      } else {
-        const wobbleL = Math.sin(tierIndex * 2.1) * 14;
-        const wobbleR = Math.cos(tierIndex * 1.9) * 14;
-        ctx.moveTo(cx - topHalfW, topY);
-        ctx.bezierCurveTo(
-          cx - topHalfW + wobbleL,
-          topY + 105,
-          cx - bottomHalfW - wobbleL,
-          bottomY - 105,
-          cx - bottomHalfW,
-          bottomY + 6
-        );
-        ctx.lineTo(cx + bottomHalfW, bottomY + 6);
-        ctx.bezierCurveTo(
-          cx + bottomHalfW + wobbleR,
-          bottomY - 105,
-          cx + topHalfW - wobbleR,
-          topY + 105,
-          cx + topHalfW,
-          topY
+    // Asymmetric left and right wall offsets so the trunk is never a symmetric cylinder
+    const leftTopX = topCx - topHalfW * (0.94 + (tierIndex % 2) * 0.12);
+    const rightTopX = topCx + topHalfW * (1.06 - (tierIndex % 2) * 0.12);
+    const leftBotX = botCx - bottomHalfW * (0.94 + ((tierIndex + 1) % 2) * 0.12);
+    const rightBotX = botCx + bottomHalfW * (1.06 - ((tierIndex + 1) % 2) * 0.12);
+
+    // Gnarled intermediate control points with asymmetric burls
+    const leftMidX1 =
+      Phaser.Math.Linear(leftTopX, leftBotX, 0.35) - 28 + (rng() - 0.5) * 26;
+    const leftMidX2 =
+      Phaser.Math.Linear(leftTopX, leftBotX, 0.72) + 18 + (rng() - 0.5) * 26;
+    const rightMidX1 =
+      Phaser.Math.Linear(rightTopX, rightBotX, 0.32) + 16 + (rng() - 0.5) * 26;
+    const rightMidX2 =
+      Phaser.Math.Linear(rightTopX, rightBotX, 0.68) - 24 + (rng() - 0.5) * 26;
+
+    // On Tier 0, draw recursive fractal root buttresses radiating asymmetrically
+    if (includeRoots) {
+      const rootConfigs = [
+        { startX: leftBotX + 35, angle: Math.PI - 0.34, len: 185, r: 46 },
+        { startX: leftBotX + 125, angle: Math.PI - 0.62, len: 135, r: 38 },
+        { startX: botCx - 25, angle: Math.PI * 0.58, len: 95, r: 34 },
+        { startX: rightBotX - 115, angle: 0.52, len: 145, r: 40 },
+        { startX: rightBotX - 30, angle: 0.26, len: 205, r: 48 }
+      ];
+      for (const rc of rootConfigs) {
+        this.drawFractalRootButtress(
+          ctx,
+          rc.startX,
+          bottomY - 22,
+          rc.angle,
+          rc.len,
+          rc.r,
+          2,
+          rng
         );
       }
+    }
+
+    const buildTrunkPath = () => {
+      ctx.beginPath();
+      ctx.moveTo(leftTopX, topY);
+      ctx.bezierCurveTo(
+        leftMidX1,
+        topY + this.tierHeight * 0.34,
+        leftMidX2,
+        topY + this.tierHeight * 0.68,
+        includeRoots ? leftBotX - 95 : leftBotX,
+        bottomY + 8
+      );
+
+      if (includeRoots) {
+        // Irregular asymmetric root toes across the glade floor
+        ctx.quadraticCurveTo(
+          botCx - bottomHalfW * 0.95,
+          bottomY + 46,
+          botCx - bottomHalfW * 0.42,
+          bottomY + 24
+        );
+        ctx.quadraticCurveTo(
+          botCx + bottomHalfW * 0.08,
+          bottomY + 52,
+          botCx + bottomHalfW * 0.55,
+          bottomY + 26
+        );
+        ctx.quadraticCurveTo(
+          botCx + bottomHalfW * 1.05,
+          bottomY + 48,
+          rightBotX + 110,
+          bottomY + 10
+        );
+      } else {
+        ctx.lineTo(rightBotX, bottomY + 8);
+      }
+
+      ctx.bezierCurveTo(
+        rightMidX2,
+        topY + this.tierHeight * 0.68,
+        rightMidX1,
+        topY + this.tierHeight * 0.34,
+        rightTopX,
+        topY
+      );
       ctx.closePath();
     };
 
-    // 1. Flat 2D warm watercolor base fill (NO cylindrical 3D gradient!)
+    // 1. Flat 2D warm watercolor base fill
     buildTrunkPath();
     ctx.fillStyle = '#785238';
     ctx.fill();
 
-    // 2. Clip inside the trunk to paint flat 2D cel-shaded storybook washes & bark plates
+    // 2. Clip inside the trunk for 2D cel-shaded watercolor zones & fractal bark plates
     ctx.save();
     buildTrunkPath();
     ctx.clip();
 
-    // Left sunlit watercolor wash zone (flat warm ochre-tan)
+    // Sunlit irregular watercolor wash on the left-center face
     ctx.fillStyle = '#8a6245';
     ctx.beginPath();
-    ctx.moveTo(cx - topHalfW - 60, topY - 10);
-    ctx.lineTo(cx - topHalfW * 0.18, topY - 10);
+    ctx.moveTo(leftTopX - 40, topY - 10);
+    ctx.lineTo(topCx - topHalfW * 0.12, topY - 10);
     ctx.bezierCurveTo(
-      cx - bottomHalfW * 0.32,
-      (topY + bottomY) * 0.5,
-      cx - bottomHalfW * 0.12,
-      bottomY - 40,
-      cx - bottomHalfW * 0.45,
+      botCx - bottomHalfW * 0.38,
+      (topY + bottomY) * 0.45,
+      botCx + bottomHalfW * 0.05,
+      bottomY - 50,
+      botCx - bottomHalfW * 0.32,
       bottomY + 60
     );
-    ctx.lineTo(cx - bottomHalfW * 2.0, bottomY + 60);
+    ctx.lineTo(leftBotX - 180, bottomY + 60);
     ctx.closePath();
     ctx.fill();
 
-    // Right cel-shaded shadow band (flat deep umber wash)
-    ctx.fillStyle = '#5e3e28';
+    // Asymmetric cel-shaded shadow band along the right wall
+    ctx.fillStyle = '#5c3d28';
     ctx.beginPath();
-    ctx.moveTo(cx + topHalfW * 0.38, topY - 10);
-    ctx.lineTo(cx + topHalfW + 120, topY - 10);
-    ctx.lineTo(cx + bottomHalfW * 2.0, bottomY + 60);
-    ctx.lineTo(cx + bottomHalfW * 0.42, bottomY + 60);
+    ctx.moveTo(topCx + topHalfW * 0.32, topY - 10);
+    ctx.lineTo(rightTopX + 140, topY - 10);
+    ctx.lineTo(rightBotX + 180, bottomY + 60);
+    ctx.lineTo(botCx + bottomHalfW * 0.36, bottomY + 60);
     ctx.bezierCurveTo(
-      cx + bottomHalfW * 0.28,
-      bottomY - 70,
-      cx + topHalfW * 0.52,
-      (topY + bottomY) * 0.45,
-      cx + topHalfW * 0.38,
+      botCx + bottomHalfW * 0.18,
+      bottomY - 80,
+      topCx + topHalfW * 0.54,
+      (topY + bottomY) * 0.42,
+      topCx + topHalfW * 0.32,
       topY - 10
     );
     ctx.closePath();
     ctx.fill();
 
-    // Flat hand-painted bark plates (irregular rounded rectangles of slightly warmer/cooler washes)
+    // Irregular hand-painted bark plates
     const plateColors = ['#6b4730', '#825a3e', '#63412b', '#7d563b'];
-    for (let p = 0; p < 14; p++) {
-      const px =
-        cx +
-        ((p % 5) - 2) * (topHalfW * 0.38) +
-        Math.sin(tierIndex * 5 + p * 3.1) * 22;
-      const py =
-        topY +
-        28 +
-        Math.floor(p / 5) * 98 +
-        Math.cos(p * 2.7) * 16;
-      const pw = 36 + (p % 3) * 18;
-      const ph = 64 + (p % 2) * 28;
+    for (let p = 0; p < 15; p++) {
+      const t = (p + 0.5) / 15;
+      const spineX = Phaser.Math.Linear(topCx, botCx, t);
+      const px = spineX + (rng() - 0.5) * topHalfW * 1.45;
+      const py = topY + 24 + t * (this.tierHeight - 40) + (rng() - 0.5) * 25;
+      const pw = 28 + rng() * 34;
+      const ph = 48 + rng() * 52;
 
-      ctx.fillStyle = plateColors[(p + tierIndex) % plateColors.length];
+      ctx.fillStyle = plateColors[p % plateColors.length];
       ctx.beginPath();
-      ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, 12);
+      ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, 10);
       ctx.fill();
     }
 
-    // 3. Hand-inked broken bark cracks, wood knots, and pen cross-hatching
+    // 3. Fractal branching bark fissure lines (organic Y-forking ink cracks)
     ctx.strokeStyle = '#26160c';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    // Broken irregular pen-and-ink bark lines (short sketchy segments, NOT 3D mesh wires)
-    const crackColumns = 7;
-    for (let col = -crackColumns; col <= crackColumns; col++) {
-      const baseX = cx + (col / (crackColumns + 0.5)) * topHalfW * 0.92;
-      let curY = topY + 12 + ((col * 19) & 15);
-      while (curY < bottomY - 25) {
-        const segLen = 28 + ((col * 13 + Math.floor(curY)) % 38);
-        const nextY = Math.min(bottomY - 8, curY + segLen);
-        const driftX = Math.sin(curY * 0.04 + col * 1.3 + tierIndex) * 9;
-        const flare =
-          includeRoots && curY > bottomY - 90
-            ? (col / crackColumns) * 42
-            : 0;
-
-        ctx.lineWidth = 2.2 + ((Math.abs(col) + Math.floor(curY)) % 2) * 0.9;
-        ctx.beginPath();
-        ctx.moveTo(baseX + driftX + flare * 0.4, curY);
-        ctx.quadraticCurveTo(
-          baseX - driftX * 0.6 + flare * 0.7,
-          (curY + nextY) * 0.5,
-          baseX + driftX * 0.8 + flare,
-          nextY
-        );
-        ctx.stroke();
-
-        // Occasional tiny horizontal bark notch
-        if ((col + Math.floor(curY)) % 5 === 0) {
-          ctx.lineWidth = 1.8;
-          ctx.beginPath();
-          ctx.moveTo(baseX + driftX - 8, nextY - 6);
-          ctx.lineTo(baseX + driftX + 10, nextY - 3);
-          ctx.stroke();
-        }
-
-        curY = nextY + 14 + ((Math.abs(col) * 7) % 18);
-      }
+    for (let f = 0; f < 11; f++) {
+      const fracRatio = (f - 5) / 5.8 + (rng() - 0.5) * 0.08;
+      const startX = topCx + fracRatio * topHalfW * 0.88;
+      const endX = botCx + fracRatio * bottomHalfW * 0.92;
+      this.drawFractalBarkFissure(
+        ctx,
+        startX,
+        topY + 10 + rng() * 35,
+        endX,
+        bottomY - 12 - rng() * 30,
+        2,
+        rng
+      );
     }
 
-    // Hand-drawn swirling wood knots / burls
-    this.drawBarkKnot(ctx, cx - topHalfW * 0.42, topY + 165, 20, 28);
-    this.drawBarkKnot(ctx, cx + topHalfW * 0.48, topY + 215, 18, 25);
+    // Asymmetric wood knots / burls
+    this.drawBarkKnot(
+      ctx,
+      topCx - topHalfW * (0.35 + rng() * 0.2),
+      topY + 110 + rng() * 60,
+      19,
+      27
+    );
+    this.drawBarkKnot(
+      ctx,
+      botCx + bottomHalfW * (0.28 + rng() * 0.22),
+      topY + 195 + rng() * 55,
+      17,
+      24
+    );
 
-    // Pen cross-hatching along the right shadow edge and root hollows
+    // Pen cross-hatching in deep bark crevices
     this.drawPenCrossHatching(
       ctx,
-      cx + topHalfW * 0.68,
+      rightTopX - 36,
       topY + 30,
-      bottomY - 20,
+      bottomY - 25,
       28
     );
-    this.drawPenCrossHatching(
-      ctx,
-      cx - topHalfW * 0.78,
-      topY + 45,
-      bottomY - 30,
-      18
-    );
 
-    // Hand-drawn climbing ivy vines with individual ink-and-wash leaves
+    // Asymmetric climbing ivy vines
     this.drawIvyVine(
       ctx,
-      cx - topHalfW * 0.55,
+      leftTopX + 55,
       topY + 10,
-      cx - bottomHalfW * 0.25,
+      botCx - 35,
       bottomY - 15,
       tierIndex + 1
     );
     this.drawIvyVine(
       ctx,
-      cx + topHalfW * 0.52,
-      topY + 15,
-      cx + bottomHalfW * 0.35,
+      rightTopX - 65,
+      topY + 18,
+      rightBotX - 85,
       bottomY - 20,
-      tierIndex + 4
+      tierIndex + 5
     );
 
-    ctx.restore(); // end clip
+    ctx.restore(); // end trunk clip
 
-    // 4. Double-pass hand-inked outer contour line for authentic dip-pen look
+    // 4. Hand-inked outer dip-pen contour
     buildTrunkPath();
     ctx.lineWidth = 5.5;
     ctx.strokeStyle = '#23140b';
@@ -707,41 +996,104 @@ export class DynamicWonderTree {
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    // Root division ink lines overlapping the trunk base on Tier 0
+    // 5. Asymmetric mossy cushions
+    this.drawMossPatch(ctx, leftMidX1 + 18, topY + 75, 46, 20);
+    this.drawMossPatch(ctx, rightMidX2 - 16, topY + 155, 50, 21);
     if (includeRoots) {
-      this.drawRootFoldInkLine(
-        ctx,
-        cx - bottomHalfW * 0.55,
-        bottomY - 115,
-        cx - bottomHalfW * 0.82,
-        bottomY + 28
-      );
-      this.drawRootFoldInkLine(
-        ctx,
-        cx + bottomHalfW * 0.05,
-        bottomY - 95,
-        cx + bottomHalfW * 0.15,
-        bottomY + 34
-      );
-      this.drawRootFoldInkLine(
-        ctx,
-        cx + bottomHalfW * 0.58,
-        bottomY - 110,
-        cx + bottomHalfW * 0.88,
-        bottomY + 28
-      );
-    }
-
-    // 5. Lush hand-drawn moss cushions along the bark and roots
-    this.drawMossPatch(ctx, cx - topHalfW * 0.84, topY + 62, 48, 22);
-    this.drawMossPatch(ctx, cx + topHalfW * 0.8, topY + 125, 52, 22);
-    if (includeRoots) {
-      this.drawMossPatch(ctx, cx - bottomHalfW * 1.28, bottomY + 16, 78, 24);
-      this.drawMossPatch(ctx, cx + bottomHalfW * 1.18, bottomY + 18, 74, 22);
-      this.drawMossPatch(ctx, cx - 25, bottomY + 28, 66, 20);
+      this.drawMossPatch(ctx, leftBotX - 55, bottomY + 14, 72, 22);
+      this.drawMossPatch(ctx, rightBotX + 48, bottomY + 16, 68, 20);
+      this.drawMossPatch(ctx, botCx - 18, bottomY + 26, 62, 19);
     }
 
     ctx.restore();
+  }
+
+  /**
+   * Draws a recursive branching bark fissure (Y-forking ink crack) on the trunk.
+   */
+  private drawFractalBarkFissure(
+    ctx: CanvasRenderingContext2D,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    depth: number,
+    rng: () => number
+  ): void {
+    const midX = (x0 + x1) * 0.5 + (rng() - 0.5) * 22;
+    const midY = (y0 + y1) * 0.5;
+
+    ctx.lineWidth = 1.6 + depth * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(midX, midY, x1, y1);
+    ctx.stroke();
+
+    if (depth > 1 && rng() > 0.35) {
+      const forkX = midX + (rng() > 0.5 ? 1 : -1) * (18 + rng() * 18);
+      const forkY = midY + (y1 - y0) * (0.28 + rng() * 0.2);
+      this.drawFractalBarkFissure(ctx, midX, midY, forkX, forkY, depth - 1, rng);
+    }
+  }
+
+  /**
+   * Recursive fractal root buttress that splits into smaller rootlets along the forest floor.
+   */
+  private drawFractalRootButtress(
+    ctx: CanvasRenderingContext2D,
+    x0: number,
+    y0: number,
+    angle: number,
+    len: number,
+    radius: number,
+    depth: number,
+    rng: () => number
+  ): void {
+    if (depth <= 0 || radius < 4) return;
+
+    const x1 = x0 + Math.cos(angle) * len;
+    const y1 = y0 + Math.sin(angle) * len * 0.42; // Flatten roots along the ground plane
+    const ctrlX = (x0 + x1) * 0.5 + (rng() - 0.5) * 18;
+    const ctrlY = Math.min(y0, y1) - 8;
+    const endR = radius * 0.45;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 - radius * 0.55);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, x1, y1 - endR * 0.5);
+    ctx.lineTo(x1, y1 + endR * 0.5);
+    ctx.quadraticCurveTo(ctrlX, ctrlY + radius * 0.7, x0, y0 + radius * 0.55);
+    ctx.closePath();
+
+    ctx.fillStyle = '#6e4a32';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#23140b';
+    ctx.stroke();
+    ctx.restore();
+
+    if (depth > 1) {
+      this.drawFractalRootButtress(
+        ctx,
+        x1 - Math.cos(angle) * 18,
+        y1,
+        angle + 0.24,
+        len * 0.55,
+        radius * 0.55,
+        depth - 1,
+        rng
+      );
+      this.drawFractalRootButtress(
+        ctx,
+        x1 - Math.cos(angle) * 18,
+        y1,
+        angle - 0.28,
+        len * 0.5,
+        radius * 0.5,
+        depth - 1,
+        rng
+      );
+    }
   }
 
   private drawBarkKnot(
@@ -756,17 +1108,13 @@ export class DynamicWonderTree {
     ctx.strokeStyle = '#26160c';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.ellipse(x, y, rx, ry, 0.12, 0, Math.PI * 2);
+    ctx.ellipse(x, y, rx, ry, 0.15, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.ellipse(x, y, rx * 0.58, ry * 0.58, 0.12, 0.4, Math.PI * 1.85);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.ellipse(x, y, rx * 0.25, ry * 0.25, 0.12, 0, Math.PI * 1.6);
+    ctx.ellipse(x, y, rx * 0.58, ry * 0.58, 0.15, 0.4, Math.PI * 1.85);
     ctx.stroke();
     ctx.restore();
   }
@@ -792,24 +1140,6 @@ export class DynamicWonderTree {
     ctx.restore();
   }
 
-  private drawRootFoldInkLine(
-    ctx: CanvasRenderingContext2D,
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number
-  ): void {
-    ctx.save();
-    ctx.strokeStyle = '#23140b';
-    ctx.lineWidth = 4.2;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.quadraticCurveTo((x0 + x1) * 0.5 - 14, (y0 + y1) * 0.5, x1, y1);
-    ctx.stroke();
-    ctx.restore();
-  }
-
   private drawIvyVine(
     ctx: CanvasRenderingContext2D,
     x0: number,
@@ -819,7 +1149,7 @@ export class DynamicWonderTree {
     seed: number
   ): void {
     ctx.save();
-    const ctrlX = (x0 + x1) * 0.5 + Math.sin(seed) * 45;
+    const ctrlX = (x0 + x1) * 0.5 + Math.sin(seed) * 48;
     const ctrlY = (y0 + y1) * 0.5;
 
     ctx.strokeStyle = '#2d5a27';
@@ -830,7 +1160,6 @@ export class DynamicWonderTree {
     ctx.quadraticCurveTo(ctrlX, ctrlY, x1, y1);
     ctx.stroke();
 
-    // Individual hand-inked ivy leaves along the vine
     const leafCount = 9;
     for (let i = 1; i < leafCount; i++) {
       const t = i / leafCount;
@@ -856,165 +1185,6 @@ export class DynamicWonderTree {
     ctx.restore();
   }
 
-  private drawHandDrawnBranch(
-    ctx: CanvasRenderingContext2D,
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-    startThick: number,
-    endThick: number,
-    dir: number,
-    seed: number
-  ): void {
-    ctx.save();
-    const ctrlX = (startX + endX) * 0.5 + dir * 35;
-    const ctrlY = Math.min(startY, endY) + 24;
-
-    const buildBranchPath = () => {
-      ctx.beginPath();
-      ctx.moveTo(startX, startY - startThick * 0.5);
-      ctx.quadraticCurveTo(
-        ctrlX,
-        ctrlY - startThick * 0.35,
-        endX,
-        endY - endThick * 0.5
-      );
-      ctx.lineTo(endX, endY + endThick * 0.5);
-      ctx.quadraticCurveTo(
-        ctrlX,
-        ctrlY + startThick * 0.48,
-        startX,
-        startY + startThick * 0.5
-      );
-      ctx.closePath();
-    };
-
-    // Flat 2D warm bark fill
-    buildBranchPath();
-    ctx.fillStyle = '#785238';
-    ctx.fill();
-
-    // Flat cel-shaded underside shadow along the lower half of the branch
-    ctx.save();
-    buildBranchPath();
-    ctx.clip();
-
-    ctx.fillStyle = '#5a3b26';
-    ctx.beginPath();
-    ctx.moveTo(startX, startY + 2);
-    ctx.quadraticCurveTo(ctrlX, ctrlY + 6, endX, endY);
-    ctx.lineTo(endX, endY + endThick);
-    ctx.lineTo(startX, startY + startThick);
-    ctx.closePath();
-    ctx.fill();
-
-    // Hand-drawn ink grain lines along the branch
-    ctx.strokeStyle = '#26160c';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    for (let g = -1; g <= 1; g++) {
-      const offY = g * (startThick * 0.18);
-      ctx.beginPath();
-      ctx.moveTo(startX + dir * 18, startY + offY);
-      ctx.quadraticCurveTo(
-        ctrlX,
-        ctrlY + offY * 0.7,
-        endX - dir * 24,
-        endY + offY * 0.4
-      );
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Bold hand-inked branch outline
-    buildBranchPath();
-    ctx.lineWidth = 4.5;
-    ctx.strokeStyle = '#23140b';
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-
-    // Smaller forked sub-branch twig for natural hand-drawn silhouette
-    if (dir !== 0) {
-      const forkX = startX + (endX - startX) * 0.55;
-      const forkY = startY + (endY - startY) * 0.55 - 8;
-      ctx.fillStyle = '#785238';
-      ctx.strokeStyle = '#23140b';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(forkX - dir * 12, forkY);
-      ctx.quadraticCurveTo(
-        forkX + dir * 28,
-        forkY - 38,
-        forkX + dir * 68,
-        forkY - 58
-      );
-      ctx.lineTo(forkX + dir * 72, forkY - 46);
-      ctx.quadraticCurveTo(
-        forkX + dir * 32,
-        forkY - 24,
-        forkX + dir * 12,
-        forkY + 6
-      );
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Moss along the top ridge of the branch
-    this.drawMossPatch(
-      ctx,
-      (startX + endX) * 0.48,
-      ctrlY - startThick * 0.28,
-      58,
-      16
-    );
-
-    // Warm hanging storybook lantern suspended from the branch
-    if (dir !== 0 && seed > 0) {
-      const lx = startX + (endX - startX) * 0.62;
-      const ly = startY + (endY - startY) * 0.62 + 18;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly - 12);
-      ctx.lineTo(lx, ly + 14);
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#23140b';
-      ctx.stroke();
-
-      const lanternGlow = ctx.createRadialGradient(
-        lx,
-        ly + 22,
-        3,
-        lx,
-        ly + 22,
-        28
-      );
-      lanternGlow.addColorStop(0, 'rgba(255, 243, 176, 0.95)');
-      lanternGlow.addColorStop(0.5, 'rgba(255, 209, 102, 0.5)');
-      lanternGlow.addColorStop(1, 'rgba(255, 209, 102, 0)');
-      ctx.fillStyle = lanternGlow;
-      ctx.beginPath();
-      ctx.arc(lx, ly + 22, 28, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffd166';
-      ctx.strokeStyle = '#23140b';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.roundRect(lx - 8, ly + 13, 16, 18, 4);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  /**
-   * Draws a natural arched hole carved directly into the bark of the tree,
-   * with a hand-inked wooden rim, mossy brow, warm inner sanctuary glow,
-   * and a carved wooden threshold step.
-   */
   private drawNaturalTreeHollow(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -1025,16 +1195,14 @@ export class DynamicWonderTree {
   ): void {
     ctx.save();
 
-    // Outer hand-inked bark collar around the tree hole
     ctx.beginPath();
-    ctx.ellipse(x, y, rx + 14, ry + 14, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, rx + 14, ry + 14, 0.08, 0, Math.PI * 2);
     ctx.fillStyle = '#4f331f';
     ctx.fill();
     ctx.lineWidth = 4.5;
     ctx.strokeStyle = '#23140b';
     ctx.stroke();
 
-    // Radial bark collar lines around the rim
     ctx.lineWidth = 2;
     for (let i = 0; i < 10; i++) {
       const a = (i / 10) * Math.PI * 2;
@@ -1044,7 +1212,6 @@ export class DynamicWonderTree {
       ctx.stroke();
     }
 
-    // Deep recessed hollow interior with warm magical light
     const innerGrad = ctx.createRadialGradient(
       x,
       y + 8,
@@ -1059,17 +1226,15 @@ export class DynamicWonderTree {
     innerGrad.addColorStop(1, '#140b05');
 
     ctx.beginPath();
-    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, rx, ry, 0.08, 0, Math.PI * 2);
     ctx.fillStyle = innerGrad;
     ctx.fill();
     ctx.lineWidth = 3.5;
     ctx.strokeStyle = '#1a0f07';
     ctx.stroke();
 
-    // Mossy cap above the tree hole arch
-    this.drawMossPatch(ctx, x, y - ry - 6, rx * 0.9, 15);
+    this.drawMossPatch(ctx, x - 4, y - ry - 6, rx * 0.88, 15);
 
-    // Rustic wooden threshold ledge at the bottom of the hole
     ctx.fillStyle = '#8a5a36';
     ctx.strokeStyle = '#23140b';
     ctx.lineWidth = 3.5;
@@ -1083,7 +1248,8 @@ export class DynamicWonderTree {
 
   private drawWoodenStairway(
     ctx: CanvasRenderingContext2D,
-    cx: number,
+    botCx: number,
+    topCx: number,
     bottomY: number,
     topY: number,
     trunkHalfW: number,
@@ -1096,10 +1262,10 @@ export class DynamicWonderTree {
     for (let s = 0; s < steps; s++) {
       const t = (s + 0.5) / steps;
       const sy = bottomY - t * (bottomY - topY);
+      const spineX = Phaser.Math.Linear(botCx, topCx, t);
       const sx =
-        cx + Math.sin(t * Math.PI * 1.25) * (trunkHalfW * 0.48) * dir;
+        spineX + Math.sin(t * Math.PI * 1.3 + tierIndex) * (trunkHalfW * 0.45) * dir;
 
-      // Flat cel-shaded wooden plank step with hand-inked outline
       ctx.fillStyle = '#9c6b43';
       ctx.strokeStyle = '#23140b';
       ctx.lineWidth = 2.8;
@@ -1120,7 +1286,6 @@ export class DynamicWonderTree {
   ): void {
     ctx.save();
 
-    // Scalloped 2D cel-shaded moss cushion instead of smooth ellipse gradient
     ctx.beginPath();
     const bumps = 8;
     for (let i = 0; i < bumps; i++) {
@@ -1144,19 +1309,22 @@ export class DynamicWonderTree {
     ctx.strokeStyle = '#1b4332';
     ctx.stroke();
 
-    // Inner bright highlight tuft
     ctx.fillStyle = '#95d5b2';
     ctx.beginPath();
-    ctx.ellipse(x - rx * 0.15, y - ry * 0.2, rx * 0.55, ry * 0.45, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      x - rx * 0.15,
+      y - ry * 0.2,
+      rx * 0.55,
+      ry * 0.45,
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
 
     ctx.restore();
   }
 
-  /**
-   * Hand-draws a lush, multi-layered 2D ink-and-watercolor leaf canopy with
-   * scalloped silhouettes and individual hand-inked leaf veins.
-   */
   private drawFoliageCluster(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -1169,25 +1337,25 @@ export class DynamicWonderTree {
 
     const layers = [
       { scale: 1.0, fill: '#24553a', stroke: '#132a1d', yOff: 10 },
-      { scale: 0.88, fill: '#367a53', stroke: '#1b4332', yOff: 0 },
-      { scale: 0.72, fill: '#52b788', stroke: '#24553a', yOff: -10 },
-      { scale: 0.5, fill: '#95d5b2', stroke: '#2d6a4f', yOff: -20 }
+      { scale: 0.86, fill: '#367a53', stroke: '#1b4332', yOff: 0 },
+      { scale: 0.7, fill: '#52b788', stroke: '#24553a', yOff: -10 },
+      { scale: 0.48, fill: '#95d5b2', stroke: '#2d6a4f', yOff: -18 }
     ];
 
     for (const layer of layers) {
       ctx.beginPath();
-      const lobes = 14;
+      const lobes = 13;
       for (let i = 0; i < lobes; i++) {
         const a0 = (i / lobes) * Math.PI * 2;
         const aMid = ((i + 0.5) / lobes) * Math.PI * 2;
         const a1 = ((i + 1) / lobes) * Math.PI * 2;
-        const wobble = 1 + 0.15 * Math.sin(seed + i * 2.3);
+        const wobble = 1 + 0.18 * Math.sin(seed + i * 2.7);
 
         const x0 = cx + Math.cos(a0) * rx * layer.scale;
         const y0 = cy + layer.yOff + Math.sin(a0) * ry * layer.scale;
-        const xm = cx + Math.cos(aMid) * rx * layer.scale * 1.2 * wobble;
+        const xm = cx + Math.cos(aMid) * rx * layer.scale * 1.22 * wobble;
         const ym =
-          cy + layer.yOff + Math.sin(aMid) * ry * layer.scale * 1.2 * wobble;
+          cy + layer.yOff + Math.sin(aMid) * ry * layer.scale * 1.22 * wobble;
         const x1 = cx + Math.cos(a1) * rx * layer.scale;
         const y1 = cy + layer.yOff + Math.sin(a1) * ry * layer.scale;
 
@@ -1197,20 +1365,19 @@ export class DynamicWonderTree {
       ctx.closePath();
       ctx.fillStyle = layer.fill;
       ctx.fill();
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.8;
       ctx.strokeStyle = layer.stroke;
       ctx.stroke();
     }
 
-    // Subtle hand-inked leaf cluster detail arcs inside the canopy
     ctx.strokeStyle = '#1b4332';
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
-    for (let k = -2; k <= 2; k++) {
-      const lx = cx + k * (rx * 0.26);
-      const ly = cy - 6 + Math.sin(seed + k) * 14;
+    for (let k = -1; k <= 1; k++) {
+      const lx = cx + k * (rx * 0.28);
+      const ly = cy - 5 + Math.sin(seed + k) * 12;
       ctx.beginPath();
-      ctx.arc(lx, ly, 22, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.arc(lx, ly, 18, Math.PI * 1.1, Math.PI * 1.9);
       ctx.stroke();
     }
 
