@@ -123,7 +123,34 @@ function setupHudAndGuardianModal(): void {
     }
   };
 
-  guardianBtn?.addEventListener('click', openMathGate);
+  // Require 3-second continuous long-press to open Guardian Math Gate
+  const LONG_PRESS_MS = 3000;
+  let holdTimer: number | null = null;
+
+  const cancelGuardianHold = () => {
+    if (holdTimer !== null) {
+      window.clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    guardianBtn?.classList.remove('holding');
+  };
+
+  const startGuardianHold = (e: Event) => {
+    e.preventDefault();
+    cancelGuardianHold();
+    guardianBtn?.classList.add('holding');
+    holdTimer = window.setTimeout(() => {
+      holdTimer = null;
+      guardianBtn?.classList.remove('holding');
+      openMathGate();
+    }, LONG_PRESS_MS);
+  };
+
+  guardianBtn?.addEventListener('pointerdown', startGuardianHold);
+  guardianBtn?.addEventListener('pointerup', cancelGuardianHold);
+  guardianBtn?.addEventListener('pointerleave', cancelGuardianHold);
+  guardianBtn?.addEventListener('pointercancel', cancelGuardianHold);
+  guardianBtn?.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // PWA Install Prompt Handling
   interface BeforeInstallPromptEvent extends Event {

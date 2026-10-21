@@ -31,19 +31,23 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(stats2?.completedCount).toBe(2);
   });
 
-  it('requires solving a 2-digit arithmetic puzzle each time to unlock Guardian Dashboard', () => {
-    const challenge = profiles.generateGuardianChallenge();
-    expect(challenge.a).toBeGreaterThanOrEqual(10);
-    expect(challenge.a).toBeLessThanOrEqual(99);
-    expect(challenge.b).toBeGreaterThanOrEqual(10);
-    expect(challenge.b).toBeLessThanOrEqual(99);
+  it('requires solving a 2-digit arithmetic puzzle (< 100 result) each time to unlock Guardian Dashboard', () => {
+    for (let i = 0; i < 50; i++) {
+      const challenge = profiles.generateGuardianChallenge();
+      expect(challenge.a).toBeGreaterThanOrEqual(10);
+      expect(challenge.a).toBeLessThanOrEqual(99);
+      expect(challenge.b).toBeGreaterThanOrEqual(10);
+      expect(challenge.b).toBeLessThanOrEqual(99);
+      expect(challenge.expectedAnswer).toBeGreaterThan(0);
+      expect(challenge.expectedAnswer).toBeLessThan(100);
 
-    expect(profiles.verifyGuardianChallenge(challenge.expectedAnswer + 1)).toBe(
-      false
-    );
-    expect(
-      profiles.verifyGuardianChallenge(String(challenge.expectedAnswer))
-    ).toBe(true);
+      expect(profiles.verifyGuardianChallenge(challenge.expectedAnswer + 1)).toBe(
+        false
+      );
+      expect(
+        profiles.verifyGuardianChallenge(String(challenge.expectedAnswer))
+      ).toBe(true);
+    }
   });
 
   it('generates COPPA-compliant nature/mineral + animal usernames', () => {

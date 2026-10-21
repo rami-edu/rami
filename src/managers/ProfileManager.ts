@@ -95,13 +95,18 @@ export class ProfileManager {
 
   public generateGuardianChallenge(): GuardianMathChallenge {
     const isAddition = Math.random() < 0.5;
-    let a = Math.floor(Math.random() * 80) + 12; // 12..91
-    let b = Math.floor(Math.random() * 80) + 12; // 12..91
+    let a: number;
+    let b: number;
 
-    if (!isAddition && a < b) {
-      const tmp = a;
-      a = b;
-      b = tmp;
+    if (isAddition) {
+      // Both operands are 2-digit (>= 10) and their sum is strictly < 100 (<= 99)
+      a = Math.floor(Math.random() * 79) + 10; // 10..88
+      const maxB = 99 - a;
+      b = Math.floor(Math.random() * (maxB - 10 + 1)) + 10; // 10..maxB
+    } else {
+      // Both operands are 2-digit (>= 10) and difference is positive and < 100
+      a = Math.floor(Math.random() * 80) + 20; // 20..99
+      b = Math.floor(Math.random() * (a - 10)) + 10; // 10..(a-1)
     }
 
     const operator: '+' | '-' = isAddition ? '+' : '-';

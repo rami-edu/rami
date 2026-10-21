@@ -115,6 +115,35 @@
         background: #40916c;
         transform: translateY(-1px);
       }
+      /* Compact 3-Second Long-Press Guardian Button */
+      #btn-guardian {
+        position: relative;
+        overflow: hidden;
+        padding: 5px 10px;
+        font-size: 11px;
+        background: rgba(22, 36, 24, 0.78);
+        border: 1.5px solid #52b788;
+        color: #b7e4c7;
+        touch-action: none;
+      }
+      #btn-guardian-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0%;
+        background: rgba(82, 183, 136, 0.45);
+        pointer-events: none;
+        transition: width 0.1s linear;
+      }
+      #btn-guardian.holding #btn-guardian-fill {
+        width: 100%;
+        transition: width 3s linear;
+      }
+      #btn-guardian span {
+        position: relative;
+        z-index: 1;
+      }
       /* Guardian Dashboard Modal */
       #guardian-modal {
         position: absolute;
@@ -181,9 +210,12 @@
           <span>🌿 Explorer:</span>
           <strong id="hud-username">Loading...</strong>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
           <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App</button>
-          <button id="btn-guardian" class="hud-btn">🔒 Guardian Dashboard</button>
+          <button id="btn-guardian" class="hud-btn" title="Hold for 3 seconds to open Guardian Dashboard">
+            <div id="btn-guardian-fill"></div>
+            <span>🔒 Hold 3s</span>
+          </button>
         </div>
       </div>
 
