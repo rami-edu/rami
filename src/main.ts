@@ -6,7 +6,6 @@ import { profileManager, ProfileManager } from './managers/ProfileManager';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
-  const rerollBtn = document.getElementById('btn-reroll-name');
   const guardianBtn = document.getElementById('btn-guardian');
   const closeGuardianBtn = document.getElementById('btn-close-guardian');
   const guardianModal = document.getElementById('guardian-modal');
@@ -36,16 +35,6 @@ function setupHudAndGuardianModal(): void {
   };
 
   syncHud();
-
-  rerollBtn?.addEventListener('click', () => {
-    const nextName = userManager.generateUsername();
-    const active = profileManager.getActiveProfile();
-    if (active) {
-      active.explorerName = nextName;
-      profileManager.save();
-    }
-    syncHud();
-  });
 
   const renderProfiles = () => {
     if (!profilesList) return;
