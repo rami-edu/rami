@@ -54,7 +54,10 @@ const RhythmBranchesMinigame: MinigameModule = {
     };
     scene.scale.on('resize', onResize);
 
-    let levelIndex = 0;
+    const savedLevel =
+      profileManager.getActiveProfile()?.progress['Rhythm in the Branches']
+        ?.highestLevel ?? 0;
+    let levelIndex = savedLevel;
     let stepIndex = 0;
     let transitioning = false;
 

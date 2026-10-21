@@ -52,7 +52,10 @@ const AcornScaleMinigame: MinigameModule = {
     };
     scene.scale.on('resize', onResize);
 
-    let levelIndex = 0;
+    const savedLevel =
+      profileManager.getActiveProfile()?.progress['Acorn Scale']
+        ?.highestLevel ?? 0;
+    let levelIndex = savedLevel;
     let currentAcorns = 0;
     let transitioning = false;
 

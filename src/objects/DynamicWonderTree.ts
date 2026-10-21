@@ -18,10 +18,30 @@ interface TierVisual {
   anchors: TreeHollowAnchor[];
 }
 
-const MINIGAME_ROTATION = [
-  'Acorn Scale',
-  'The Clockwork Tower',
-  'Rhythm in the Branches'
+const UNIQUE_ACTIVITIES: Array<{
+  id: string;
+  minigame: string;
+  glowHex: string;
+  branchSide: 'left' | 'center' | 'right';
+}> = [
+  {
+    id: 'portal_math',
+    minigame: 'Acorn Scale',
+    glowHex: '#ffd166',
+    branchSide: 'left'
+  },
+  {
+    id: 'portal_hub',
+    minigame: 'The Clockwork Tower',
+    glowHex: '#90e0ef',
+    branchSide: 'center'
+  },
+  {
+    id: 'portal_music',
+    minigame: 'Rhythm in the Branches',
+    glowHex: '#80ed99',
+    branchSide: 'right'
+  }
 ];
 
 /**
@@ -38,6 +58,7 @@ export class DynamicWonderTree {
   private sproutBudContainer!: Phaser.GameObjects.Container;
   private tiers: TierVisual[] = [];
   private allAnchors: TreeHollowAnchor[] = [];
+  private placedActivities = new Set<string>();
   private readonly tierHeight = 320;
   private readonly baseTrunkHalfWidth = 285;
   private onNewAnchorCreated?: (anchor: TreeHollowAnchor) => void;
@@ -359,66 +380,87 @@ export class DynamicWonderTree {
     // 5. Hand-drawn wooden steps & rope railings winding across the colossal bark
     this.drawWoodenStairway(ctx, cx, bottomY, topY, bottomHalfW, tierIndex);
 
-    // 6. Natural carved Tree Hollows inside the trunk and thick branch bases
+    // 6. Natural carved Tree Hollows inside the trunk and thick branch bases.
+    // Each activity appears strictly ONCE in the entire tree.
     if (tierIndex === 0) {
       // Lower-left root hollow (Acorn Scale)
-      const leftHollowX = cx - 165;
-      const leftHollowY = bottomY - 72;
-      this.drawNaturalTreeHollow(ctx, leftHollowX, leftHollowY, 52, 62, '#ffd166');
-      outAnchors.push({
-        id: 'portal_math',
-        tierIndex: 0,
-        minigame: 'Acorn Scale',
-        localX: leftHollowX - cx,
-        localY: leftHollowY - bottomY,
-        branchSide: 'left'
-      });
+      const mathDef = UNIQUE_ACTIVITIES[0];
+      if (!this.placedActivities.has(mathDef.minigame)) {
+        this.placedActivities.add(mathDef.minigame);
+        const leftHollowX = cx - 165;
+        const leftHollowY = bottomY - 72;
+        this.drawNaturalTreeHollow(
+          ctx,
+          leftHollowX,
+          leftHollowY,
+          52,
+          62,
+          mathDef.glowHex
+        );
+        outAnchors.push({
+          id: mathDef.id,
+          tierIndex: 0,
+          minigame: mathDef.minigame,
+          localX: leftHollowX - cx,
+          localY: leftHollowY - bottomY,
+          branchSide: mathDef.branchSide
+        });
+      }
 
       // Central trunk hollow (The Clockwork Tower / Cave Echoes)
-      const centerHollowX = cx + 38;
-      const centerHollowY = topY + 102;
-      this.drawNaturalTreeHollow(ctx, centerHollowX, centerHollowY, 52, 62, '#90e0ef');
-      outAnchors.push({
-        id: 'portal_hub',
-        tierIndex: 0,
-        minigame: 'The Clockwork Tower',
-        localX: centerHollowX - cx,
-        localY: centerHollowY - bottomY,
-        branchSide: 'center'
-      });
-    } else if (tierIndex === 1) {
-      // Upper-right bough junction hollow (Rhythm in the Branches)
-      const rightHollowX = cx + 195;
-      const rightHollowY = topY + 112;
-      this.drawNaturalTreeHollow(ctx, rightHollowX, rightHollowY, 50, 60, '#80ed99');
-      outAnchors.push({
-        id: 'portal_music',
-        tierIndex: 1,
-        minigame: 'Rhythm in the Branches',
-        localX: rightHollowX - cx,
-        localY: rightHollowY - bottomY,
-        branchSide: 'right'
-      });
+      const hubDef = UNIQUE_ACTIVITIES[1];
+      if (!this.placedActivities.has(hubDef.minigame)) {
+        this.placedActivities.add(hubDef.minigame);
+        const centerHollowX = cx + 38;
+        const centerHollowY = topY + 102;
+        this.drawNaturalTreeHollow(
+          ctx,
+          centerHollowX,
+          centerHollowY,
+          52,
+          62,
+          hubDef.glowHex
+        );
+        outAnchors.push({
+          id: hubDef.id,
+          tierIndex: 0,
+          minigame: hubDef.minigame,
+          localX: centerHollowX - cx,
+          localY: centerHollowY - bottomY,
+          branchSide: hubDef.branchSide
+        });
+      }
     } else {
-      // Dynamically grown upper tiers
-      const sideIdx = tierIndex % 3;
-      const mgName =
-        MINIGAME_ROTATION[(tierIndex - 1) % MINIGAME_ROTATION.length];
-      const offsetX = sideIdx === 0 ? -170 : sideIdx === 1 ? 170 : 0;
-      const hollowX = cx + offsetX;
-      const hollowY = topY + 115;
-      const glowHex =
-        sideIdx === 0 ? '#ffd166' : sideIdx === 1 ? '#80ed99' : '#90e0ef';
-
-      this.drawNaturalTreeHollow(ctx, hollowX, hollowY, 48, 58, glowHex);
-      outAnchors.push({
-        id: `portal_dynamic_tier_${tierIndex}`,
-        tierIndex,
-        minigame: mgName,
-        localX: hollowX - cx,
-        localY: hollowY - bottomY,
-        branchSide: sideIdx === 0 ? 'left' : sideIdx === 1 ? 'right' : 'center'
-      });
+      // Find the next unplaced unique activity (if any remain)
+      const nextActivity = UNIQUE_ACTIVITIES.find(
+        (act) => !this.placedActivities.has(act.minigame)
+      );
+      if (nextActivity) {
+        this.placedActivities.add(nextActivity.minigame);
+        const hollowX =
+          nextActivity.branchSide === 'left'
+            ? cx - 185
+            : nextActivity.branchSide === 'right'
+              ? cx + 195
+              : cx;
+        const hollowY = topY + 112;
+        this.drawNaturalTreeHollow(
+          ctx,
+          hollowX,
+          hollowY,
+          50,
+          60,
+          nextActivity.glowHex
+        );
+        outAnchors.push({
+          id: nextActivity.id,
+          tierIndex,
+          minigame: nextActivity.minigame,
+          localX: hollowX - cx,
+          localY: hollowY - bottomY,
+          branchSide: nextActivity.branchSide
+        });
+      }
     }
   }
 
