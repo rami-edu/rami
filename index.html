@@ -115,7 +115,7 @@
         background: #40916c;
         transform: translateY(-1px);
       }
-      /* Compact 3-Second Long-Press Guardian Button */
+      /* Compact Triple-Tap Guardian Button */
       #btn-guardian {
         position: relative;
         overflow: hidden;
@@ -124,7 +124,7 @@
         background: rgba(22, 36, 24, 0.78);
         border: 1.5px solid #52b788;
         color: #b7e4c7;
-        touch-action: none;
+        touch-action: manipulation;
       }
       #btn-guardian-fill {
         position: absolute;
@@ -134,11 +134,7 @@
         width: 0%;
         background: rgba(82, 183, 136, 0.45);
         pointer-events: none;
-        transition: width 0.1s linear;
-      }
-      #btn-guardian.holding #btn-guardian-fill {
-        width: 100%;
-        transition: width 3s linear;
+        transition: width 0.15s ease;
       }
       #btn-guardian span {
         position: relative;
@@ -211,9 +207,9 @@
           <strong id="hud-username">Loading...</strong>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button id="btn-guardian" class="hud-btn" title="Hold for 3 seconds to open Guardian Dashboard">
+          <button id="btn-guardian" class="hud-btn" title="Triple-tap to open Guardian Dashboard">
             <div id="btn-guardian-fill"></div>
-            <span>🔒 Hold 3s</span>
+            <span id="btn-guardian-label">🔒 3× Tap</span>
           </button>
         </div>
       </div>

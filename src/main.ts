@@ -123,34 +123,48 @@ function setupHudAndGuardianModal(): void {
     }
   };
 
-  // Require 3-second continuous long-press to open Guardian Math Gate
-  const LONG_PRESS_MS = 3000;
-  let holdTimer: number | null = null;
+  // Require Triple-Tap (3 quick taps/clicks) to open Guardian Math Gate
+  const guardianFill = document.getElementById('btn-guardian-fill');
+  const guardianLabel = document.getElementById('btn-guardian-label');
+  const TRIPLE_TAP_WINDOW_MS = 1200;
+  let tapCount = 0;
+  let tapResetTimer: number | null = null;
 
-  const cancelGuardianHold = () => {
-    if (holdTimer !== null) {
-      window.clearTimeout(holdTimer);
-      holdTimer = null;
+  const resetGuardianTaps = () => {
+    tapCount = 0;
+    if (tapResetTimer !== null) {
+      window.clearTimeout(tapResetTimer);
+      tapResetTimer = null;
     }
-    guardianBtn?.classList.remove('holding');
+    if (guardianFill) guardianFill.style.width = '0%';
+    if (guardianLabel) guardianLabel.textContent = '🔒 3× Tap';
   };
 
-  const startGuardianHold = (e: Event) => {
-    e.preventDefault();
-    cancelGuardianHold();
-    guardianBtn?.classList.add('holding');
-    holdTimer = window.setTimeout(() => {
-      holdTimer = null;
-      guardianBtn?.classList.remove('holding');
+  guardianBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    tapCount += 1;
+
+    if (tapResetTimer !== null) {
+      window.clearTimeout(tapResetTimer);
+    }
+
+    if (tapCount >= 3) {
+      resetGuardianTaps();
       openMathGate();
-    }, LONG_PRESS_MS);
-  };
+      return;
+    }
 
-  guardianBtn?.addEventListener('pointerdown', startGuardianHold);
-  guardianBtn?.addEventListener('pointerup', cancelGuardianHold);
-  guardianBtn?.addEventListener('pointerleave', cancelGuardianHold);
-  guardianBtn?.addEventListener('pointercancel', cancelGuardianHold);
-  guardianBtn?.addEventListener('contextmenu', (e) => e.preventDefault());
+    if (guardianFill) {
+      guardianFill.style.width = `${Math.round((tapCount / 3) * 100)}%`;
+    }
+    if (guardianLabel) {
+      guardianLabel.textContent = `🔒 ${tapCount}/3`;
+    }
+
+    tapResetTimer = window.setTimeout(() => {
+      resetGuardianTaps();
+    }, TRIPLE_TAP_WINDOW_MS);
+  });
 
   // PWA Install Prompt Handling
   interface BeforeInstallPromptEvent extends Event {
