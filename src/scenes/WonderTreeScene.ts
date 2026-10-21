@@ -284,8 +284,7 @@ export class WonderTreeScene extends Phaser.Scene {
       hitZone
     };
 
-    const onPortalClick = (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
+    const onPortalClick = () => {
       if (!this.activeMinigame) {
         this.pendingClickedPortal = instance;
         this.targetPos = new Phaser.Math.Vector2(
@@ -406,11 +405,43 @@ export class WonderTreeScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-FOUR', () => this.showEmoji(this.emojis[3]));
     }
 
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.activeMinigame) return;
-      this.pendingClickedPortal = null;
-      this.targetPos = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
-    });
+    this.input.on(
+      'pointerdown',
+      (
+        pointer: Phaser.Input.Pointer,
+        currentlyOver: Phaser.GameObjects.GameObject[]
+      ) => {
+        if (this.activeMinigame) return;
+
+        // If the pointer clicked on an interactive object (e.g. a portal or sprout bud),
+        // let that object's handler keep `pendingClickedPortal`.
+        if (currentlyOver && currentlyOver.length > 0) {
+          return;
+        }
+
+        // Also check if the tap/click landed inside any portal's tree hollow radius
+        const dpr = this.getDpr();
+        for (const p of this.portals) {
+          const distToPortal = Phaser.Math.Distance.Between(
+            pointer.worldX,
+            pointer.worldY,
+            p.worldX,
+            p.worldY
+          );
+          if (distToPortal <= 75 * dpr) {
+            this.pendingClickedPortal = p;
+            this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
+            return;
+          }
+        }
+
+        this.pendingClickedPortal = null;
+        this.targetPos = new Phaser.Math.Vector2(
+          pointer.worldX,
+          pointer.worldY
+        );
+      }
+    );
   }
 
   /**
