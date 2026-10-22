@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SplashScreenScene } from './scenes/SplashScreenScene';
 import { WonderTreeScene } from './scenes/WonderTreeScene';
 import { userManager } from './managers/UserManager';
+import { audioManager } from './managers/AudioManager';
 import {
   profileManager,
   ProfileManager,
@@ -577,6 +578,13 @@ function setupHudAndGuardianModal(): void {
     if (childNameInput) childNameInput.value = '';
     syncHud();
     renderProfiles();
+  });
+
+  // Background Piano Music
+  audioManager.init();
+  const musicToggleBtn = document.getElementById('btn-music-toggle');
+  musicToggleBtn?.addEventListener('click', () => {
+    audioManager.toggleMute();
   });
 }
 

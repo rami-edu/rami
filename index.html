@@ -123,6 +123,18 @@
         background: #40916c;
         transform: translateY(-1px);
       }
+      /* Music Toggle Button */
+      #btn-music-toggle {
+        padding: 8px 14px;
+        font-size: 15px;
+        background: rgba(22, 36, 24, 0.85);
+        border: 2px solid #52b788;
+        color: #b7e4c7;
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
       /* Compact Triple-Tap Guardian Button */
       #btn-guardian {
         position: relative;
@@ -446,6 +458,9 @@
           <strong id="hud-username">Loading...</strong>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-music-toggle" class="hud-btn" title="Toggle background piano music" aria-label="Toggle background piano music">
+            <span id="btn-music-icon">🎵</span>
+          </button>
           <button id="btn-guardian" class="hud-btn" title="Triple-tap to open Guardian Dashboard">
             <div id="btn-guardian-fill"></div>
             <span id="btn-guardian-label">🔒 3× Tap</span>
