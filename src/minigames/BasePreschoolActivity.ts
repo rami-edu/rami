@@ -365,7 +365,7 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       .setOrigin(0.5)
       .setAlpha(0);
 
-    const hat = this.buildInstructorHat(
+    const hatContainer = this.buildInstructorHat(
       scene,
       this.descriptor.animalInstructor ?? 'owl'
     );
@@ -373,43 +373,11 @@ export abstract class BasePreschoolActivity implements MinigameModule {
     instructorContainer.add([
       instructorGlow,
       instructorImg,
-      hat.hatContainer,
+      hatContainer,
       instructorFeedbackBubble
     ]);
 
-    // Instructor calm, subtle breathing animation (barely perceptible scale, slow cycle)
-    scene.tweens.add({
-      targets: instructorImg,
-      scaleY: 1.015,
-      scaleX: 0.99,
-      duration: 2200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
     const triggerInstructorCheer = (isBigCelebration = false) => {
-      hat.cheerHat(isBigCelebration);
-
-      // Gentle, subtle nod (only 3-4px gentle lift, no large scaling or harsh bounces)
-      scene.tweens.add({
-        targets: instructorContainer,
-        y: 16,
-        scale: isBigCelebration ? 1.03 : 1.015,
-        duration: 280,
-        yoyo: true,
-        repeat: 0,
-        ease: 'Sine.easeInOut'
-      });
-
-      scene.tweens.add({
-        targets: instructorGlow,
-        alpha: 0.45,
-        duration: 280,
-        yoyo: true,
-        ease: 'Sine.easeInOut'
-      });
-
       instructorFeedbackBubble.setText(isBigCelebration ? '🌟' : '✨');
       instructorFeedbackBubble.setPosition(0, 50).setAlpha(0.85).setScale(0.9);
       scene.tweens.add({
@@ -513,14 +481,6 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       },
       onWrongAttempt: (desc: string) => {
         this.recordAction(desc, 'mistake');
-        scene.tweens.add({
-          targets: instructorImg,
-          rotation: 0.04,
-          duration: 160,
-          yoyo: true,
-          repeat: 0,
-          ease: 'Sine.easeInOut'
-        });
       }
     });
   }
@@ -533,10 +493,7 @@ export abstract class BasePreschoolActivity implements MinigameModule {
   private buildInstructorHat(
     scene: Phaser.Scene,
     animalId: string
-  ): {
-    hatContainer: Phaser.GameObjects.Container;
-    cheerHat: (isBig: boolean) => void;
-  } {
+  ): Phaser.GameObjects.Container {
     const INSTRUCTOR_HAT_CONFIG: Record<
       string,
       { x: number; y: number; angle: number; scale: number }
@@ -625,45 +582,7 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       crestStar
     ]);
 
-    // Idle tassel sway
-    scene.tweens.add({
-      targets: tasselContainer,
-      angle: { from: -5, to: 5 },
-      duration: 1300,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
-    const cheerHat = (isBig: boolean) => {
-      // Celebratory hat tip and cheerful bounce
-      scene.tweens.add({
-        targets: hatContainer,
-        y: config.y - (isBig ? 7 : 4),
-        angle: config.angle + (isBig ? -14 : -8),
-        duration: 220,
-        yoyo: true,
-        ease: 'Back.easeOut'
-      });
-
-      scene.tweens.add({
-        targets: tasselContainer,
-        angle: isBig ? 24 : 14,
-        duration: 240,
-        yoyo: true,
-        ease: 'Sine.easeInOut'
-      });
-
-      scene.tweens.add({
-        targets: crestStar,
-        scale: 1.35,
-        duration: 220,
-        yoyo: true,
-        ease: 'Back.easeOut'
-      });
-    };
-
-    return { hatContainer, cheerHat };
+    return hatContainer;
   }
 
   /**
