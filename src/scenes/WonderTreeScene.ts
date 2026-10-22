@@ -329,16 +329,9 @@ export class WonderTreeScene extends Phaser.Scene {
       return;
     }
     const theme = this.getPortalTheme(anchor.minigame);
-    const { pillar } = ActivityLogoLibrary.resolveMinigameTopic(
-      anchor.minigame
-    );
     const activityLogoKey = ActivityLogoLibrary.getActivityLogoTexture(
       this,
       anchor.id.replace('portal_', '')
-    );
-    const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
-      this,
-      pillar.id
     );
 
     const container = this.add.container(0, 0).setDepth(15);
@@ -381,16 +374,11 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    // Main-UI-matched badge beneath the tree hole
+    // Main-UI-matched badge beneath the tree hole (clean text & stars without repeated icon)
     const bannerBg = this.add
-      .rectangle(0, 62, 280, 54, 0x162418, 0.94)
+      .rectangle(0, 62, 260, 54, 0x162418, 0.94)
       .setStrokeStyle(2.5, theme.ringColor)
       .setInteractive({ useHandCursor: true });
-
-    const pillarBadgeImg = this.add
-      .image(-114, 62, pillarLogoKey)
-      .setDisplaySize(34, 34)
-      .setOrigin(0.5);
 
     const activeProfile = profileManager.getActiveProfile();
     const stats = activeProfile?.progress[anchor.minigame];
@@ -398,7 +386,7 @@ export class WonderTreeScene extends Phaser.Scene {
     const starsVisual = formatStarsVisual(starsEarned);
 
     const titleLabel = this.add
-      .text(12, 51, anchor.minigame, {
+      .text(0, 51, anchor.minigame, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: '17px',
         color: '#d8f3dc',
@@ -408,7 +396,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subLabel = this.add
-      .text(12, 73, `${starsVisual} • ${theme.subtitle}`, {
+      .text(0, 73, `${starsVisual} • ${theme.subtitle}`, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: '13px',
         color: '#ffd166',
@@ -452,7 +440,6 @@ export class WonderTreeScene extends Phaser.Scene {
       logoGlow,
       logoImg,
       bannerBg,
-      pillarBadgeImg,
       titleLabel,
       subLabel
     ]);
