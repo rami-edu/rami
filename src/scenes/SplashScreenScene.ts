@@ -41,6 +41,10 @@ export class SplashScreenScene extends Phaser.Scene {
     this.load.image('portal_shadow_match', './portal-shadow-match.png');
     this.load.image('portal_nature_sorting', './portal-nature-sorting.png');
     this.load.image('portal_symmetry_wings', './portal-symmetry-wings.png');
+    this.load.image('tree_stage_1', './tree-stage-1.png');
+    this.load.image('tree_stage_2', './tree-stage-2.png');
+    this.load.image('tree_stage_3', './tree-stage-3.png');
+    this.load.image('tree_stage_4', './tree-stage-4.png');
   }
 
   public create(): void {

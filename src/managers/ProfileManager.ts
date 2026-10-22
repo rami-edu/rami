@@ -346,6 +346,27 @@ export class ProfileManager {
     const stats = this.state.profiles[targetId].progress[minigameId];
     return stats?.highestLevel ?? 0;
   }
+
+  public getTotalStarsEarned(profileId?: string): number {
+    const targetId = profileId ?? this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return 0;
+    }
+    const progress = this.state.profiles[targetId].progress;
+    let total = 0;
+    for (const stats of Object.values(progress)) {
+      total += stats.highestLevel ?? 0;
+    }
+    return total;
+  }
+
+  public getTreeGrowthStage(profileId?: string): 1 | 2 | 3 | 4 {
+    const stars = this.getTotalStarsEarned(profileId);
+    if (stars <= 5) return 1;
+    if (stars <= 15) return 2;
+    if (stars <= 30) return 3;
+    return 4;
+  }
 }
 
 export const profileManager = new ProfileManager();
