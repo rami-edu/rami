@@ -4,8 +4,9 @@ import random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageEnhance
 
-W = 1400
-H = 1200
+SCALE = 2
+W = 1400 * SCALE  # 2800 (4X resolution / 4X pixel count)
+H = 1200 * SCALE  # 2400
 
 # Color palette: Warm watercolor storybook (Ghibli / Beatrix Potter inspired)
 BARK_BASE = (74, 52, 38)
@@ -42,8 +43,8 @@ def add_jitter(pts, amount=2.5):
     """Adds natural hand-drawn pencil jitter to a line."""
     jittered = []
     for x, y in pts:
-        jx = x + random.uniform(-amount, amount)
-        jy = y + random.uniform(-amount, amount)
+        jx = x + random.uniform(-amount * SCALE, amount * SCALE)
+        jy = y + random.uniform(-amount * SCALE, amount * SCALE)
         jittered.append((jx, jy))
     return jittered
 
@@ -70,15 +71,16 @@ def draw_watercolor_blob(draw_layer, cx, cy, rx, ry, color, opacity=180, num_lay
 
 def draw_storybook_bark_hollow(im, draw, hx, hy, r=44):
     """Draws a carved knot hollow into the tree trunk with inner depth & wood rim."""
+    r_scaled = int(r * SCALE)
     # Dark cavity depth
-    for radius, alpha in [(r, 240), (r - 6, 255), (r - 12, 255)]:
+    for radius, alpha in [(r_scaled, 240), (r_scaled - int(6 * SCALE), 255), (r_scaled - int(12 * SCALE), 255)]:
         draw.ellipse(
             (hx - radius, hy - radius * 1.06, hx + radius, hy + radius * 1.06),
             fill=(18, 12, 8, alpha)
         )
     # Inner subtle warm amber backlight
     draw.ellipse(
-        (hx - r * 0.5, hy - r * 0.5, hx + r * 0.5, hy + r * 0.5),
+        (hx - r_scaled * 0.5, hy - r_scaled * 0.5, hx + r_scaled * 0.5, hy + r_scaled * 0.5),
         fill=(55, 38, 22, 140)
     )
     # Gnarled bark rim around the hole
@@ -86,11 +88,11 @@ def draw_storybook_bark_hollow(im, draw, hx, hy, r=44):
     for i in range(24):
         a = (i / 24) * math.pi * 2
         var = random.uniform(0.94, 1.08)
-        px = hx + math.cos(a) * (r + 8) * var
-        py = hy + math.sin(a) * (r * 1.06 + 8) * var
+        px = hx + math.cos(a) * (r_scaled + 8 * SCALE) * var
+        py = hy + math.sin(a) * (r_scaled * 1.06 + 8 * SCALE) * var
         rim_pts.append((px, py))
-    draw.line(rim_pts + [rim_pts[0]], fill=(*BARK_PENCIL, 220), width=3)
-    draw.line(rim_pts + [rim_pts[0]], fill=(*BARK_LIGHT, 160), width=1)
+    draw.line(rim_pts + [rim_pts[0]], fill=(*BARK_PENCIL, 220), width=int(3 * SCALE))
+    draw.line(rim_pts + [rim_pts[0]], fill=(*BARK_LIGHT, 160), width=max(1, int(1 * SCALE)))
 
 def draw_canopy_cluster(layer, cx, cy, radius, is_celestial=False):
     """Draws lush Beatrix Potter / Ghibli watercolor foliage cluster."""
@@ -116,19 +118,20 @@ def draw_canopy_cluster(layer, cx, cy, radius, is_celestial=False):
         scallop = []
         for s in range(5):
             sa = a + (s - 2) * 0.3
-            scallop.append((lx + math.cos(sa) * 12, ly + math.sin(sa) * 8))
-        draw.line(scallop, fill=(*BARK_PENCIL, 160), width=2)
+            scallop.append((lx + math.cos(sa) * 12 * SCALE, ly + math.sin(sa) * 8 * SCALE))
+        draw.line(scallop, fill=(*BARK_PENCIL, 160), width=int(2 * SCALE))
         
     if is_celestial:
         # Golden blossoms & starry glitter
         for _ in range(7):
             bx = cx + random.uniform(-radius * 0.7, radius * 0.7)
             by = cy + random.uniform(-radius * 0.6, radius * 0.6)
-            draw.ellipse((bx - 6, by - 6, bx + 6, by + 6), fill=(*LANTERN_GOLD, 230))
-            draw.ellipse((bx - 3, by - 3, bx + 3, by + 3), fill=(255, 255, 255, 255))
+            b_r = 6 * SCALE
+            draw.ellipse((bx - b_r, by - b_r, bx + b_r, by + b_r), fill=(*LANTERN_GOLD, 230))
+            draw.ellipse((bx - b_r*0.5, by - b_r*0.5, bx + b_r*0.5, by + b_r*0.5), fill=(255, 255, 255, 255))
 
 def generate_stage_image(stage_num, sockets):
-    """Renders one of the 4 hand-drawn growth stages with transparent background."""
+    """Renders one of the 4 hand-drawn growth stages with transparent background at 4X resolution."""
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     foliage_layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     bark_layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -138,53 +141,53 @@ def generate_stage_image(stage_num, sockets):
     d_draw = ImageDraw.Draw(detail_layer)
     
     base_x = W // 2
-    base_y = H - 60
+    base_y = H - int(60 * SCALE)
     
     # Configure stage scale & trunk thickness
     if stage_num == 1:
-        trunk_half_bottom = 90
-        trunk_half_top = 48
-        crown_y = 380
+        trunk_half_bottom = int(90 * SCALE)
+        trunk_half_top = int(48 * SCALE)
+        crown_y = int(380 * SCALE)
     elif stage_num == 2:
-        trunk_half_bottom = 145
-        trunk_half_top = 75
-        crown_y = 300
+        trunk_half_bottom = int(145 * SCALE)
+        trunk_half_top = int(75 * SCALE)
+        crown_y = int(300 * SCALE)
     else:  # Stages 3 & 4
-        trunk_half_bottom = 210
-        trunk_half_top = 110
-        crown_y = 220
+        trunk_half_bottom = int(210 * SCALE)
+        trunk_half_top = int(110 * SCALE)
+        crown_y = int(220 * SCALE)
         
     # --- 1. Draw Massive Fluted Trunk & Roots ---
     trunk_pts_left = [
-        (base_x - trunk_half_bottom - 110, base_y + 40),
-        (base_x - trunk_half_bottom - 40, base_y - 20),
-        (base_x - trunk_half_bottom + 10, base_y - 120),
-        (base_x - trunk_half_bottom + 25, base_y - 280),
-        (base_x - trunk_half_top - 20, crown_y + 180),
+        (base_x - trunk_half_bottom - int(110 * SCALE), base_y + int(40 * SCALE)),
+        (base_x - trunk_half_bottom - int(40 * SCALE), base_y - int(20 * SCALE)),
+        (base_x - trunk_half_bottom + int(10 * SCALE), base_y - int(120 * SCALE)),
+        (base_x - trunk_half_bottom + int(25 * SCALE), base_y - int(280 * SCALE)),
+        (base_x - trunk_half_top - int(20 * SCALE), crown_y + int(180 * SCALE)),
         (base_x - trunk_half_top, crown_y)
     ]
     trunk_pts_right = [
         (base_x + trunk_half_top, crown_y),
-        (base_x + trunk_half_top + 25, crown_y + 180),
-        (base_x + trunk_half_bottom - 20, base_y - 280),
-        (base_x + trunk_half_bottom - 10, base_y - 120),
-        (base_x + trunk_half_bottom + 45, base_y - 20),
-        (base_x + trunk_half_bottom + 120, base_y + 40)
+        (base_x + trunk_half_top + int(25 * SCALE), crown_y + int(180 * SCALE)),
+        (base_x + trunk_half_bottom - int(20 * SCALE), base_y - int(280 * SCALE)),
+        (base_x + trunk_half_bottom - int(10 * SCALE), base_y - int(120 * SCALE)),
+        (base_x + trunk_half_bottom + int(45 * SCALE), base_y - int(20 * SCALE)),
+        (base_x + trunk_half_bottom + int(120 * SCALE), base_y + int(40 * SCALE))
     ]
     
     full_trunk = trunk_pts_left + trunk_pts_right
     b_draw.polygon(full_trunk, fill=(*BARK_BASE, 255))
     
     # Bark vertical grain lines & watercolor wash strips
-    for gx in np.linspace(-trunk_half_bottom + 10, trunk_half_bottom - 10, 18):
+    for gx in np.linspace(-trunk_half_bottom + 10 * SCALE, trunk_half_bottom - 10 * SCALE, 24):
         grain_pts = []
-        for t in np.linspace(0, 1, 10):
+        for t in np.linspace(0, 1, 12):
             tx = (1 - t) * (base_x + gx) + t * (base_x + gx * 0.45)
-            ty = (1 - t) * (base_y + 20) + t * crown_y
-            grain_pts.append((tx + random.uniform(-4, 4), ty))
+            ty = (1 - t) * (base_y + 20 * SCALE) + t * crown_y
+            grain_pts.append((tx + random.uniform(-4 * SCALE, 4 * SCALE), ty))
         col = BARK_LIGHT if random.random() > 0.4 else BARK_MID
-        b_draw.line(grain_pts, fill=(*col, 180), width=random.randint(4, 9))
-        b_draw.line(grain_pts, fill=(*BARK_PENCIL, 140), width=random.randint(1, 2))
+        b_draw.line(grain_pts, fill=(*col, 180), width=random.randint(int(4 * SCALE), int(9 * SCALE)))
+        b_draw.line(grain_pts, fill=(*BARK_PENCIL, 140), width=random.randint(int(1 * SCALE), int(2 * SCALE)))
 
     # --- 2. Draw Branch Structures for Sockets ---
     for sock in sockets:
@@ -193,34 +196,36 @@ def generate_stage_image(stage_num, sockets):
         
         # Connect trunk to hollow socket with curving natural bough
         b_start_x = base_x + (sx - base_x) * 0.25
-        b_start_y = sy + random.randint(30, 80)
+        b_start_y = sy + random.randint(int(30 * SCALE), int(80 * SCALE))
         
         bough_pts = [
             (b_start_x, b_start_y),
-            (base_x + (sx - base_x) * 0.6, sy + 35),
-            (sx, sy + 25)
+            (base_x + (sx - base_x) * 0.6, sy + int(35 * SCALE)),
+            (sx, sy + int(25 * SCALE))
         ]
-        b_draw.line(bough_pts, fill=(*BARK_MID, 255), width=random.randint(24, 38))
-        b_draw.line(bough_pts, fill=(*BARK_PENCIL, 220), width=random.randint(2, 3))
+        b_draw.line(bough_pts, fill=(*BARK_MID, 255), width=random.randint(int(24 * SCALE), int(38 * SCALE)))
+        b_draw.line(bough_pts, fill=(*BARK_PENCIL, 220), width=random.randint(int(2 * SCALE), int(3 * SCALE)))
         
         # Draw wooden hanging rope / ivy tendril for the sign
         hang_type = sock.get('signHang', 'rope-left')
         rope_col = (139, 90, 43, 230)
         ivy_col = (82, 183, 136, 240)
         
+        rx1, rx2 = sx - int(24 * SCALE), sx + int(24 * SCALE)
+        ry1, ry2 = sy - int(52 * SCALE), sy - int(20 * SCALE)
         if 'left' in hang_type:
-            d_draw.line([(sx - 24, sy - 52), (sx - 20, sy - 20)], fill=rope_col, width=2)
-            d_draw.line([(sx + 24, sy - 52), (sx + 20, sy - 20)], fill=rope_col, width=2)
+            d_draw.line([(rx1, ry1), (sx - int(20 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
+            d_draw.line([(rx2, ry1), (sx + int(20 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
             # Little ivy leaves clinging to rope
-            d_draw.ellipse((sx - 24, sy - 38, sx - 18, sy - 32), fill=ivy_col)
-            d_draw.ellipse((sx + 20, sy - 44, sx + 26, sy - 38), fill=ivy_col)
+            d_draw.ellipse((sx - int(24 * SCALE), sy - int(38 * SCALE), sx - int(18 * SCALE), sy - int(32 * SCALE)), fill=ivy_col)
+            d_draw.ellipse((sx + int(20 * SCALE), sy - int(44 * SCALE), sx + int(26 * SCALE), sy - int(38 * SCALE)), fill=ivy_col)
         elif 'right' in hang_type:
-            d_draw.line([(sx - 24, sy - 52), (sx - 22, sy - 20)], fill=rope_col, width=2)
-            d_draw.line([(sx + 24, sy - 52), (sx + 22, sy - 20)], fill=rope_col, width=2)
-            d_draw.ellipse((sx + 20, sy - 36, sx + 26, sy - 30), fill=ivy_col)
+            d_draw.line([(rx1, ry1), (sx - int(22 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
+            d_draw.line([(rx2, ry1), (sx + int(22 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
+            d_draw.ellipse((sx + int(20 * SCALE), sy - int(36 * SCALE), sx + int(26 * SCALE), sy - int(30 * SCALE)), fill=ivy_col)
         else: # center
-            d_draw.line([(sx - 22, sy - 54), (sx - 18, sy - 20)], fill=rope_col, width=2)
-            d_draw.line([(sx + 22, sy - 54), (sx + 18, sy - 20)], fill=rope_col, width=2)
+            d_draw.line([(sx - int(22 * SCALE), sy - int(54 * SCALE)), (sx - int(18 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
+            d_draw.line([(sx + int(22 * SCALE), sy - int(54 * SCALE)), (sx + int(18 * SCALE), ry2)], fill=rope_col, width=int(2 * SCALE))
 
     # --- 3. Draw Bark Hollows at each Socket ---
     for sock in sockets:
@@ -232,34 +237,34 @@ def generate_stage_image(stage_num, sockets):
     is_celestial = (stage_num == 4)
     if stage_num == 1:
         canopy_centers = [
-            (base_x - 160, crown_y + 40, 150),
-            (base_x + 160, crown_y + 30, 150),
-            (base_x, crown_y - 60, 190),
-            (base_x - 80, crown_y - 140, 140),
-            (base_x + 90, crown_y - 130, 140)
+            (base_x - int(160 * SCALE), crown_y + int(40 * SCALE), int(150 * SCALE)),
+            (base_x + int(160 * SCALE), crown_y + int(30 * SCALE), int(150 * SCALE)),
+            (base_x, crown_y - int(60 * SCALE), int(190 * SCALE)),
+            (base_x - int(80 * SCALE), crown_y - int(140 * SCALE), int(140 * SCALE)),
+            (base_x + int(90 * SCALE), crown_y - int(130 * SCALE), int(140 * SCALE))
         ]
     elif stage_num == 2:
         canopy_centers = [
-            (base_x - 320, crown_y + 80, 170),
-            (base_x + 320, crown_y + 70, 170),
-            (base_x - 180, crown_y - 40, 200),
-            (base_x + 190, crown_y - 30, 200),
-            (base_x, crown_y - 120, 230),
-            (base_x - 120, crown_y - 200, 180),
-            (base_x + 130, crown_y - 190, 180)
+            (base_x - int(320 * SCALE), crown_y + int(80 * SCALE), int(170 * SCALE)),
+            (base_x + int(320 * SCALE), crown_y + int(70 * SCALE), int(170 * SCALE)),
+            (base_x - int(180 * SCALE), crown_y - int(40 * SCALE), int(200 * SCALE)),
+            (base_x + int(190 * SCALE), crown_y - int(30 * SCALE), int(200 * SCALE)),
+            (base_x, crown_y - int(120 * SCALE), int(230 * SCALE)),
+            (base_x - int(120 * SCALE), crown_y - int(200 * SCALE), int(180 * SCALE)),
+            (base_x + int(130 * SCALE), crown_y - int(190 * SCALE), int(180 * SCALE))
         ]
     else:  # Stages 3 & 4
         canopy_centers = [
-            (base_x - 460, crown_y + 120, 190),
-            (base_x + 460, crown_y + 110, 190),
-            (base_x - 300, crown_y, 220),
-            (base_x + 310, crown_y - 10, 220),
-            (base_x - 140, crown_y - 120, 240),
-            (base_x + 150, crown_y - 110, 240),
-            (base_x, crown_y - 180, 260),
-            (base_x - 240, crown_y - 220, 200),
-            (base_x + 240, crown_y - 210, 200),
-            (base_x, crown_y - 280, 210)
+            (base_x - int(460 * SCALE), crown_y + int(120 * SCALE), int(190 * SCALE)),
+            (base_x + int(460 * SCALE), crown_y + int(110 * SCALE), int(190 * SCALE)),
+            (base_x - int(300 * SCALE), crown_y, int(220 * SCALE)),
+            (base_x + int(310 * SCALE), crown_y - int(10 * SCALE), int(220 * SCALE)),
+            (base_x - int(140 * SCALE), crown_y - int(120 * SCALE), int(240 * SCALE)),
+            (base_x + int(150 * SCALE), crown_y - int(110 * SCALE), int(240 * SCALE)),
+            (base_x, crown_y - int(180 * SCALE), int(260 * SCALE)),
+            (base_x - int(240 * SCALE), crown_y - int(220 * SCALE), int(200 * SCALE)),
+            (base_x + int(240 * SCALE), crown_y - int(210 * SCALE), int(200 * SCALE)),
+            (base_x, crown_y - int(280 * SCALE), int(210 * SCALE))
         ]
         
     for cx, cy, rad in canopy_centers:
@@ -268,22 +273,24 @@ def generate_stage_image(stage_num, sockets):
     # --- 5. Stage 4 Fairy Lanterns & Celestial Glow ---
     if is_celestial:
         # Hanging brass lanterns from boughs
-        for lx, ly in [(base_x - 220, crown_y + 90), (base_x + 230, crown_y + 80), (base_x, crown_y - 30)]:
+        for lx, ly in [(base_x - int(220 * SCALE), crown_y + int(90 * SCALE)), 
+                       (base_x + int(230 * SCALE), crown_y + int(80 * SCALE)), 
+                       (base_x, crown_y - int(30 * SCALE))]:
             # Twine string
-            d_draw.line([(lx, ly - 45), (lx, ly)], fill=(*BARK_PENCIL, 220), width=2)
+            d_draw.line([(lx, ly - int(45 * SCALE)), (lx, ly)], fill=(*BARK_PENCIL, 220), width=int(2 * SCALE))
             # Lantern glow aura
-            for r_glow, a_glow in [(32, 45), (20, 85), (10, 180)]:
+            for r_glow, a_glow in [(int(32 * SCALE), 45), (int(20 * SCALE), 85), (int(10 * SCALE), 180)]:
                 d_draw.ellipse((lx - r_glow, ly - r_glow, lx + r_glow, ly + r_glow), fill=(*LANTERN_GLOW, a_glow))
             # Brass housing
             d_draw.polygon([
-                (lx - 10, ly - 12), (lx + 10, ly - 12),
-                (lx + 8, ly + 14), (lx - 8, ly + 14)
+                (lx - int(10 * SCALE), ly - int(12 * SCALE)), (lx + int(10 * SCALE), ly - int(12 * SCALE)),
+                (lx + int(8 * SCALE), ly + int(14 * SCALE)), (lx - int(8 * SCALE), ly + int(14 * SCALE))
             ], fill=(212, 163, 115, 255), outline=BARK_PENCIL)
             # Golden candle center
-            d_draw.ellipse((lx - 5, ly - 5, lx + 5, ly + 5), fill=(255, 255, 255, 255))
+            c_r = int(5 * SCALE)
+            d_draw.ellipse((lx - c_r, ly - c_r, lx + c_r, ly + c_r), fill=(255, 255, 255, 255))
 
     # --- 6. Composite Layers with Paper Texture ---
-    # Merge foliage -> bark -> details
     img = Image.alpha_composite(img, foliage_layer)
     img = Image.alpha_composite(img, bark_layer)
     img = Image.alpha_composite(img, detail_layer)

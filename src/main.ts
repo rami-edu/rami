@@ -20,6 +20,7 @@ import {
   KNOWLEDGE_TAGS,
   type KnowledgeTagId
 } from './objects/ActivityKnowledgeTags';
+import { getGameRenderScale } from './utils/renderScale';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
@@ -601,21 +602,24 @@ if (reactRootEl) {
   root.render(React.createElement(ActivityRoot));
 }
 
-const dpr = Math.min(window.devicePixelRatio || 1, 3);
+const renderScale = getGameRenderScale();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: Math.round(window.innerWidth * dpr),
-  height: Math.round(window.innerHeight * dpr),
+  width: Math.round(window.innerWidth * renderScale),
+  height: Math.round(window.innerHeight * renderScale),
   backgroundColor: '#162418',
   render: {
     antialias: true,
-    roundPixels: false
+    antialiasGL: true,
+    roundPixels: false,
+    powerPreference: 'high-performance',
+    mipmapFilter: 'LINEAR_MIPMAP_LINEAR'
   },
   scale: {
     mode: Phaser.Scale.NONE,
-    zoom: 1 / dpr
+    zoom: 1 / renderScale
   },
   scene: [SplashScreenScene, WonderTreeScene]
 };
@@ -623,10 +627,10 @@ const config: Phaser.Types.Core.GameConfig = {
 const game = new Phaser.Game(config);
 
 window.addEventListener('resize', () => {
-  const currentDpr = Math.min(window.devicePixelRatio || 1, 3);
-  game.scale.setZoom(1 / currentDpr);
+  const currentScale = getGameRenderScale();
+  game.scale.setZoom(1 / currentScale);
   game.scale.resize(
-    Math.round(window.innerWidth * currentDpr),
-    Math.round(window.innerHeight * currentDpr)
+    Math.round(window.innerWidth * currentScale),
+    Math.round(window.innerHeight * currentScale)
   );
 });

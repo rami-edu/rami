@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ProfileManager } from '../src/managers/ProfileManager';
 import { TREE_STAGES } from '../src/objects/DynamicWonderTree';
+import { getGameRenderScale } from '../src/utils/renderScale';
 
 describe('Tree Stage & Socket Architecture Progression', () => {
   let profileManager: ProfileManager;
@@ -67,5 +68,19 @@ describe('Tree Stage & Socket Architecture Progression', () => {
     // Stage 3 & 4 have 8 complete tree portals
     expect(TREE_STAGES[3].sockets).toHaveLength(8);
     expect(TREE_STAGES[4].sockets).toHaveLength(8);
+  });
+
+  it('calculates 4X supersampling render scale on standard displays', () => {
+    // On standard 1x displays (e.g. Linux 1080p), render scale is at least 2.0 (4X total pixel supersampling)
+    const scale = getGameRenderScale({ devicePixelRatio: 1, innerWidth: 1920, innerHeight: 1080 });
+    expect(scale).toBeGreaterThanOrEqual(2.0);
+    expect(scale).toBeLessThanOrEqual(3.0);
+
+    // Verifies 4K canvas buffer on 1080p
+    const bufferW = Math.round(1920 * scale);
+    const bufferH = Math.round(1080 * scale);
+    expect(bufferW * bufferH).toBeGreaterThanOrEqual(1920 * 1080 * 4);
+    expect(bufferW).toBeLessThanOrEqual(4096);
+    expect(bufferH).toBeLessThanOrEqual(4096);
   });
 });

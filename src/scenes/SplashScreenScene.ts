@@ -19,6 +19,9 @@ export class SplashScreenScene extends Phaser.Scene {
   }
 
   private getDpr(): number {
+    if (this.scale && window.innerWidth > 0) {
+      return this.scale.width / window.innerWidth;
+    }
     return Math.min(window.devicePixelRatio || 1, 3);
   }
 

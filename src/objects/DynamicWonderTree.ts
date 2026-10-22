@@ -365,10 +365,14 @@ export class DynamicWonderTree {
 
     const stageDef = TREE_STAGES[this.currentStage] ?? TREE_STAGES[1];
 
-    // Tree Sprite anchored at bottom-center (0.5, 1.0)
+    // Tree Sprite anchored at bottom-center (0.5, 1.0) with high-res 4X texture display size
     this.treeSprite = scene.add
       .image(0, 0, stageDef.textureKey)
-      .setOrigin(0.5, 1.0);
+      .setOrigin(0.5, 1.0)
+      .setDisplaySize(
+        DynamicWonderTree.LOGICAL_WIDTH,
+        DynamicWonderTree.LOGICAL_HEIGHT
+      );
     this.rootContainer.add(this.treeSprite);
 
     // Container for branch living details (mastery accents)
@@ -445,6 +449,10 @@ export class DynamicWonderTree {
 
     if (!animate) {
       this.treeSprite.setTexture(nextDef.textureKey);
+      this.treeSprite.setDisplaySize(
+        DynamicWonderTree.LOGICAL_WIDTH,
+        DynamicWonderTree.LOGICAL_HEIGHT
+      );
       this.syncSocketsForStage(newStage, false);
       this.updateMasteryAccents();
       return true;
@@ -463,6 +471,10 @@ export class DynamicWonderTree {
     this.transitionSprite = this.scene.add
       .image(0, 0, nextDef.textureKey)
       .setOrigin(0.5, 1.0)
+      .setDisplaySize(
+        DynamicWonderTree.LOGICAL_WIDTH,
+        DynamicWonderTree.LOGICAL_HEIGHT
+      )
       .setAlpha(0);
     this.rootContainer.addAt(this.transitionSprite, 1);
 
@@ -473,6 +485,10 @@ export class DynamicWonderTree {
       ease: 'Sine.easeInOut',
       onComplete: () => {
         this.treeSprite.setTexture(nextDef.textureKey);
+        this.treeSprite.setDisplaySize(
+          DynamicWonderTree.LOGICAL_WIDTH,
+          DynamicWonderTree.LOGICAL_HEIGHT
+        );
         this.transitionSprite?.destroy();
         this.transitionSprite = undefined;
       }
@@ -511,7 +527,8 @@ export class DynamicWonderTree {
 
       const leaf = this.scene.add
         .text(lx, ly, Math.random() > 0.4 ? '🍃' : '✨', {
-          fontSize: `${22 + Math.random() * 12}px`
+          fontSize: `${22 + Math.random() * 12}px`,
+          resolution: 2
         })
         .setOrigin(0.5)
         .setAlpha(0.9);
@@ -620,7 +637,8 @@ export class DynamicWonderTree {
 
       const accent = this.scene.add
         .text(anchor.localX + offsetX, anchor.localY + offsetY, accentEmoji, {
-          fontSize: '24px'
+          fontSize: '24px',
+          resolution: 2
         })
         .setOrigin(0.5);
 

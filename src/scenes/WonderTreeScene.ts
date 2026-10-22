@@ -67,6 +67,9 @@ export class WonderTreeScene extends Phaser.Scene {
   }
 
   private getDpr(): number {
+    if (this.scale && window.innerWidth > 0) {
+      return this.scale.width / window.innerWidth;
+    }
     return Math.min(window.devicePixelRatio || 1, 3);
   }
 
@@ -499,6 +502,8 @@ export class WonderTreeScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     // Text placed ABOVE the sign: NO box, NO background color
+    // 4X super-sampled high-density typography with pristine anti-aliasing
+    const TEXT_SUPERSAMPLE = 4;
     const activeProfile = profileManager.getActiveProfile();
     const stats = activeProfile?.progress[anchor.minigame];
     const starsEarned = stats?.highestLevel ?? 0;
@@ -509,42 +514,46 @@ export class WonderTreeScene extends Phaser.Scene {
     const titleLabel = this.add
       .text(0, -96, displayTitle, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: '15px',
+        fontSize: `${15 * TEXT_SUPERSAMPLE}px`,
         color: '#f0fdf4',
         fontStyle: '700',
         stroke: '#08140c',
-        strokeThickness: 3.5,
+        strokeThickness: 3.5 * TEXT_SUPERSAMPLE,
+        padding: { x: 10 * TEXT_SUPERSAMPLE, y: 5 * TEXT_SUPERSAMPLE },
         shadow: {
           offsetX: 0,
-          offsetY: 2,
+          offsetY: 2 * TEXT_SUPERSAMPLE,
           color: '#000000',
-          blur: 4,
+          blur: 3 * TEXT_SUPERSAMPLE,
           stroke: true,
           fill: true
         },
         resolution: 2
       })
+      .setScale(1 / TEXT_SUPERSAMPLE)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
     const subLabel = this.add
       .text(0, -78, starsVisual, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: '13px',
+        fontSize: `${13 * TEXT_SUPERSAMPLE}px`,
         color: '#ffd166',
         fontStyle: 'bold',
         stroke: '#08140c',
-        strokeThickness: 3,
+        strokeThickness: 3 * TEXT_SUPERSAMPLE,
+        padding: { x: 8 * TEXT_SUPERSAMPLE, y: 4 * TEXT_SUPERSAMPLE },
         shadow: {
           offsetX: 0,
-          offsetY: 1,
+          offsetY: 1 * TEXT_SUPERSAMPLE,
           color: '#000000',
-          blur: 3,
+          blur: 2 * TEXT_SUPERSAMPLE,
           stroke: true,
           fill: true
         },
         resolution: 2
       })
+      .setScale(1 / TEXT_SUPERSAMPLE)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
@@ -756,22 +765,33 @@ export class WonderTreeScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
+    const TEXT_SUPERSAMPLE = 4;
     this.nameLabel = this.add
-      .text(0, 64, activeProfile?.nickname || activeProfile?.explorerName || userManager.getUsername(), {
-        fontFamily: UI_FONT_FAMILY,
-        fontSize: '15px',
-        color: '#d8f3dc',
-        fontStyle: '600',
-        backgroundColor: '#162418dd',
-        padding: { x: 12, y: 5 },
-        resolution: 2
-      })
+      .text(
+        0,
+        64,
+        activeProfile?.nickname ||
+          activeProfile?.explorerName ||
+          userManager.getUsername(),
+        {
+          fontFamily: UI_FONT_FAMILY,
+          fontSize: `${15 * TEXT_SUPERSAMPLE}px`,
+          color: '#d8f3dc',
+          fontStyle: '600',
+          backgroundColor: '#162418dd',
+          padding: { x: 12 * TEXT_SUPERSAMPLE, y: 5 * TEXT_SUPERSAMPLE },
+          resolution: 2
+        }
+      )
+      .setScale(1 / TEXT_SUPERSAMPLE)
       .setOrigin(0.5);
 
     this.emojiLabel = this.add
       .text(0, -78, '', {
-        fontSize: '34px'
+        fontSize: `${34 * TEXT_SUPERSAMPLE}px`,
+        resolution: 2
       })
+      .setScale(1 / TEXT_SUPERSAMPLE)
       .setOrigin(0.5);
 
     this.playerContainer.add([
