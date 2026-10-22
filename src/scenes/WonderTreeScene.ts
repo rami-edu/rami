@@ -424,10 +424,10 @@ export class WonderTreeScene extends Phaser.Scene {
       .setDisplaySize(72, 72)
       .setOrigin(0.5);
 
-    // 4. Portal Light Animation (Placed OVER the static image)
+    // 4. Portal Light Animation (Placed OVER the static image with delicate transparency so artwork is crisp)
     // a) Swirling ethereal light vortex rays
     const lightVortex = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    lightVortex.lineStyle(2.5, theme.ringColor, 0.72);
+    lightVortex.lineStyle(1.2, theme.ringColor, 0.24);
     for (let arm = 0; arm < 4; arm++) {
       const startAngle = (arm / 4) * Math.PI * 2;
       lightVortex.beginPath();
@@ -443,7 +443,7 @@ export class WonderTreeScene extends Phaser.Scene {
       lightVortex.strokePath();
     }
     // Subtle white inner spiral
-    lightVortex.lineStyle(1.5, 0xffffff, 0.6);
+    lightVortex.lineStyle(1.0, 0xffffff, 0.2);
     for (let arm = 0; arm < 2; arm++) {
       const startAngle = (arm / 2) * Math.PI * 2 + Math.PI / 4;
       lightVortex.beginPath();
@@ -459,10 +459,10 @@ export class WonderTreeScene extends Phaser.Scene {
       lightVortex.strokePath();
     }
 
-    // b) Ethereal counter-rotating rune ring with star points over the image
+    // b) Ethereal counter-rotating rune ring around the outer rim
     const runeRing = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    runeRing.lineStyle(1.5, theme.ringColor, 0.85);
-    const R_RUNE = 33;
+    runeRing.lineStyle(1.0, theme.ringColor, 0.28);
+    const R_RUNE = 35;
     const NUM_SEGMENTS = 16;
     for (let i = 0; i < NUM_SEGMENTS; i += 2) {
       const a1 = (i / NUM_SEGMENTS) * Math.PI * 2;
@@ -471,16 +471,16 @@ export class WonderTreeScene extends Phaser.Scene {
       runeRing.arc(0, 0, R_RUNE, a1, a2);
       runeRing.strokePath();
     }
-    // Star glints on rune ring
-    runeRing.fillStyle(0xffffff, 0.85);
+    // Subtle star glints on outer rim
+    runeRing.fillStyle(0xffffff, 0.35);
     for (let i = 0; i < 4; i++) {
       const a = (i / 4) * Math.PI * 2;
-      runeRing.fillCircle(Math.cos(a) * R_RUNE, Math.sin(a) * R_RUNE, 2.5);
+      runeRing.fillCircle(Math.cos(a) * R_RUNE, Math.sin(a) * R_RUNE, 1.6);
     }
 
-    // c) Pulsing luminous radial sheen over the static image
+    // c) Delicate, transparent radial sheen (keeps artwork completely visible)
     const lightSheen = this.add
-      .ellipse(0, 0, 70, 70, theme.ringColor, 0.3)
+      .ellipse(0, 0, 70, 70, theme.ringColor, 0.08)
       .setBlendMode(Phaser.BlendModes.ADD);
 
     // 5. Rectangular wooden sign on top of the portal (hanging above the rim)
@@ -605,10 +605,10 @@ export class WonderTreeScene extends Phaser.Scene {
     // Pulsing light sheen over static image
     this.tweens.add({
       targets: lightSheen,
-      scaleX: 1.12,
-      scaleY: 1.12,
-      alpha: 0.48,
-      duration: 1600,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 0.15,
+      duration: 1800,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -636,7 +636,7 @@ export class WonderTreeScene extends Phaser.Scene {
       });
       this.tweens.add({
         targets: lightSheen,
-        alpha: 0.65,
+        alpha: 0.22,
         duration: 180
       });
     };
@@ -652,7 +652,7 @@ export class WonderTreeScene extends Phaser.Scene {
       });
       this.tweens.add({
         targets: lightSheen,
-        alpha: 0.3,
+        alpha: 0.08,
         duration: 180
       });
     };
