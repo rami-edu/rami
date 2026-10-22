@@ -1,5 +1,10 @@
-import Phaser from 'phaser';
-import type { MinigameModule } from '../managers/MinigameLoader';
+import type Phaser from 'phaser';
+import type {
+  ActivityActionEntry,
+  ActivityChildDetails,
+  MinigameDescriptor,
+  MinigameModule
+} from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
@@ -22,8 +27,19 @@ const MELODY_LEVELS: number[][] = [
   [2, 1, 0, 2, 3, 4]  // Level 5: 6-note canopy symphony
 ];
 
-const RhythmBranchesMinigame: MinigameModule = {
-  descriptor: {
+interface RhythmProfileLog {
+  highestLevel: number;
+  levelsCompleted: number;
+  notesTappedCorrect: number;
+  wrongNoteResets: number;
+  lastPlayedAt: number | null;
+  actionHistory: ActivityActionEntry[];
+}
+
+export class RhythmBranchesActivity implements MinigameModule {
+  private static readonly STORAGE_KEY = 'rami_activity_details_rhythm_branches_v1';
+
+  public readonly descriptor: MinigameDescriptor = {
     id: '06',
     title: 'Rhythm in the Branches',
     pillar: 'Creative (Music)',
@@ -31,8 +47,176 @@ const RhythmBranchesMinigame: MinigameModule = {
       'Tap glowing leaves in sequence to compose a forest melody!',
     backgroundKey: 'bg_rhythm_branches',
     backgroundUrl: './rhythm-background.jpg'
-  },
-  launch(scene: Phaser.Scene, _onComplete: () => void) {
+  };
+
+  private recordsByProfile: Record<string, RhythmProfileLog> = {};
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private getStorage(): Storage | null {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private loadFromStorage(): void {
+    const storage = this.getStorage();
+    if (!storage) return;
+    try {
+      const raw = storage.getItem(RhythmBranchesActivity.STORAGE_KEY);
+      if (raw) {
+        this.recordsByProfile = JSON.parse(raw);
+      }
+    } catch {
+      this.recordsByProfile = {};
+    }
+  }
+
+  private saveToStorage(): void {
+    const storage = this.getStorage();
+    if (!storage) return;
+    try {
+      storage.setItem(
+        RhythmBranchesActivity.STORAGE_KEY,
+        JSON.stringify(this.recordsByProfile)
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+
+  private ensureRecord(profileId: string): RhythmProfileLog {
+    if (!this.recordsByProfile[profileId]) {
+      const fallbackHigh =
+        profileManager.getActiveProfile()?.id === profileId
+          ? profileManager.getActiveProfile()?.progress['Rhythm in the Branches']
+              ?.highestLevel ?? 0
+          : 0;
+      this.recordsByProfile[profileId] = {
+        highestLevel: fallbackHigh,
+        levelsCompleted: fallbackHigh,
+        notesTappedCorrect: 0,
+        wrongNoteResets: 0,
+        lastPlayedAt: null,
+        actionHistory: []
+      };
+    }
+    return this.recordsByProfile[profileId];
+  }
+
+  private resolveProfileId(profileId?: string): string {
+    return profileId ?? profileManager.getActiveProfile()?.id ?? 'default';
+  }
+
+  public recordNotePlayed(
+    level: number,
+    tappedNoteLabel: string,
+    expectedNoteLabel: string,
+    isCorrect: boolean,
+    stepNumber: number,
+    totalNotes: number,
+    profileId?: string
+  ): void {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    rec.lastPlayedAt = Date.now();
+    if (isCorrect) {
+      rec.notesTappedCorrect += 1;
+      rec.actionHistory.unshift({
+        timestamp: rec.lastPlayedAt,
+        level,
+        description: `Played musical leaf ${tappedNoteLabel} (note ${stepNumber}/${totalNotes} on Level ${level})`,
+        outcome: 'progress'
+      });
+    } else {
+      rec.wrongNoteResets += 1;
+      rec.actionHistory.unshift({
+        timestamp: rec.lastPlayedAt,
+        level,
+        description: `Tapped ${tappedNoteLabel} instead of ${expectedNoteLabel} (melody reset on Level ${level})`,
+        outcome: 'mistake'
+      });
+    }
+    if (rec.actionHistory.length > 25) {
+      rec.actionHistory.length = 25;
+    }
+    this.saveToStorage();
+  }
+
+  public recordMelodyCompleted(
+    level: number,
+    melodyNotes: string[],
+    profileId?: string
+  ): void {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    rec.levelsCompleted += 1;
+    rec.highestLevel = Math.max(rec.highestLevel, level);
+    rec.lastPlayedAt = Date.now();
+    rec.actionHistory.unshift({
+      timestamp: rec.lastPlayedAt,
+      level,
+      description: `Composed Level ${level} melody: ${melodyNotes.join(' → ')}`,
+      outcome: 'completed'
+    });
+    if (rec.actionHistory.length > 25) {
+      rec.actionHistory.length = 25;
+    }
+    this.saveToStorage();
+  }
+
+  public getActivityDetails(profileId?: string): ActivityChildDetails {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    const profileProgress = profileManager
+      .getAllProfiles()
+      .find((p) => p.id === pid)?.progress['Rhythm in the Branches'];
+    const highestLevel = Math.max(
+      rec.highestLevel,
+      profileProgress?.highestLevel ?? 0
+    );
+    const levelsCompleted = Math.max(
+      rec.levelsCompleted,
+      profileProgress?.completedCount ?? 0
+    );
+    const totalActions = rec.notesTappedCorrect + rec.wrongNoteResets;
+
+    const summaryText =
+      levelsCompleted > 0 || totalActions > 0
+        ? `Highest Level: ${highestLevel} • Melodies Composed: ${levelsCompleted} • Notes Played: ${rec.notesTappedCorrect} • Wrong-Note Resets: ${rec.wrongNoteResets}`
+        : 'No activity recorded yet — child has not composed any melodies in Rhythm in the Branches.';
+
+    return {
+      activityKey: 'Rhythm in the Branches',
+      activityTitle: this.descriptor.title,
+      pillar: this.descriptor.pillar,
+      description: this.descriptor.description,
+      highestLevel,
+      levelsCompleted,
+      totalActions,
+      mistakesCount: rec.wrongNoteResets,
+      lastPlayedAt: rec.lastPlayedAt ?? profileProgress?.lastPlayedAt ?? null,
+      summaryText,
+      actionHistory: [...rec.actionHistory]
+    };
+  }
+
+  public resetActivityDetails(profileId?: string): void {
+    if (profileId) {
+      delete this.recordsByProfile[profileId];
+    } else {
+      this.recordsByProfile = {};
+    }
+    this.saveToStorage();
+  }
+
+  public launch(scene: Phaser.Scene, _onComplete: () => void): void {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const container = scene.add
@@ -185,11 +369,25 @@ const RhythmBranchesMinigame: MinigameModule = {
         });
 
         const pattern = getCurrentPattern();
+        const displayLevel = levelIndex + 1;
+        const expectedLeaf = LEAF_DEFS[pattern[stepIndex]];
+
         if (idx === pattern[stepIndex]) {
           stepIndex += 1;
+          this.recordNotePlayed(
+            displayLevel,
+            leaf.label,
+            expectedLeaf.label,
+            true,
+            stepIndex,
+            pattern.length
+          );
+
           if (stepIndex >= pattern.length) {
             transitioning = true;
             const completedLvl = levelIndex + 1;
+            const melodyNotes = pattern.map((i) => LEAF_DEFS[i].label);
+            this.recordMelodyCompleted(completedLvl, melodyNotes);
             profileManager.recordMinigameCompletion(
               'Rhythm in the Branches',
               undefined,
@@ -223,6 +421,14 @@ const RhythmBranchesMinigame: MinigameModule = {
               .setColor('#80ed99');
           }
         } else {
+          this.recordNotePlayed(
+            displayLevel,
+            leaf.label,
+            expectedLeaf.label,
+            false,
+            stepIndex + 1,
+            pattern.length
+          );
           stepIndex = 0;
           scoreDisplay
             .setText('Oops! Wrong note — start the melody from the first leaf!')
@@ -235,6 +441,7 @@ const RhythmBranchesMinigame: MinigameModule = {
 
     container.add([toastContainer]);
   }
-};
+}
 
-export default RhythmBranchesMinigame;
+export const rhythmBranchesActivity = new RhythmBranchesActivity();
+export default rhythmBranchesActivity;

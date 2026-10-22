@@ -5,6 +5,9 @@ import {
   PILLAR_DEFINITIONS,
   TOPIC_LOGO_DEFINITIONS
 } from '../src/objects/ActivityLogoLibrary';
+import { AcornScaleActivity } from '../src/minigames/AcornScaleMinigame';
+import { RhythmBranchesActivity } from '../src/minigames/RhythmBranchesMinigame';
+import { CaveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
 
 describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
   let profiles: ProfileManager;
@@ -78,5 +81,55 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
       const countForPillar = topics.filter((t) => t.pillar === pillar).length;
       expect(countForPillar).toBeGreaterThanOrEqual(6);
     }
+  });
+
+  it('tracks per-activity child action details inside each activity class for the Parent Dashboard', () => {
+    const p1 = profiles.createProfile('Alice', '🦕', 'Quartz Dinosaur');
+
+    const acornActivity = new AcornScaleActivity();
+    acornActivity.resetActivityDetails(p1.id);
+    acornActivity.recordAcornAdded(1, 1, 3, p1.id);
+    acornActivity.recordAcornAdded(1, 2, 3, p1.id);
+    acornActivity.recordAcornAdded(1, 3, 3, p1.id);
+    acornActivity.recordLevelBalanced(1, 3, p1.id);
+
+    const acornDetails = acornActivity.getActivityDetails(p1.id);
+    expect(acornDetails.activityTitle).toBe('Acorn Scale');
+    expect(acornDetails.highestLevel).toBe(1);
+    expect(acornDetails.levelsCompleted).toBe(1);
+    expect(acornDetails.totalActions).toBe(3);
+    expect(acornDetails.actionHistory[0].description).toContain(
+      'Balanced rock of weight 3 with 3 acorns'
+    );
+
+    const rhythmActivity = new RhythmBranchesActivity();
+    rhythmActivity.resetActivityDetails(p1.id);
+    rhythmActivity.recordNotePlayed(1, '🍃 Do', '🍃 Do', true, 1, 3, p1.id);
+    rhythmActivity.recordNotePlayed(1, '🍂 La', '🌿 Re', false, 2, 3, p1.id);
+    rhythmActivity.recordMelodyCompleted(1, ['🍃 Do', '🌿 Re', '🍀 Mi'], p1.id);
+
+    const rhythmDetails = rhythmActivity.getActivityDetails(p1.id);
+    expect(rhythmDetails.activityTitle).toBe('Rhythm in the Branches');
+    expect(rhythmDetails.levelsCompleted).toBe(1);
+    expect(rhythmDetails.mistakesCount).toBe(1);
+    expect(rhythmDetails.actionHistory[0].description).toContain(
+      'Composed Level 1 melody: 🍃 Do → 🌿 Re → 🍀 Mi'
+    );
+
+    const caveActivity = new CaveEchoesActivity();
+    caveActivity.resetActivityDetails(p1.id);
+    caveActivity.recordCrystalTapped(1, 'Emerald', 'Emerald', true, 1, 3, p1.id);
+    caveActivity.recordSequenceCompleted(
+      1,
+      ['Emerald', 'Sapphire', 'Ruby'],
+      p1.id
+    );
+
+    const caveDetails = caveActivity.getActivityDetails(p1.id);
+    expect(caveDetails.activityTitle).toContain('Cave Echoes');
+    expect(caveDetails.levelsCompleted).toBe(1);
+    expect(caveDetails.actionHistory[0].description).toContain(
+      'Recalled Level 1 crystal sequence: Emerald → Sapphire → Ruby'
+    );
   });
 });

@@ -1,5 +1,10 @@
-import Phaser from 'phaser';
-import type { MinigameModule } from '../managers/MinigameLoader';
+import type Phaser from 'phaser';
+import type {
+  ActivityActionEntry,
+  ActivityChildDetails,
+  MinigameDescriptor,
+  MinigameModule
+} from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 
@@ -20,17 +25,196 @@ const ECHO_LEVELS: number[][] = [
   [2, 0, 1, 1, 2, 0, 1]  // Level 5: 7 crystals
 ];
 
-const CaveEchoesMinigame: MinigameModule = {
-  descriptor: {
+interface CaveEchoesProfileLog {
+  highestLevel: number;
+  levelsCompleted: number;
+  crystalsTappedCorrect: number;
+  sequenceResets: number;
+  lastPlayedAt: number | null;
+  actionHistory: ActivityActionEntry[];
+}
+
+export class CaveEchoesActivity implements MinigameModule {
+  private static readonly STORAGE_KEY = 'rami_activity_details_cave_echoes_v1';
+
+  public readonly descriptor: MinigameDescriptor = {
     id: '01',
     title: 'Cave Echoes (The Clockwork Tower)',
-    pillar: 'Solving (Memory)',
+    pillar: 'Logic (Memory)',
     description:
       'Memorize and repeat the glowing sequence on the ancient stalactites!',
     backgroundKey: 'bg_cave_echoes',
     backgroundUrl: './cave-echoes-background.jpg'
-  },
-  launch(scene: Phaser.Scene, _onComplete: () => void) {
+  };
+
+  private recordsByProfile: Record<string, CaveEchoesProfileLog> = {};
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private getStorage(): Storage | null {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private loadFromStorage(): void {
+    const storage = this.getStorage();
+    if (!storage) return;
+    try {
+      const raw = storage.getItem(CaveEchoesActivity.STORAGE_KEY);
+      if (raw) {
+        this.recordsByProfile = JSON.parse(raw);
+      }
+    } catch {
+      this.recordsByProfile = {};
+    }
+  }
+
+  private saveToStorage(): void {
+    const storage = this.getStorage();
+    if (!storage) return;
+    try {
+      storage.setItem(
+        CaveEchoesActivity.STORAGE_KEY,
+        JSON.stringify(this.recordsByProfile)
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+
+  private ensureRecord(profileId: string): CaveEchoesProfileLog {
+    if (!this.recordsByProfile[profileId]) {
+      const fallbackHigh =
+        profileManager.getActiveProfile()?.id === profileId
+          ? profileManager.getActiveProfile()?.progress['The Clockwork Tower']
+              ?.highestLevel ?? 0
+          : 0;
+      this.recordsByProfile[profileId] = {
+        highestLevel: fallbackHigh,
+        levelsCompleted: fallbackHigh,
+        crystalsTappedCorrect: 0,
+        sequenceResets: 0,
+        lastPlayedAt: null,
+        actionHistory: []
+      };
+    }
+    return this.recordsByProfile[profileId];
+  }
+
+  private resolveProfileId(profileId?: string): string {
+    return profileId ?? profileManager.getActiveProfile()?.id ?? 'default';
+  }
+
+  public recordCrystalTapped(
+    level: number,
+    tappedCrystal: string,
+    expectedCrystal: string,
+    isCorrect: boolean,
+    stepNumber: number,
+    totalSteps: number,
+    profileId?: string
+  ): void {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    rec.lastPlayedAt = Date.now();
+    if (isCorrect) {
+      rec.crystalsTappedCorrect += 1;
+      rec.actionHistory.unshift({
+        timestamp: rec.lastPlayedAt,
+        level,
+        description: `Tapped ${tappedCrystal} crystal (step ${stepNumber}/${totalSteps} on Level ${level})`,
+        outcome: 'progress'
+      });
+    } else {
+      rec.sequenceResets += 1;
+      rec.actionHistory.unshift({
+        timestamp: rec.lastPlayedAt,
+        level,
+        description: `Tapped ${tappedCrystal} instead of ${expectedCrystal} (sequence reset on Level ${level})`,
+        outcome: 'mistake'
+      });
+    }
+    if (rec.actionHistory.length > 25) {
+      rec.actionHistory.length = 25;
+    }
+    this.saveToStorage();
+  }
+
+  public recordSequenceCompleted(
+    level: number,
+    crystalSequence: string[],
+    profileId?: string
+  ): void {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    rec.levelsCompleted += 1;
+    rec.highestLevel = Math.max(rec.highestLevel, level);
+    rec.lastPlayedAt = Date.now();
+    rec.actionHistory.unshift({
+      timestamp: rec.lastPlayedAt,
+      level,
+      description: `Recalled Level ${level} crystal sequence: ${crystalSequence.join(' → ')}`,
+      outcome: 'completed'
+    });
+    if (rec.actionHistory.length > 25) {
+      rec.actionHistory.length = 25;
+    }
+    this.saveToStorage();
+  }
+
+  public getActivityDetails(profileId?: string): ActivityChildDetails {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    const profileProgress = profileManager
+      .getAllProfiles()
+      .find((p) => p.id === pid)?.progress['The Clockwork Tower'];
+    const highestLevel = Math.max(
+      rec.highestLevel,
+      profileProgress?.highestLevel ?? 0
+    );
+    const levelsCompleted = Math.max(
+      rec.levelsCompleted,
+      profileProgress?.completedCount ?? 0
+    );
+    const totalActions = rec.crystalsTappedCorrect + rec.sequenceResets;
+
+    const summaryText =
+      levelsCompleted > 0 || totalActions > 0
+        ? `Highest Level: ${highestLevel} • Echoes Recalled: ${levelsCompleted} • Crystals Tapped: ${rec.crystalsTappedCorrect} • Sequence Resets: ${rec.sequenceResets}`
+        : 'No activity recorded yet — child has not echoed any crystal sequences in Cave Echoes.';
+
+    return {
+      activityKey: 'The Clockwork Tower',
+      activityTitle: this.descriptor.title,
+      pillar: this.descriptor.pillar,
+      description: this.descriptor.description,
+      highestLevel,
+      levelsCompleted,
+      totalActions,
+      mistakesCount: rec.sequenceResets,
+      lastPlayedAt: rec.lastPlayedAt ?? profileProgress?.lastPlayedAt ?? null,
+      summaryText,
+      actionHistory: [...rec.actionHistory]
+    };
+  }
+
+  public resetActivityDetails(profileId?: string): void {
+    if (profileId) {
+      delete this.recordsByProfile[profileId];
+    } else {
+      this.recordsByProfile = {};
+    }
+    this.saveToStorage();
+  }
+
+  public launch(scene: Phaser.Scene, _onComplete: () => void): void {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const container = scene.add
@@ -180,11 +364,25 @@ const CaveEchoesMinigame: MinigameModule = {
         });
 
         const pattern = getCurrentPattern();
+        const displayLevel = levelIndex + 1;
+        const expectedCrystal = CRYSTALS[pattern[step]];
+
         if (c.idx === pattern[step]) {
           step++;
+          this.recordCrystalTapped(
+            displayLevel,
+            c.shortName,
+            expectedCrystal.shortName,
+            true,
+            step,
+            pattern.length
+          );
+
           if (step === pattern.length) {
             transitioning = true;
             const completedLvl = levelIndex + 1;
+            const crystalNames = pattern.map((i) => CRYSTALS[i].shortName);
+            this.recordSequenceCompleted(completedLvl, crystalNames);
             profileManager.recordMinigameCompletion(
               'The Clockwork Tower',
               undefined,
@@ -217,6 +415,14 @@ const CaveEchoesMinigame: MinigameModule = {
             feedback.setColor('#80ed99');
           }
         } else {
+          this.recordCrystalTapped(
+            displayLevel,
+            c.shortName,
+            expectedCrystal.shortName,
+            false,
+            step + 1,
+            pattern.length
+          );
           step = 0;
           feedback.setText('Oops! Sequence reset — try again from the first crystal!');
           feedback.setColor('#ffadad');
@@ -228,6 +434,7 @@ const CaveEchoesMinigame: MinigameModule = {
 
     container.add([toastContainer]);
   }
-};
+}
 
-export default CaveEchoesMinigame;
+export const caveEchoesActivity = new CaveEchoesActivity();
+export default caveEchoesActivity;

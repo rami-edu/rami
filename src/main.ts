@@ -7,6 +7,7 @@ import {
   ProfileManager,
   type AnimalAvatarId
 } from './managers/ProfileManager';
+import { minigameLoader } from './managers/MinigameLoader';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
@@ -33,6 +34,7 @@ function setupHudAndGuardianModal(): void {
     'input-child-name'
   ) as HTMLInputElement | null;
   const profilesList = document.getElementById('profiles-list');
+  const activitiesListEl = document.getElementById('guardian-activities-list');
 
   // Ensure at least one default local profile exists on-device
   if (profileManager.getAllProfiles().length === 0) {
@@ -93,8 +95,57 @@ function setupHudAndGuardianModal(): void {
       });
   };
 
+  const renderActivitiesList = async () => {
+    if (!activitiesListEl) return;
+    const active = profileManager.getActiveProfile();
+    const activities = await minigameLoader.loadAllActivities();
+
+    activitiesListEl.innerHTML = activities
+      .map((activity) => {
+        const details = activity.getActivityDetails(active?.id);
+        const recentItems = details.actionHistory.slice(0, 8);
+        const logHtml =
+          recentItems.length > 0
+            ? `<ul class="activity-action-log">
+                ${recentItems
+                  .map((entry) => {
+                    const icon =
+                      entry.outcome === 'completed'
+                        ? '✨'
+                        : entry.outcome === 'mistake'
+                          ? '⚠️'
+                          : '▸';
+                    const timeStr = new Date(
+                      entry.timestamp
+                    ).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    });
+                    return `<li class="activity-action-item ${entry.outcome}">
+                      <span>${icon} ${entry.description}</span>
+                      <span style="opacity: 0.7; white-space: nowrap;">${timeStr}</span>
+                    </li>`;
+                  })
+                  .join('')}
+              </ul>`
+            : `<div style="font-size: 12px; color: #74c69d; font-style: italic;">No actions recorded for ${active?.nickname ?? 'this explorer'} yet.</div>`;
+
+        return `<div class="activity-report-card" data-activity-key="${details.activityKey}">
+          <div class="activity-report-header">
+            <span class="activity-report-title">${details.activityTitle}</span>
+            <span class="activity-report-pillar">${details.pillar}</span>
+          </div>
+          <div class="activity-report-summary">${details.summaryText}</div>
+          ${logHtml}
+        </div>`;
+      })
+      .join('');
+  };
+
   const renderProfiles = () => {
     renderAvatarSelector();
+    void renderActivitiesList();
     if (!profilesList) return;
     const profiles = profileManager.getAllProfiles();
     const active = profileManager.getActiveProfile();
