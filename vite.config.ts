@@ -19,10 +19,11 @@ export default defineConfig({
         'rhythm-background.jpg',
         'cave-echoes-background.jpg',
         'avatars/*.png',
+        'audio/*.{mp3,ogg}',
         'world.json'
       ],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,json}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,json,mp3,ogg}'],
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024
       },
       manifest: {

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
 import { ProfileManager, profileManager } from '../managers/ProfileManager';
 import { ActivityThemedBackgroundBuilder } from '../objects/ActivityThemedBackgroundBuilder';
+import { audioManager } from '../managers/AudioManager';
 
 export interface MinigameActivityConfig {
   sceneKey: string;
@@ -325,6 +326,8 @@ export class MinigameActivityScene extends Phaser.Scene {
   private handleExitPortal(): void {
     if (this.isLeaving) return;
     this.isLeaving = true;
+
+    audioManager.playPortalExit();
 
     if (this.onResizeCallback) {
       this.scale.off('resize', this.onResizeCallback);

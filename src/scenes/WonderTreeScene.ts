@@ -9,6 +9,7 @@ import {
   type TreeHollowAnchor
 } from '../objects/DynamicWonderTree';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
+import { audioManager } from '../managers/AudioManager';
 
 const UI_FONT_FAMILY =
   "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -59,6 +60,7 @@ export class WonderTreeScene extends Phaser.Scene {
   private pendingClickedPortal: PortalInstance | null = null;
   private readonly baseSpeed = 250;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
+  private stepSoundTimer = 0.2;
 
   constructor() {
     super({ key: 'WonderTreeScene' });
@@ -736,6 +738,8 @@ export class WonderTreeScene extends Phaser.Scene {
     if (this.cursors?.up.isDown || this.wasd?.W.isDown) vy -= 1;
     if (this.cursors?.down.isDown || this.wasd?.S.isDown) vy += 1;
 
+    let isMoving = false;
+
     if (vx !== 0 || vy !== 0) {
       this.targetPos = null;
       this.pendingClickedPortal = null;
@@ -744,6 +748,7 @@ export class WonderTreeScene extends Phaser.Scene {
       this.playerContainer.y += (vy / len) * speed * dt;
       if (vx < -0.05) this.avatarSprite.setFlipX(true);
       else if (vx > 0.05) this.avatarSprite.setFlipX(false);
+      isMoving = true;
     } else if (this.targetPos) {
       const dx = this.targetPos.x - this.playerContainer.x;
       const dy = this.targetPos.y - this.playerContainer.y;
@@ -753,9 +758,20 @@ export class WonderTreeScene extends Phaser.Scene {
         this.playerContainer.y += (dy / dist) * speed * dt;
         if (dx < -2) this.avatarSprite.setFlipX(true);
         else if (dx > 2) this.avatarSprite.setFlipX(false);
+        isMoving = true;
       } else {
         this.targetPos = null;
       }
+    }
+
+    if (isMoving) {
+      this.stepSoundTimer += dt;
+      if (this.stepSoundTimer >= 0.23) {
+        this.stepSoundTimer = 0;
+        audioManager.playMoveStep();
+      }
+    } else {
+      this.stepSoundTimer = 0.2;
     }
 
     const minWorldY = this.getMinWorldY(width, height);
@@ -905,6 +921,8 @@ export class WonderTreeScene extends Phaser.Scene {
     this.activeMinigame = true;
     this.targetPos = null;
 
+    audioManager.playPortalEnter();
+
     const [swirlOverlay, mod] = await Promise.all([
       this.playSwirlingPortalTransition(portal.worldX, portal.worldY),
       minigameLoader.loadMinigame(portal.anchor.minigame)
@@ -953,6 +971,8 @@ export class WonderTreeScene extends Phaser.Scene {
    * vortex on the main WonderTreeScene when the player returns from an activity.
    */
   private playReturnPortalArrival(portalX: number, portalY: number): void {
+    audioManager.playPortalReturn();
+
     const { width, height } = this.scale;
     const dpr = this.getDpr();
     const maxDim = Math.hypot(width, height);

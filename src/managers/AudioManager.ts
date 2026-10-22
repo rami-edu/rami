@@ -1,12 +1,18 @@
 /**
  * Audio Manager for Rami.
- * Manages subtle, sweet background piano lullaby music across the app.
+ * Manages subtle, sweet background piano lullaby music across the app
+ * and delightful preschool sound effects for movement and portal transitions.
  * Adheres to browser autoplay policies by starting on first user gesture.
  * Persists user mute preferences across sessions.
  */
 export class AudioManager {
   private static instance: AudioManager | null = null;
   private audio: HTMLAudioElement | null = null;
+  private audioCtx: AudioContext | null = null;
+  private sfxGainNode: GainNode | null = null;
+  private sfxBuffers: Map<string, AudioBuffer> = new Map();
+  private currentStepIndex = 0;
+
   private isInitialized = false;
   private isUserInteracted = false;
   private baseVolume = 0.12; // "very subtle piano only tune, sweet and low"
@@ -48,6 +54,59 @@ export class AudioManager {
     }
   }
 
+  public getAudioContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    if (!this.audioCtx) {
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      if (AudioCtxClass) {
+        try {
+          this.audioCtx = new AudioCtxClass();
+          this.sfxGainNode = this.audioCtx.createGain();
+          this.sfxGainNode.gain.value = this.muted ? 0 : 0.55;
+          this.sfxGainNode.connect(this.audioCtx.destination);
+        } catch {
+          this.audioCtx = null;
+        }
+      }
+    }
+    return this.audioCtx;
+  }
+
+  private preloadSfx(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx || typeof fetch === 'undefined') return;
+
+    const sfxNames = [
+      'sfx-step-1',
+      'sfx-step-2',
+      'sfx-portal-enter',
+      'sfx-portal-exit',
+      'sfx-portal-return'
+    ];
+
+    for (const name of sfxNames) {
+      const ext =
+        this.audio && !this.audio.canPlayType('audio/mpeg') ? 'ogg' : 'mp3';
+      const url = `./audio/${name}.${ext}`;
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((buf) => ctx.decodeAudioData(buf))
+        .then((decoded) => {
+          this.sfxBuffers.set(name, decoded);
+        })
+        .catch(() => {
+          // Gracefully fallback to procedural Web Audio synthesis
+        });
+    }
+  }
+
   /**
    * Initializes audio element and attaches user gesture unlock listeners.
    */
@@ -73,6 +132,13 @@ export class AudioManager {
 
     const startOnInteraction = () => {
       this.isUserInteracted = true;
+
+      // Unlock Web Audio Context on first gesture
+      const ctx = this.getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+
       if (!this.muted) {
         this.playMusic();
       }
@@ -81,9 +147,13 @@ export class AudioManager {
       window.removeEventListener('touchstart', startOnInteraction);
     };
 
-    window.addEventListener('pointerdown', startOnInteraction, { passive: true });
+    window.addEventListener('pointerdown', startOnInteraction, {
+      passive: true
+    });
     window.addEventListener('keydown', startOnInteraction, { passive: true });
-    window.addEventListener('touchstart', startOnInteraction, { passive: true });
+    window.addEventListener('touchstart', startOnInteraction, {
+      passive: true
+    });
 
     // Handle tab visibility changes to pause and resume gracefully
     document.addEventListener('visibilitychange', () => {
@@ -100,6 +170,7 @@ export class AudioManager {
       }
     });
 
+    this.preloadSfx();
     this.updateToggleButtonUi();
   }
 
@@ -137,6 +208,10 @@ export class AudioManager {
   public toggleMute(): boolean {
     this.muted = !this.muted;
     this.saveMutedState(this.muted);
+
+    if (this.sfxGainNode) {
+      this.sfxGainNode.gain.value = this.muted ? 0 : 0.55;
+    }
 
     if (this.muted) {
       this.fadeOut(400, () => {
@@ -224,6 +299,234 @@ export class AudioManager {
         onComplete?.();
       }
     }, stepInterval);
+  }
+
+  /* -------------------------------------------------------------
+   * Sound Effects (SFX) Subsystem
+   * ------------------------------------------------------------- */
+
+  private playBuffer(name: string, volumeScale = 1.0): boolean {
+    if (this.muted) return true;
+    const ctx = this.getAudioContext();
+    if (!ctx) return false;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const buffer = this.sfxBuffers.get(name);
+    if (!buffer) return false;
+
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      const gain = ctx.createGain();
+      gain.gain.value = volumeScale;
+      source.connect(gain);
+
+      if (this.sfxGainNode) {
+        gain.connect(this.sfxGainNode);
+      } else {
+        gain.connect(ctx.destination);
+      }
+
+      source.start(0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Plays a soft, tactile mossy step sound when the avatar moves on the tree.
+   * Alternates between left and right paws with subtle pitch variation.
+   */
+  public playMoveStep(): void {
+    if (this.muted) return;
+    this.currentStepIndex = (this.currentStepIndex + 1) % 2;
+    const sfxName = this.currentStepIndex === 0 ? 'sfx-step-1' : 'sfx-step-2';
+
+    if (this.playBuffer(sfxName, 0.35)) {
+      return;
+    }
+
+    // Procedural Fallback
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, now);
+
+      const freq = this.currentStepIndex === 0 ? 352 : 392;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.75, now + 0.08);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      if (this.sfxGainNode) {
+        gain.connect(this.sfxGainNode);
+      } else {
+        gain.connect(ctx.destination);
+      }
+
+      osc.start(now);
+      osc.stop(now + 0.09);
+    } catch {
+      // Ignore audio synthesis errors
+    }
+  }
+
+  /**
+   * Plays the enchanted celestial vortex chime when entering an activity portal.
+   */
+  public playPortalEnter(): void {
+    if (this.muted) return;
+
+    if (this.playBuffer('sfx-portal-enter', 0.85)) {
+      return;
+    }
+
+    // Procedural Fallback: Ascending celestial pentatonic chime arpeggio
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const notes = [523.25, 659.25, 783.99, 987.77, 1174.66, 1318.51];
+      const now = ctx.currentTime;
+      notes.forEach((freq, idx) => {
+        const noteStart = now + idx * 0.09;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, noteStart);
+
+        gain.gain.setValueAtTime(0.001, noteStart);
+        gain.gain.exponentialRampToValueAtTime(0.18, noteStart + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteStart + 0.32);
+
+        osc.connect(gain);
+        if (this.sfxGainNode) {
+          gain.connect(this.sfxGainNode);
+        } else {
+          gain.connect(ctx.destination);
+        }
+
+        osc.start(noteStart);
+        osc.stop(noteStart + 0.35);
+      });
+    } catch {
+      // Ignore
+    }
+  }
+
+  /**
+   * Plays the playful avatar leap and magical starlight burst when leaving an activity.
+   */
+  public playPortalExit(): void {
+    if (this.muted) return;
+
+    if (this.playBuffer('sfx-portal-exit', 0.85)) {
+      return;
+    }
+
+    // Procedural Fallback: Upward bouncy leap sweep + starlight chime
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(760, now + 0.22);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.2, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc.connect(gain);
+      if (this.sfxGainNode) {
+        gain.connect(this.sfxGainNode);
+      } else {
+        gain.connect(ctx.destination);
+      }
+
+      osc.start(now);
+      osc.stop(now + 0.32);
+
+      // Star sparkle
+      const sparkleOsc = ctx.createOscillator();
+      const sparkleGain = ctx.createGain();
+      sparkleOsc.type = 'sine';
+      sparkleOsc.frequency.setValueAtTime(1568, now + 0.18);
+      sparkleGain.gain.setValueAtTime(0.15, now + 0.18);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      sparkleOsc.connect(sparkleGain);
+      if (this.sfxGainNode) {
+        sparkleGain.connect(this.sfxGainNode);
+      } else {
+        sparkleGain.connect(ctx.destination);
+      }
+      sparkleOsc.start(now + 0.18);
+      sparkleOsc.stop(now + 0.46);
+    } catch {
+      // Ignore
+    }
+  }
+
+  /**
+   * Plays the warm arrival welcome chime and soft bounce when returning to the Wonder Tree.
+   */
+  public playPortalReturn(): void {
+    if (this.muted) return;
+
+    if (this.playBuffer('sfx-portal-return', 0.85)) {
+      return;
+    }
+
+    // Procedural Fallback: G Major welcome chord + soft landing pop
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const chord = [392.0, 493.88, 587.33, 783.99];
+      chord.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const noteStart = now + idx * 0.03;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, noteStart);
+
+        gain.gain.setValueAtTime(0.001, noteStart);
+        gain.gain.exponentialRampToValueAtTime(0.15, noteStart + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteStart + 0.38);
+
+        osc.connect(gain);
+        if (this.sfxGainNode) {
+          gain.connect(this.sfxGainNode);
+        } else {
+          gain.connect(ctx.destination);
+        }
+
+        osc.start(noteStart);
+        osc.stop(noteStart + 0.4);
+      });
+    } catch {
+      // Ignore
+    }
   }
 
   public updateToggleButtonUi(): void {

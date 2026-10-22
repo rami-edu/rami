@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AudioManager } from '../src/managers/AudioManager';
 
-describe('AudioManager (Subtle Background Piano)', () => {
+describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
   let manager: AudioManager;
   const mockStorage: Record<string, string> = {};
 
@@ -60,6 +60,36 @@ describe('AudioManager (Subtle Background Piano)', () => {
     expect(() => {
       manager.duckVolume(true);
       manager.duckVolume(false);
+    }).not.toThrow();
+  });
+
+  it('triggers movement step sound without error', () => {
+    expect(() => {
+      manager.playMoveStep();
+      manager.playMoveStep();
+      manager.playMoveStep();
+    }).not.toThrow();
+  });
+
+  it('triggers portal entrance, exit, and return sound effects without error', () => {
+    expect(() => {
+      manager.playPortalEnter();
+      manager.playPortalExit();
+      manager.playPortalReturn();
+    }).not.toThrow();
+  });
+
+  it('silently ignores SFX playback when muted', () => {
+    if (!manager.isMuted()) {
+      manager.toggleMute();
+    }
+    expect(manager.isMuted()).toBe(true);
+
+    expect(() => {
+      manager.playMoveStep();
+      manager.playPortalEnter();
+      manager.playPortalExit();
+      manager.playPortalReturn();
     }).not.toThrow();
   });
 });
