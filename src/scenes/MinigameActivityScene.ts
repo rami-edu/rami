@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
+import { ProfileManager, profileManager } from '../managers/ProfileManager';
 import { ActivityThemedBackgroundBuilder } from '../objects/ActivityThemedBackgroundBuilder';
 
 export interface MinigameActivityConfig {
@@ -18,6 +19,9 @@ export class MinigameActivityScene extends Phaser.Scene {
   private bgImage!: Phaser.GameObjects.Image;
   private returnPortalBtn!: Phaser.GameObjects.Container;
   private returnRuneRing!: Phaser.GameObjects.Graphics;
+  private avatarContainer!: Phaser.GameObjects.Container;
+  private idleAvatarTween?: Phaser.Tweens.Tween;
+  private onResizeCallback?: (gameSize: Phaser.Structs.Size) => void;
   private activityModule: MinigameModule;
   private onExitCallback: () => void;
   private isLeaving = false;
@@ -42,6 +46,14 @@ export class MinigameActivityScene extends Phaser.Scene {
     if (!this.textures.exists(backgroundKey)) {
       this.load.image(backgroundKey, backgroundUrl);
     }
+
+    const activeProfile = profileManager.getActiveProfile();
+    const avatarDesc = ProfileManager.getAvatarDescriptor(
+      activeProfile?.avatarId ?? activeProfile?.avatarEmoji
+    );
+    if (!this.textures.exists(avatarDesc.textureKey)) {
+      this.load.image(avatarDesc.textureKey, avatarDesc.spritePath);
+    }
   }
 
   public create(): void {
@@ -61,12 +73,12 @@ export class MinigameActivityScene extends Phaser.Scene {
     this.createStandardReturnButton();
     this.layoutScene(width, height);
 
-    const onResize = (gameSize: Phaser.Structs.Size) => {
+    this.onResizeCallback = (gameSize: Phaser.Structs.Size) => {
       if (this.scene.isActive() && this.bgImage?.active) {
         this.layoutScene(gameSize.width, gameSize.height);
       }
     };
-    this.scale.on('resize', onResize);
+    this.scale.on('resize', this.onResizeCallback);
 
     // Smoothly fade in from the portal swirl transition
     this.cameras.main.fadeIn(350, 11, 22, 14);
@@ -78,17 +90,7 @@ export class MinigameActivityScene extends Phaser.Scene {
     }
 
     const triggerReturn = () => {
-      if (this.isLeaving) return;
-      this.isLeaving = true;
-      this.scale.off('resize', onResize);
-      this.playReverseReturnPortalTransition().then(() => {
-        // Restore player name badge upon returning to the tree
-        const badge = document.getElementById('hud-player-badge');
-        if (badge) {
-          badge.style.display = 'flex';
-        }
-        this.onExitCallback();
-      });
+      this.handleExitPortal();
     };
 
     // Launch the specific minigame UI inside this dedicated scene
@@ -101,13 +103,16 @@ export class MinigameActivityScene extends Phaser.Scene {
    * - Placed on the top-left of the screen.
    * - Has an iconic visual of "going outside a portal": a celestial portal aperture
    *   with an energetic golden exit arrow breaking out toward the outside/left.
+   * - Accompanied by the player's avatar icon standing right beside the portal.
    */
   private createStandardReturnButton(): void {
     const dpr = this.getDpr();
     const margin = Math.max(40, 32 * dpr);
+    const scale = dpr * 1.05;
+
     this.returnPortalBtn = this.add
       .container(margin, margin)
-      .setScale(dpr * 1.05)
+      .setScale(scale)
       .setDepth(160);
 
     // Glowing outer portal aura
@@ -200,13 +205,13 @@ export class MinigameActivityScene extends Phaser.Scene {
       repeat: -1
     });
 
-    // Hover & click handlers
+    // Hover & click handlers for portal button
     hitZone.on('pointerover', () => {
       btnBg.setFillStyle(0x2d6a4f, 0.98);
       btnBg.setStrokeStyle(3, 0xfff3b0);
       this.tweens.add({
         targets: this.returnPortalBtn,
-        scale: 1.1,
+        scale: scale * 1.1,
         duration: 160,
         ease: 'Back.easeOut'
       });
@@ -217,18 +222,14 @@ export class MinigameActivityScene extends Phaser.Scene {
       btnBg.setStrokeStyle(2.5, 0xffd166);
       this.tweens.add({
         targets: this.returnPortalBtn,
-        scale: 1.0,
+        scale: scale,
         duration: 160,
         ease: 'Cubic.easeOut'
       });
     });
 
     hitZone.on('pointerdown', () => {
-      if (this.isLeaving) return;
-      this.isLeaving = true;
-      this.playReverseReturnPortalTransition().then(() => {
-        this.onExitCallback();
-      });
+      this.handleExitPortal();
     });
 
     this.returnPortalBtn.add([
@@ -238,6 +239,179 @@ export class MinigameActivityScene extends Phaser.Scene {
       iconGraphics,
       hitZone
     ]);
+
+    // --- Player Avatar Icon next to the Exit Portal ---
+    const activeProfile = profileManager.getActiveProfile();
+    const avatarDesc = ProfileManager.getAvatarDescriptor(
+      activeProfile?.avatarId ?? activeProfile?.avatarEmoji
+    );
+
+    const avatarX = margin + 58 * scale;
+    this.avatarContainer = this.add
+      .container(avatarX, margin)
+      .setScale(scale)
+      .setDepth(160);
+
+    const avatarAura = this.add.circle(0, 0, 26, 0xffd166, 0.22);
+    const avatarBg = this.add
+      .circle(0, 0, 22, 0x162418, 0.96)
+      .setStrokeStyle(2.5, 0xffd166);
+
+    let avatarGraphic: Phaser.GameObjects.GameObject;
+    if (this.textures.exists(avatarDesc.textureKey)) {
+      avatarGraphic = this.add
+        .image(0, 0, avatarDesc.textureKey)
+        .setDisplaySize(34, 34);
+    } else {
+      avatarGraphic = this.add
+        .text(0, -1, avatarDesc.emoji, { fontSize: '22px' })
+        .setOrigin(0.5);
+    }
+
+    const avatarHitZone = this.add
+      .circle(0, 0, 24, 0x000000, 0.001)
+      .setInteractive({ useHandCursor: true });
+
+    this.avatarContainer.add([
+      avatarAura,
+      avatarBg,
+      avatarGraphic,
+      avatarHitZone
+    ]);
+
+    // Idle playful bobbing & gentle pulsing
+    this.idleAvatarTween = this.tweens.add({
+      targets: this.avatarContainer,
+      y: margin - 3 * scale,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    avatarHitZone.on('pointerover', () => {
+      avatarBg.setFillStyle(0x2d6a4f, 0.98);
+      avatarBg.setStrokeStyle(3, 0xfff3b0);
+      this.tweens.add({
+        targets: this.avatarContainer,
+        scale: scale * 1.1,
+        duration: 160,
+        ease: 'Back.easeOut'
+      });
+    });
+
+    avatarHitZone.on('pointerout', () => {
+      avatarBg.setFillStyle(0x162418, 0.96);
+      avatarBg.setStrokeStyle(2.5, 0xffd166);
+      this.tweens.add({
+        targets: this.avatarContainer,
+        scale: scale,
+        duration: 160,
+        ease: 'Cubic.easeOut'
+      });
+    });
+
+    avatarHitZone.on('pointerdown', () => {
+      this.handleExitPortal();
+    });
+  }
+
+  /**
+   * Unified exit sequence:
+   * 1. Avatar enters the portal with an animated leap and spiral pull.
+   * 2. Full-screen celestial/golden portal vortex plays.
+   * 3. DOM HUD player badge restored and onExitCallback invoked.
+   */
+  private handleExitPortal(): void {
+    if (this.isLeaving) return;
+    this.isLeaving = true;
+
+    if (this.onResizeCallback) {
+      this.scale.off('resize', this.onResizeCallback);
+    }
+
+    this.playAvatarEnterPortalAnimation()
+      .then(() => this.playReverseReturnPortalTransition())
+      .then(() => {
+        // Restore player name badge upon returning to the tree
+        const badge = document.getElementById('hud-player-badge');
+        if (badge) {
+          badge.style.display = 'flex';
+        }
+        this.onExitCallback();
+      });
+  }
+
+  /**
+   * Plays a playful animation where the player avatar leaps from its standing spot
+   * into the center of the exit portal, spinning and scaling down as it gets pulled
+   * into the aperture with a burst of magical light.
+   */
+  private playAvatarEnterPortalAnimation(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.avatarContainer || !this.avatarContainer.active) {
+        resolve();
+        return;
+      }
+
+      this.idleAvatarTween?.stop();
+
+      const targetX = this.returnPortalBtn.x;
+      const targetY = this.returnPortalBtn.y;
+
+      // Portal pulses with energy as it prepares to receive the avatar
+      this.tweens.add({
+        targets: this.returnPortalBtn,
+        scale: this.getDpr() * 1.25,
+        duration: 180,
+        yoyo: true,
+        ease: 'Back.easeOut'
+      });
+
+      // Rapid rotation of rune ring as portal activates
+      this.tweens.add({
+        targets: this.returnRuneRing,
+        rotation: this.returnRuneRing.rotation - Math.PI * 4,
+        duration: 400,
+        ease: 'Cubic.easeIn'
+      });
+
+      // Avatar enters the portal with an arc leap, spin, and vacuum pull
+      this.tweens.add({
+        targets: this.avatarContainer,
+        x: targetX,
+        y: targetY,
+        scale: 0.05,
+        rotation: -Math.PI * 3.5,
+        alpha: 0.15,
+        duration: 380,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          // Radiating magical flash ring at the portal entrance
+          const flash = this.add
+            .circle(targetX, targetY, 14, 0xffd166, 0.95)
+            .setDepth(170);
+          const flashCyan = this.add
+            .circle(targetX, targetY, 9, 0x48cae4, 0.95)
+            .setDepth(171);
+
+          this.tweens.add({
+            targets: [flash, flashCyan],
+            scale: 3.2,
+            alpha: 0,
+            duration: 220,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+              flash.destroy();
+              flashCyan.destroy();
+            }
+          });
+
+          this.avatarContainer?.setVisible(false);
+          resolve();
+        }
+      });
+    });
   }
 
   /**
@@ -334,7 +508,11 @@ export class MinigameActivityScene extends Phaser.Scene {
 
     if (this.returnPortalBtn) {
       const margin = Math.max(40, 32 * dpr);
-      this.returnPortalBtn.setPosition(margin, margin).setScale(dpr * 1.05);
+      const scale = dpr * 1.05;
+      this.returnPortalBtn.setPosition(margin, margin).setScale(scale);
+      if (this.avatarContainer && !this.isLeaving) {
+        this.avatarContainer.setPosition(margin + 58 * scale, margin).setScale(scale);
+      }
     }
   }
 }
