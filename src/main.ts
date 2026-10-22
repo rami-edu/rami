@@ -21,6 +21,7 @@ import {
   type KnowledgeTagId
 } from './objects/ActivityKnowledgeTags';
 import { getGameRenderScale } from './utils/renderScale';
+import { navigationManager } from './managers/NavigationManager';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
@@ -66,7 +67,7 @@ function setupHudAndGuardianModal(): void {
   let selectedAvatarId: AnimalAvatarId =
     profileManager.getActiveProfile()?.avatarId ?? 'dino';
 
-  const syncHud = () => {
+  const updateHudElements = () => {
     const active = profileManager.getActiveProfile();
     if (active) {
       selectedAvatarId = active.avatarId;
@@ -80,8 +81,16 @@ function setupHudAndGuardianModal(): void {
     } else if (usernameEl) {
       usernameEl.textContent = userManager.getUsername();
     }
+  };
+
+  const syncHud = () => {
+    updateHudElements();
     window.dispatchEvent(new CustomEvent('rami:profile-changed'));
   };
+
+  window.addEventListener('rami:profile-changed', () => {
+    updateHudElements();
+  });
 
   syncHud();
 
@@ -594,6 +603,7 @@ function setupHudAndGuardianModal(): void {
 }
 
 setupHudAndGuardianModal();
+navigationManager.init();
 
 // Mount React Activity System
 const reactRootEl = document.getElementById('react-activity-root');

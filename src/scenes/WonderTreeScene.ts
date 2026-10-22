@@ -10,6 +10,7 @@ import {
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 import { audioManager } from '../managers/AudioManager';
 import { activityOverlayManager } from '../managers/ActivityOverlayManager';
+import { navigationManager } from '../managers/NavigationManager';
 
 const UI_FONT_FAMILY =
   "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -208,6 +209,8 @@ export class WonderTreeScene extends Phaser.Scene {
         });
       }
     }) as EventListener);
+
+    navigationManager.markSceneReady();
   }
 
   /**

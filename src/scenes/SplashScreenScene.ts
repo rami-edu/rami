@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { navigationManager } from '../managers/NavigationManager';
 
 /**
  * SplashScreenScene — Displays the illustrated "Tree of Knowledge" background
@@ -69,17 +70,19 @@ export class SplashScreenScene extends Phaser.Scene {
       .rectangle(width / 2 - 138, height / 2 + 120, 4, 10, 0x80ed99)
       .setOrigin(0, 0.5);
 
+    const duration = navigationManager.hasPendingActivity() ? 600 : this.splashDuration;
+
     this.tweens.add({
       targets: this,
       progressRatio: 1,
-      duration: this.splashDuration - 200,
+      duration: Math.max(200, duration - 150),
       ease: 'Power1'
     });
 
     this.tweens.add({
       targets: this,
       logoPulseScale: 1.05,
-      duration: 1100,
+      duration: Math.min(1100, duration / 2),
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -96,10 +99,10 @@ export class SplashScreenScene extends Phaser.Scene {
     const htmlLoader = document.getElementById('initial-loading-screen');
     if (htmlLoader) {
       htmlLoader.classList.add('fade-out');
-      window.setTimeout(() => htmlLoader.remove(), 500);
+      window.setTimeout(() => htmlLoader.remove(), 400);
     }
 
-    this.time.delayedCall(this.splashDuration, () => {
+    this.time.delayedCall(duration, () => {
       this.scene.start('WonderTreeScene');
     });
   }
