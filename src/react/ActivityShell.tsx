@@ -22,7 +22,13 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
   const [isLeaping, setIsLeaping] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [instructorReaction, setInstructorReaction] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(() => audioManager.isMuted());
   const [, setRefreshKey] = useState(0);
+
+  const handleToggleMute = useCallback(() => {
+    const nextMuted = audioManager.toggleMute();
+    setIsMuted(nextMuted);
+  }, []);
 
   const activeProfile = profileManager.getActiveProfile();
   const avatarDesc = ProfileManager.getAvatarDescriptor(
@@ -248,54 +254,66 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
           </div>
         </div>
 
-        {/* Right: Animal Instructor wearing Teacher Scholar Hat (Static, no bouncing!) */}
-        <div
-          className="activity-instructor"
-          title={`${instructorDesc.name} — Activity Instructor`}
-        >
-          <div className="instructor-badge">
-            {/* Teacher / Scholar Mortarboard Hat */}
-            <svg
-              className="scholar-hat"
-              width="50"
-              height="30"
-              viewBox="0 0 100 60"
-            >
-              {/* Mortarboard Diamond Top */}
-              <polygon
-                points="50,6 94,24 50,42 6,24"
-                fill="#1b2a47"
-                stroke="#ffd166"
-                strokeWidth="3.5"
-              />
-              {/* Skull Cap Base */}
-              <path
-                d="M30,34 Q50,48 70,34 L70,44 Q50,56 30,44 Z"
-                fill="#121b2d"
-                stroke="#ffd166"
-                strokeWidth="2.5"
-              />
-              {/* Golden Button and Tassel */}
-              <circle cx="50" cy="24" r="4.5" fill="#ffd166" />
-              <path
-                d="M50,24 C56,28 66,32 68,44"
-                fill="none"
-                stroke="#ffd166"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx="68" cy="44" r="3.5" fill="#f59e0b" />
-            </svg>
+        {/* Right: Music Controls on the right & Animal Instructor (No parent dashboard) */}
+        <div className="activity-header-right">
+          <button
+            type="button"
+            className="activity-music-toggle"
+            onClick={handleToggleMute}
+            title={isMuted ? 'Unmute Piano Music' : 'Mute Piano Music'}
+            aria-label={isMuted ? 'Unmute Piano Music' : 'Mute Piano Music'}
+          >
+            <span className="activity-music-icon">{isMuted ? '🔇' : '🎵'}</span>
+          </button>
 
-            <img
-              src={instructorDesc.spritePath}
-              alt={instructorDesc.name}
-              className="instructor-avatar"
-            />
+          <div
+            className="activity-instructor"
+            title={`${instructorDesc.name} — Activity Instructor`}
+          >
+            <div className="instructor-badge">
+              {/* Teacher / Scholar Mortarboard Hat */}
+              <svg
+                className="scholar-hat"
+                width="50"
+                height="30"
+                viewBox="0 0 100 60"
+              >
+                {/* Mortarboard Diamond Top */}
+                <polygon
+                  points="50,6 94,24 50,42 6,24"
+                  fill="#1b2a47"
+                  stroke="#ffd166"
+                  strokeWidth="3.5"
+                />
+                {/* Skull Cap Base */}
+                <path
+                  d="M30,34 Q50,48 70,34 L70,44 Q50,56 30,44 Z"
+                  fill="#121b2d"
+                  stroke="#ffd166"
+                  strokeWidth="2.5"
+                />
+                {/* Golden Button and Tassel */}
+                <circle cx="50" cy="24" r="4.5" fill="#ffd166" />
+                <path
+                  d="M50,24 C56,28 66,32 68,44"
+                  fill="none"
+                  stroke="#ffd166"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <circle cx="68" cy="44" r="3.5" fill="#f59e0b" />
+              </svg>
 
-            {instructorReaction && (
-              <div className="instructor-reaction">{instructorReaction}</div>
-            )}
+              <img
+                src={instructorDesc.spritePath}
+                alt={instructorDesc.name}
+                className="instructor-avatar"
+              />
+
+              {instructorReaction && (
+                <div className="instructor-reaction">{instructorReaction}</div>
+              )}
+            </div>
           </div>
         </div>
       </header>

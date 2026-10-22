@@ -975,10 +975,10 @@ export class WonderTreeScene extends Phaser.Scene {
     const dpr = this.getDpr();
     this.playerContainer.setRotation(0).setScale(dpr);
 
-    // Hide top HUD player badge inside activities
-    const playerBadge = document.getElementById('hud-player-badge');
-    if (playerBadge) {
-      playerBadge.style.display = 'none';
+    // Hide global HUD overlay (no parent dashboard, no player badge) inside activities
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) {
+      hudOverlay.style.display = 'none';
     }
 
     this.scene.sleep('WonderTreeScene');
@@ -987,9 +987,9 @@ export class WonderTreeScene extends Phaser.Scene {
       module: mod,
       onExit: () => {
         this.activeMinigame = false;
-        const currentBadge = document.getElementById('hud-player-badge');
-        if (currentBadge) {
-          currentBadge.style.display = 'flex';
+        const currentHud = document.getElementById('hud-overlay');
+        if (currentHud) {
+          currentHud.style.display = 'flex';
         }
         profileManager.recordMinigameCompletion(portal.anchor.minigame);
 

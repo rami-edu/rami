@@ -201,6 +201,44 @@
   100% { transform: scale(1); }
 }
 
+/* Right Header Controls: Music Toggle + Animal Instructor (No Parent Dashboard) */
+.activity-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.activity-music-toggle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(18, 34, 22, 0.85);
+  border: 2px solid var(--rami-green-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.activity-music-toggle:hover {
+  transform: scale(1.08);
+  border-color: var(--rami-gold-primary);
+  background: rgba(26, 48, 32, 0.95);
+}
+
+.activity-music-toggle:active {
+  transform: scale(0.95);
+}
+
+.activity-music-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
 /* Instructor (Right): Teacher hat, serene static, no bouncing! */
 .activity-instructor {
   position: relative;

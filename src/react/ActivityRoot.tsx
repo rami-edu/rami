@@ -10,11 +10,19 @@ export const ActivityRoot: React.FC = () => {
 
     const unsubscribe = activityOverlayManager.subscribe((activity) => {
       setActiveActivity(activity);
+      const hudOverlay = document.getElementById('hud-overlay');
+
       if (rootEl) {
         if (activity) {
           rootEl.classList.add('active');
+          if (hudOverlay) {
+            hudOverlay.style.display = 'none';
+          }
         } else {
           rootEl.classList.remove('active');
+          if (hudOverlay) {
+            hudOverlay.style.display = 'flex';
+          }
         }
       }
     });
