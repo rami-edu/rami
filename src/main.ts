@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { ActivityRoot } from './react/ActivityRoot';
+import './react/activity.css';
 import { SplashScreenScene } from './scenes/SplashScreenScene';
 import { WonderTreeScene } from './scenes/WonderTreeScene';
 import { userManager } from './managers/UserManager';
@@ -589,6 +593,13 @@ function setupHudAndGuardianModal(): void {
 }
 
 setupHudAndGuardianModal();
+
+// Mount React Activity System
+const reactRootEl = document.getElementById('react-activity-root');
+if (reactRootEl) {
+  const root = ReactDOM.createRoot(reactRootEl);
+  root.render(React.createElement(ActivityRoot));
+}
 
 const dpr = Math.min(window.devicePixelRatio || 1, 3);
 

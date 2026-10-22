@@ -198,6 +198,11 @@ export interface MinigameModule {
   getStarProgress: (profileId?: string) => StarProgressStatus;
   getActivityDetails: (profileId?: string) => ActivityChildDetails;
   resetActivityDetails?: (profileId?: string) => void;
+  recordSolvedInstance?: (
+    description: string,
+    profileId?: string
+  ) => StarProgressStatus;
+  recordMistake?: (description: string, profileId?: string) => void;
 }
 
 export interface GeneralLearningStats {

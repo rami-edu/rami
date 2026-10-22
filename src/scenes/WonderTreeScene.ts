@@ -10,6 +10,7 @@ import {
 } from '../objects/DynamicWonderTree';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
 import { audioManager } from '../managers/AudioManager';
+import { activityOverlayManager } from '../managers/ActivityOverlayManager';
 
 const UI_FONT_FAMILY =
   "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -932,16 +933,21 @@ export class WonderTreeScene extends Phaser.Scene {
     const dpr = this.getDpr();
     this.playerContainer.setRotation(0).setScale(dpr);
 
-    const dynamicSceneKey = `MinigameActivity_${portal.anchor.id}_${Date.now()}`;
+    // Hide top HUD player badge inside activities
+    const playerBadge = document.getElementById('hud-player-badge');
+    if (playerBadge) {
+      playerBadge.style.display = 'none';
+    }
 
-    const activityScene = new MinigameActivityScene({
-      sceneKey: dynamicSceneKey,
+    this.scene.sleep('WonderTreeScene');
+
+    activityOverlayManager.launch({
       module: mod,
       onExit: () => {
         this.activeMinigame = false;
-        const playerBadge = document.getElementById('hud-player-badge');
-        if (playerBadge) {
-          playerBadge.style.display = 'flex';
+        const currentBadge = document.getElementById('hud-player-badge');
+        if (currentBadge) {
+          currentBadge.style.display = 'flex';
         }
         profileManager.recordMinigameCompletion(portal.anchor.minigame);
 
@@ -951,7 +957,6 @@ export class WonderTreeScene extends Phaser.Scene {
         portal.subLabel?.setText(formatStarsVisual(pStars));
 
         this.scene.wake('WonderTreeScene');
-        this.scene.remove(dynamicSceneKey);
 
         // Automatically grow the tree upwards if a new activity was unlocked
         const unlockedCount = this.getUnlockedActivityCount();
@@ -961,9 +966,6 @@ export class WonderTreeScene extends Phaser.Scene {
         this.playReturnPortalArrival(portal.worldX, portal.worldY);
       }
     });
-
-    this.scene.sleep('WonderTreeScene');
-    this.scene.add(dynamicSceneKey, activityScene, true);
   }
 
   /**
