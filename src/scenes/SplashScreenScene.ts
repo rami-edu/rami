@@ -33,6 +33,14 @@ export class SplashScreenScene extends Phaser.Scene {
     this.load.image('avatar_fox', './avatars/fox.png');
     this.load.image('avatar_bear', './avatars/bear.png');
     this.load.image('avatar_otter', './avatars/otter.png');
+    this.load.image('portal_geom_shapes', './portal-shape-nest.png');
+    this.load.image('portal_color_bloom', './portal-color-bloom.png');
+    this.load.image('portal_phonics_pond', './portal-phonics-pond.png');
+    this.load.image('portal_creature_ladder', './portal-creature-ladder.png');
+    this.load.image('portal_pattern_path', './portal-pattern-path.png');
+    this.load.image('portal_shadow_match', './portal-shadow-match.png');
+    this.load.image('portal_nature_sorting', './portal-nature-sorting.png');
+    this.load.image('portal_symmetry_wings', './portal-symmetry-wings.png');
   }
 
   public create(): void {
