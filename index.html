@@ -354,6 +354,79 @@
         user-select: text;
         -webkit-user-select: text;
       }
+      /* General Stats Overview */
+      .general-stats-card {
+        background: #0f1c11;
+        border: 1.5px solid #52b788;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      }
+      .general-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .general-stat-tile {
+        background: #14291a;
+        border: 1px solid #2d6a4f;
+        border-radius: 10px;
+        padding: 10px 8px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      .general-stat-value {
+        font-size: 19px;
+        font-weight: 800;
+        color: #ffd166;
+        line-height: 1.2;
+      }
+      .general-stat-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #95d5b2;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 3px;
+      }
+      .general-stat-subtext {
+        font-size: 10.5px;
+        color: #74c69d;
+        margin-top: 2px;
+      }
+      .general-domains-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .general-domain-chip {
+        background: #162418;
+        border: 1px solid #2d6a4f;
+        border-radius: 8px;
+        padding: 6px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11.5px;
+      }
+      .general-domain-name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        color: #d8f3dc;
+      }
+      .general-domain-score {
+        color: #ffd166;
+        font-weight: 700;
+        font-size: 11px;
+      }
     </style>
   </head>
   <body>
@@ -409,9 +482,15 @@
               <button id="btn-add-child" class="hud-btn">Add Profile</button>
             </div>
             <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
-            <div style="margin-top: 16px;">
+            <div id="guardian-general-stats-container" style="margin-top: 18px;">
               <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
-                📋 Child Activity Log &amp; Progress Details (Active Explorer):
+                📊 General Learning Stats (<span id="guardian-stats-child-name">Active Explorer</span>):
+              </div>
+              <div id="guardian-general-stats"></div>
+            </div>
+            <div style="margin-top: 18px;">
+              <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
+                📋 Specific Activity Stats &amp; Parent Guides:
               </div>
               <div id="guardian-activities-list"></div>
             </div>

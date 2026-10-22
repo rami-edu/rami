@@ -7,8 +7,14 @@ import {
   ProfileManager,
   type AnimalAvatarId
 } from './managers/ProfileManager';
-import { minigameLoader } from './managers/MinigameLoader';
-import { KNOWLEDGE_TAGS } from './objects/ActivityKnowledgeTags';
+import {
+  minigameLoader,
+  calculateGeneralStats
+} from './managers/MinigameLoader';
+import {
+  KNOWLEDGE_TAGS,
+  type KnowledgeTagId
+} from './objects/ActivityKnowledgeTags';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
@@ -35,6 +41,10 @@ function setupHudAndGuardianModal(): void {
     'input-child-name'
   ) as HTMLInputElement | null;
   const profilesList = document.getElementById('profiles-list');
+  const generalStatsEl = document.getElementById('guardian-general-stats');
+  const generalStatsChildNameEl = document.getElementById(
+    'guardian-stats-child-name'
+  );
   const activitiesListEl = document.getElementById('guardian-activities-list');
   let editingProfileId: string | null = null;
 
@@ -101,6 +111,97 @@ function setupHudAndGuardianModal(): void {
     if (!activitiesListEl) return;
     const active = profileManager.getActiveProfile();
     const activities = await minigameLoader.loadAllActivities();
+
+    if (generalStatsChildNameEl) {
+      generalStatsChildNameEl.textContent =
+        active?.nickname || active?.explorerName || 'Active Explorer';
+    }
+
+    if (generalStatsEl) {
+      const stats = calculateGeneralStats(activities, active?.id);
+
+      const domainBadgesHtml = (
+        Object.entries(stats.domainStats) as [
+          KnowledgeTagId,
+          (typeof stats.domainStats)[KnowledgeTagId]
+        ][]
+      )
+        .filter(([, stat]) => stat.totalInDomain > 0)
+        .map(([tagId, stat]) => {
+          const def = KNOWLEDGE_TAGS[tagId];
+          if (!def) return '';
+          return `<div class="general-domain-chip" style="border-left: 3px solid ${def.colorHex};">
+            <div class="general-domain-name">
+              <span>${def.iconSymbol}</span>
+              <span>${def.name}</span>
+            </div>
+            <div class="general-domain-score">
+              ${stat.solves} ${stat.solves === 1 ? 'solve' : 'solves'} • ${stat.stars}★
+            </div>
+          </div>`;
+        })
+        .join('');
+
+      generalStatsEl.innerHTML = `
+        <div class="general-stats-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #2d6a4f; padding-bottom: 8px;">
+            <div>
+              <span style="font-size: 15px; font-weight: 800; color: #ffd166;">
+                ${active?.nickname ?? 'Explorer'}'s Learning Progress
+              </span>
+              <span style="font-size: 12px; color: #95d5b2; margin-left: 8px;">
+                ${active?.explorerName ? `(${active.explorerName})` : ''}
+              </span>
+            </div>
+            <div style="font-size: 12px; color: #74c69d; font-weight: 600;">
+              🌱 ${stats.activitiesExploredCount} / ${stats.totalActivitiesCount} Activities Explored
+            </div>
+          </div>
+
+          <div class="general-stats-grid">
+            <div class="general-stat-tile">
+              <div class="general-stat-value">⭐ ${stats.totalStarsEarned} / ${stats.totalPossibleStars}</div>
+              <div class="general-stat-label">Total Stars</div>
+              <div class="general-stat-subtext">${stats.starsPercentage}% of all stars</div>
+            </div>
+            <div class="general-stat-tile">
+              <div class="general-stat-value">🎯 ${stats.activitiesExploredCount} / ${stats.totalActivitiesCount}</div>
+              <div class="general-stat-label">Activities Played</div>
+              <div class="general-stat-subtext">${stats.totalActivitiesCount - stats.activitiesExploredCount} unplayed</div>
+            </div>
+            <div class="general-stat-tile">
+              <div class="general-stat-value">🏆 ${stats.totalSolves}</div>
+              <div class="general-stat-label">Total Solves</div>
+              <div class="general-stat-subtext">Puzzles completed</div>
+            </div>
+            <div class="general-stat-tile">
+              <div class="general-stat-value">💡 ${stats.totalActions}</div>
+              <div class="general-stat-label">Learning Actions</div>
+              <div class="general-stat-subtext">${stats.totalActions > 0 ? `${stats.accuracyRate}% accuracy` : 'Ready to begin'}</div>
+            </div>
+          </div>
+
+          <div class="star-meter-box" style="margin-bottom: 12px;">
+            <div class="star-meter-header">
+              <span style="color:#ffd166; font-weight:700;">Overall World Star Mastery</span>
+              <span style="color:#b7e4c7; font-size:12px;">${stats.totalStarsEarned} of ${stats.totalPossibleStars} Stars (${stats.starsPercentage}%)</span>
+            </div>
+            <div class="star-meter-track" style="height: 10px;">
+              <div class="star-meter-fill" style="width: ${stats.starsPercentage}%; background: linear-gradient(90deg, #ffd166, #52b788);"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #95d5b2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+              Knowledge Areas Explored:
+            </div>
+            <div class="general-domains-grid">
+              ${domainBadgesHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     activitiesListEl.innerHTML = activities
       .map((activity) => {

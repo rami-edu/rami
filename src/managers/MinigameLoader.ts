@@ -200,6 +200,100 @@ export interface MinigameModule {
   resetActivityDetails?: (profileId?: string) => void;
 }
 
+export interface GeneralLearningStats {
+  totalStarsEarned: number;
+  totalPossibleStars: number;
+  starsPercentage: number;
+  activitiesExploredCount: number;
+  totalActivitiesCount: number;
+  totalSolves: number;
+  totalActions: number;
+  totalMistakes: number;
+  accuracyRate: number;
+  domainStats: Record<
+    KnowledgeTagId,
+    { solves: number; stars: number; totalInDomain: number }
+  >;
+}
+
+export function calculateGeneralStats(
+  activities: MinigameModule[],
+  profileId?: string
+): GeneralLearningStats {
+  let totalStarsEarned = 0;
+  let totalPossibleStars = 0;
+  let totalSolves = 0;
+  let totalActions = 0;
+  let totalMistakes = 0;
+  let activitiesExploredCount = 0;
+
+  const domainStats: Record<
+    KnowledgeTagId,
+    { solves: number; stars: number; totalInDomain: number }
+  > = {
+    mathematics: { solves: 0, stars: 0, totalInDomain: 0 },
+    music: { solves: 0, stars: 0, totalInDomain: 0 },
+    language: { solves: 0, stars: 0, totalInDomain: 0 },
+    painting: { solves: 0, stars: 0, totalInDomain: 0 },
+    science: { solves: 0, stars: 0, totalInDomain: 0 },
+    logic: { solves: 0, stars: 0, totalInDomain: 0 },
+    motor_skills: { solves: 0, stars: 0, totalInDomain: 0 }
+  };
+
+  for (const activity of activities) {
+    const details = activity.getActivityDetails(profileId);
+    totalStarsEarned += details.starsEarned;
+    totalPossibleStars += details.maxStars;
+    totalSolves += details.levelsCompleted;
+    totalActions += details.totalActions;
+    totalMistakes += details.mistakesCount;
+
+    if (
+      details.levelsCompleted > 0 ||
+      details.totalActions > 0 ||
+      details.starsEarned > 0
+    ) {
+      activitiesExploredCount += 1;
+    }
+
+    if (details.knowledgeTags) {
+      for (const tagId of details.knowledgeTags) {
+        if (domainStats[tagId]) {
+          domainStats[tagId].totalInDomain += 1;
+          domainStats[tagId].solves += details.levelsCompleted;
+          domainStats[tagId].stars += details.starsEarned;
+        }
+      }
+    }
+  }
+
+  const accuracyRate =
+    totalActions > 0
+      ? Math.max(
+          0,
+          Math.round(((totalActions - totalMistakes) / totalActions) * 100)
+        )
+      : 100;
+
+  const starsPercentage =
+    totalPossibleStars > 0
+      ? Math.round((totalStarsEarned / totalPossibleStars) * 100)
+      : 0;
+
+  return {
+    totalStarsEarned,
+    totalPossibleStars,
+    starsPercentage,
+    activitiesExploredCount,
+    totalActivitiesCount: activities.length,
+    totalSolves,
+    totalActions,
+    totalMistakes,
+    accuracyRate,
+    domainStats
+  };
+}
+
 /**
  * On-demand Minigame Loader (replaces Godot's PCK ResourceLoader).
  * Uses Vite dynamic import() chunks so each minigame is downloaded only when

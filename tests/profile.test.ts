@@ -8,7 +8,8 @@ import {
 import { KNOWLEDGE_TAGS } from '../src/objects/ActivityKnowledgeTags';
 import {
   evaluateStarProgress,
-  DEFAULT_STAR_REQUIREMENTS
+  DEFAULT_STAR_REQUIREMENTS,
+  calculateGeneralStats
 } from '../src/managers/MinigameLoader';
 import { AcornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { RhythmBranchesActivity } from '../src/minigames/RhythmBranchesMinigame';
@@ -267,5 +268,50 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
       expect(details.starsEarned).toBe(1);
       expect(details.parentGuide).toBeDefined();
     }
+  });
+
+  it('calculates comprehensive general learning stats across all activities for the Parent Dashboard', () => {
+    const p1 = profiles.createProfile('Alice');
+    const activities = [
+      new GeometryShapesActivity(),
+      new ColorBloomActivity(),
+      new FruitHarvestActivity(),
+      new ForestSymphonyActivity(),
+      new PhonicsPondActivity(),
+      new CreatureLadderActivity(),
+      new PatternPathActivity(),
+      new ShadowMatchActivity(),
+      new NatureSortingActivity(),
+      new SymmetryWingsActivity()
+    ];
+
+    for (const act of activities) {
+      act.resetActivityDetails(p1.id);
+    }
+
+    // Initially 0 progress
+    const initialStats = calculateGeneralStats(activities, p1.id);
+    expect(initialStats.totalStarsEarned).toBe(0);
+    expect(initialStats.totalPossibleStars).toBe(50);
+    expect(initialStats.activitiesExploredCount).toBe(0);
+    expect(initialStats.totalSolves).toBe(0);
+    expect(initialStats.totalActions).toBe(0);
+    expect(initialStats.totalActivitiesCount).toBe(10);
+    expect(initialStats.starsPercentage).toBe(0);
+    expect(initialStats.accuracyRate).toBe(100);
+
+    // Solve instances in 2 activities (Geometry and ColorBloom)
+    activities[0].recordSolvedInstance('Solved circle shape nest', p1.id);
+    activities[1].recordSolvedInstance('Bloomed red petals', p1.id);
+
+    const updatedStats = calculateGeneralStats(activities, p1.id);
+    expect(updatedStats.totalStarsEarned).toBe(2);
+    expect(updatedStats.activitiesExploredCount).toBe(2);
+    expect(updatedStats.totalSolves).toBe(2);
+    expect(updatedStats.totalActions).toBeGreaterThanOrEqual(2);
+    expect(updatedStats.starsPercentage).toBe(4);
+    expect(updatedStats.domainStats.mathematics.solves).toBeGreaterThanOrEqual(1);
+    expect(updatedStats.domainStats.painting.solves).toBeGreaterThanOrEqual(1);
+    expect(updatedStats.domainStats.music.solves).toBe(0);
   });
 });
