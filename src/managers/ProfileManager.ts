@@ -299,11 +299,27 @@ export class ProfileManager {
       return false;
     }
     delete this.state.profiles[profileId];
-    if (this.state.activeProfileId === profileId) {
-      const remainingIds = Object.keys(this.state.profiles);
+    const remainingIds = Object.keys(this.state.profiles);
+    if (remainingIds.length === 0) {
+      const fallback = this.createProfile('Player 1');
+      this.state.activeProfileId = fallback.id;
+    } else if (this.state.activeProfileId === profileId) {
       this.state.activeProfileId = remainingIds[0] ?? null;
     }
     this.save();
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('rami:profile-changed', {
+            detail: { activeProfileId: this.state.activeProfileId }
+          })
+        );
+      } catch {
+        // Ignore in non-browser context
+      }
+    }
+
     return true;
   }
 

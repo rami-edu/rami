@@ -94,6 +94,36 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(profiles.updateProfileName('invalid_id', 'Bob')).toBeNull();
   });
 
+  it('deletes child profiles locally, handles active profile switching, and ensures fallback on empty', () => {
+    const p1 = profiles.createProfile('Alice');
+    const p2 = profiles.createProfile('Bob');
+    const p3 = profiles.createProfile('Charlie');
+
+    expect(profiles.getAllProfiles()).toHaveLength(3);
+    expect(profiles.getActiveProfile()?.id).toBe(p1.id);
+
+    // Delete non-active profile (Bob)
+    const deletedBob = profiles.deleteProfile(p2.id);
+    expect(deletedBob).toBe(true);
+    expect(profiles.getAllProfiles()).toHaveLength(2);
+    expect(profiles.getActiveProfile()?.id).toBe(p1.id);
+
+    // Delete active profile (Alice) -> switches active to remaining profile (Charlie)
+    const deletedAlice = profiles.deleteProfile(p1.id);
+    expect(deletedAlice).toBe(true);
+    expect(profiles.getAllProfiles()).toHaveLength(1);
+    expect(profiles.getActiveProfile()?.id).toBe(p3.id);
+
+    // Delete last remaining profile (Charlie) -> auto creates fallback Player 1
+    const deletedCharlie = profiles.deleteProfile(p3.id);
+    expect(deletedCharlie).toBe(true);
+    expect(profiles.getAllProfiles()).toHaveLength(1);
+    expect(profiles.getActiveProfile()?.nickname).toBe('Player 1');
+
+    // Deleting invalid id returns false
+    expect(profiles.deleteProfile('non_existent')).toBe(false);
+  });
+
   it('tracks minigame completion locally per profile', () => {
     const p1 = profiles.createProfile('Alice');
     const stats1 = profiles.recordMinigameCompletion('Acorn Scale', p1.id);

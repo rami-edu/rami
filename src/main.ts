@@ -56,6 +56,7 @@ function setupHudAndGuardianModal(): void {
   );
   const activitiesListEl = document.getElementById('guardian-activities-list');
   let editingProfileId: string | null = null;
+  let deletingProfileId: string | null = null;
 
   // Ensure at least one default local profile exists on-device
   if (profileManager.getAllProfiles().length === 0) {
@@ -372,13 +373,27 @@ function setupHudAndGuardianModal(): void {
               <div style="font-size: 12px; color: #95d5b2;">Avatar: ${desc.name} • Minigames played: ${completedTotal}</div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
             <button data-toggle-profile-music="${p.id}" class="hud-btn" style="padding: 4px 8px; font-size: 11px; background: rgba(45, 106, 79, 0.7); border-color: #52b788;" title="Toggle background piano music for this child">
               ${musicStatus}
             </button>
             <button data-select-profile="${p.id}" class="hud-btn" style="padding: 4px 12px; font-size: 12px;">
               ${isCurrent ? '✓ Active' : 'Switch'}
             </button>
+            ${
+              deletingProfileId === p.id
+                ? `<div style="display: inline-flex; align-items: center; gap: 4px;">
+                    <button data-confirm-delete-profile="${p.id}" class="hud-btn" style="padding: 4px 8px; font-size: 11px; background: #9d0208; border-color: #d90429; color: #fff; font-weight: 700;" title="Permanently delete profile and progress">
+                      Delete?
+                    </button>
+                    <button data-cancel-delete-profile="${p.id}" class="hud-btn" style="padding: 4px 8px; font-size: 11px; background: #1b4332;">
+                      Cancel
+                    </button>
+                  </div>`
+                : `<button data-delete-profile="${p.id}" class="hud-btn" style="padding: 4px 8px; font-size: 11px; background: rgba(157, 2, 8, 0.25); border-color: #d90429; color: #ffadad;" title="Remove this profile">
+                    🗑️ Remove
+                  </button>`
+            }
           </div>
         </div>`;
       })
@@ -477,6 +492,42 @@ function setupHudAndGuardianModal(): void {
           const id = btn.getAttribute('data-select-profile');
           if (id) {
             profileManager.setActiveProfile(id);
+            syncHud();
+            renderProfiles();
+          }
+        });
+      });
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-delete-profile]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-delete-profile');
+          if (id) {
+            deletingProfileId = id;
+            renderProfiles();
+          }
+        });
+      });
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-cancel-delete-profile]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          deletingProfileId = null;
+          renderProfiles();
+        });
+      });
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-confirm-delete-profile]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-confirm-delete-profile');
+          if (id) {
+            deletingProfileId = null;
+            if (editingProfileId === id) editingProfileId = null;
+            profileManager.deleteProfile(id);
             syncHud();
             renderProfiles();
           }
