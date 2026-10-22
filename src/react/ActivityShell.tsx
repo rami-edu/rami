@@ -12,6 +12,7 @@ import { NatureSortingActivityComponent } from './activities/NatureSortingActivi
 import { SymmetryWingsActivityComponent } from './activities/SymmetryWingsActivity';
 import { AcornScaleActivityComponent } from './activities/AcornScaleActivity';
 import { CaveEchoesActivityComponent } from './activities/CaveEchoesActivity';
+import { ActivityErrorBoundary } from './ActivityErrorBoundary';
 
 interface ActivityShellProps {
   module: MinigameModule;
@@ -328,7 +329,9 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
         )}
 
         <div className="activity-stage-content">
-          {renderActivityComponent()}
+          <ActivityErrorBoundary fallbackTitle={module.descriptor.title}>
+            {renderActivityComponent()}
+          </ActivityErrorBoundary>
         </div>
       </main>
     </div>

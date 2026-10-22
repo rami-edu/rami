@@ -24,11 +24,22 @@
   display: none;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
 }
 
 #react-activity-root.active {
   display: flex;
   pointer-events: auto;
+}
+
+#react-activity-root button {
+  font-family: inherit;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Background Backdrop with Storybook ambient feel */
@@ -39,7 +50,8 @@
   background-position: center;
   filter: brightness(0.72) saturate(1.15);
   transition: opacity 0.4s ease;
-  z-index: 1;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .activity-backdrop::after {
@@ -47,18 +59,20 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, rgba(15, 28, 18, 0.4) 0%, rgba(10, 18, 12, 0.88) 100%);
+  pointer-events: none;
 }
 
 /* Main Container Frame */
 .activity-frame {
   position: relative;
-  z-index: 10;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   padding: 16px 20px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ==========================================================================
@@ -72,6 +86,8 @@
   max-width: 1200px;
   margin: 0 auto 12px auto;
   position: relative;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 /* Return Portal Button */
@@ -316,11 +332,16 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  z-index: 5;
   overflow: hidden;
+  min-height: 0;
 }
 
 .activity-stage-content {
   flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -328,6 +349,7 @@
   padding: 16px 20px;
   position: relative;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 /* Success Celebration Toast */

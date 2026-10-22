@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { userManager } from '../managers/UserManager';
 import { profileManager, ProfileManager } from '../managers/ProfileManager';
 import { minigameLoader, formatStarsVisual } from '../managers/MinigameLoader';
-import { MinigameActivityScene } from './MinigameActivityScene';
 import {
   DynamicWonderTree,
   TIER_ACTIVITIES,
@@ -155,23 +154,28 @@ export class WonderTreeScene extends Phaser.Scene {
       } else {
         // Direct launch for activities not yet anchored on current tree tier
         this.activeMinigame = true;
+        const hudOverlay = document.getElementById('hud-overlay');
+        if (hudOverlay) {
+          hudOverlay.style.display = 'none';
+        }
+        this.scene.sleep('WonderTreeScene');
+
         void minigameLoader.loadMinigame(title).then((mod) => {
-          const dynamicSceneKey = `MinigameActivity_direct_${Date.now()}`;
-          const activityScene = new MinigameActivityScene({
-            sceneKey: dynamicSceneKey,
+          activityOverlayManager.launch({
             module: mod,
             onExit: () => {
+              this.activeMinigame = false;
+              const currentHud = document.getElementById('hud-overlay');
+              if (currentHud) {
+                currentHud.style.display = 'flex';
+              }
               profileManager.recordMinigameCompletion(title);
               this.scene.wake('WonderTreeScene');
-              this.scene.remove(dynamicSceneKey);
-              this.activeMinigame = false;
               const unlockedCount = this.getUnlockedActivityCount();
               this.wonderTree.syncUnlockedTiers(unlockedCount, true);
               this.layoutScene(this.scale.width, this.scale.height);
             }
           });
-          this.scene.sleep('WonderTreeScene');
-          this.scene.add(dynamicSceneKey, activityScene, true);
         });
       }
     }) as EventListener);

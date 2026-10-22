@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { activityOverlayManager, type ActiveActivity } from '../managers/ActivityOverlayManager';
 import { ActivityShell } from './ActivityShell';
+import { ActivityErrorBoundary } from './ActivityErrorBoundary';
 
 export const ActivityRoot: React.FC = () => {
   const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(null);
@@ -35,9 +36,14 @@ export const ActivityRoot: React.FC = () => {
   }
 
   return (
-    <ActivityShell
-      module={activeActivity.module}
-      onExit={() => activityOverlayManager.close()}
-    />
+    <ActivityErrorBoundary
+      fallbackTitle={activeActivity.module.descriptor.title}
+      onReset={() => activityOverlayManager.close()}
+    >
+      <ActivityShell
+        module={activeActivity.module}
+        onExit={() => activityOverlayManager.close()}
+      />
+    </ActivityErrorBoundary>
   );
 };
