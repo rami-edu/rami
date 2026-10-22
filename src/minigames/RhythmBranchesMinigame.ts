@@ -58,7 +58,8 @@ export class RhythmBranchesActivity implements MinigameModule {
         'Sharpens auditory discrimination, working memory for short sound sequences, and rhythmic finger tapping.',
       parentRecommendation:
         'Hum or sing the notes along with your child. Let them listen to the glowing bell sequence first, then clap their hands as they tap each leaf.'
-    }
+    },
+    animalInstructor: 'raccoon'
   };
 
   /**

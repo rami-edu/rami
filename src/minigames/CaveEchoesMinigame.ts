@@ -94,7 +94,8 @@ export class CaveEchoesActivity implements MinigameModule {
         'Strengthens working memory capacity, visual attention, and sequential pattern reproduction without reading.',
       parentRecommendation:
         'Watch the glowing lights together with your child. Whisper the color or point to each crystal as it lights up to scaffold their memory.'
-    }
+    },
+    animalInstructor: 'otter'
   };
 
   private starRequirements: readonly StarLevelRequirement[] =

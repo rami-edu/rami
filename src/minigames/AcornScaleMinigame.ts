@@ -56,7 +56,8 @@ export class AcornScaleActivity implements MinigameModule {
         'Cultivates early intuitive equality, one-to-one counting, and mass conservation without requiring written numerals or equation signs.',
       parentRecommendation:
         'Encourage your preschooler to watch how the balance beam responds with every acorn added. Ask them: "Which side is heavier right now?" and celebrate when the beam settles horizontal.'
-    }
+    },
+    animalInstructor: 'bear'
   };
 
   /**

@@ -19,10 +19,85 @@ interface ActivityShellProps {
   onExit: () => void;
 }
 
+export const getActivityInstructorId = (module: MinigameModule): string => {
+  if (module.descriptor?.animalInstructor) {
+    return module.descriptor.animalInstructor;
+  }
+  const title = (module.descriptor?.title ?? '').toLowerCase();
+  const id = (module.descriptor?.id ?? '').toLowerCase();
+  if (title.includes('shape') || id.includes('geom') || title.includes('shadow')) return 'owl';
+  if (title.includes('color') || id.includes('bloom') || title.includes('pattern') || id.includes('path')) return 'fox';
+  if (title.includes('phonics') || title.includes('pond') || title.includes('rhythm')) return 'raccoon';
+  if (title.includes('ladder') || title.includes('size')) return 'dino';
+  if (title.includes('nature') || title.includes('sort') || title.includes('acorn') || title.includes('scale')) return 'bear';
+  if (title.includes('symmetry') || title.includes('wing') || title.includes('cave') || title.includes('echo')) return 'otter';
+  return 'owl';
+};
+
+export const getInstructorTitle = (animalId: string): string => {
+  switch (animalId) {
+    case 'owl':
+      return 'Professor Owl 🦉';
+    case 'fox':
+      return 'Guide Fox 🦊';
+    case 'raccoon':
+      return 'Ranger Raccoon 🦝';
+    case 'dino':
+      return 'Coach Dino 🦕';
+    case 'bear':
+      return 'Big Bear 🐻';
+    case 'otter':
+      return 'Maestro Otter 🦦';
+    default:
+      return 'Instructor';
+  }
+};
+
+export const getActivityGuidePrompt = (module: MinigameModule): string => {
+  const title = (module.descriptor?.title ?? '').toLowerCase();
+  const id = (module.descriptor?.id ?? '').toLowerCase();
+  if (title.includes('shape') || id.includes('geom')) {
+    return 'Drag or tap each shape into its matching nest!';
+  }
+  if (title.includes('color') || id.includes('bloom')) {
+    return 'Bloom the flowers by choosing the matching colors!';
+  }
+  if (title.includes('phonics') || id.includes('pond')) {
+    return 'Listen to the pond sounds and find the creature!';
+  }
+  if (title.includes('ladder') || id.includes('size')) {
+    return 'Arrange our animal friends on the ladder by size!';
+  }
+  if (title.includes('pattern') || id.includes('path')) {
+    return 'Follow the stepping stone pattern across the stream!';
+  }
+  if (title.includes('shadow')) {
+    return 'Look closely at the shadow to discover the secret friend!';
+  }
+  if (title.includes('nature') || title.includes('sort')) {
+    return 'Sort the forest treasures into the harvest baskets!';
+  }
+  if (title.includes('symmetry') || title.includes('wing')) {
+    return 'Paint both wings so the butterfly shines with symmetry!';
+  }
+  if (title.includes('acorn') || title.includes('scale')) {
+    return 'Balance the acorns to match the weight of the forest stone!';
+  }
+  if (title.includes('cave') || title.includes('echo')) {
+    return 'Echo the glowing crystals in the crystal cave!';
+  }
+  if (title.includes('rhythm')) {
+    return 'Tap the glowing leaves to play a forest melody!';
+  }
+  return 'Explore, play, and learn together!';
+};
+
 export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) => {
   const [isLeaping, setIsLeaping] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [instructorReaction, setInstructorReaction] = useState<string | null>(null);
+  const [customPrompt, setCustomPrompt] = useState<string | null>(null);
+  const [isInstructorBouncing, setIsInstructorBouncing] = useState(false);
   const [isMuted, setIsMuted] = useState(() => audioManager.isMuted());
   const [, setRefreshKey] = useState(0);
 
@@ -49,8 +124,23 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
     activeProfile?.avatarId ?? activeProfile?.avatarEmoji
   );
 
-  const instructorId = module.descriptor.animalInstructor ?? 'owl';
+  const instructorId = getActivityInstructorId(module);
   const instructorDesc = ProfileManager.getAvatarDescriptor(instructorId);
+  const instructorTitle = getInstructorTitle(instructorId);
+  const defaultPrompt = getActivityGuidePrompt(module);
+  const currentPrompt = customPrompt ?? defaultPrompt;
+
+  const handleInstructorTap = useCallback(() => {
+    setIsInstructorBouncing(true);
+    setInstructorReaction('✨');
+    setCustomPrompt('✨ You are doing great! Keep going! ✨');
+    audioManager.playPortalReturn();
+    window.setTimeout(() => {
+      setIsInstructorBouncing(false);
+      setInstructorReaction(null);
+      setCustomPrompt(null);
+    }, 1200);
+  }, []);
 
   const starProgress = module.getStarProgress?.(activeProfile?.id) ?? {
     starsEarned: 0,
@@ -84,13 +174,17 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
       audioManager.playPortalReturn();
       setInstructorReaction('🌟');
       setToastMessage('✨ Star Earned! ✨');
+      setCustomPrompt('🌟 Wonderful job! You earned a star! 🌟');
+      setIsInstructorBouncing(true);
 
       setRefreshKey((k) => k + 1);
 
       window.setTimeout(() => {
         setToastMessage(null);
         setInstructorReaction(null);
-      }, 1500);
+        setCustomPrompt(null);
+        setIsInstructorBouncing(false);
+      }, 1600);
     },
     [module]
   );
@@ -100,7 +194,11 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
       const activeId = profileManager.getActiveProfile()?.id;
       module.recordMistake?.(description, activeId);
       setInstructorReaction('🌱');
-      window.setTimeout(() => setInstructorReaction(null), 1000);
+      setCustomPrompt('🌱 Almost! Give it another try! 🌱');
+      window.setTimeout(() => {
+        setInstructorReaction(null);
+        setCustomPrompt(null);
+      }, 1400);
     },
     [module]
   );
@@ -340,6 +438,44 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
             <span>{toastMessage}</span>
           </div>
         )}
+
+        {/* Animal Instructor Companion Bar: Guides preschooler in every activity */}
+        <div className="activity-instructor-bar">
+          <button
+            type="button"
+            className={`instructor-companion-badge ${isInstructorBouncing ? 'bouncing' : ''}`}
+            onClick={handleInstructorTap}
+            title={`${instructorTitle} — Tap for encouragement!`}
+            aria-label={`${instructorTitle} — Tap for encouragement`}
+          >
+            {/* Teacher / Scholar Mortarboard Hat */}
+            <svg
+              className="companion-scholar-hat"
+              width="44"
+              height="26"
+              viewBox="0 0 100 60"
+            >
+              <polygon points="50,6 94,24 50,42 6,24" fill="#1b2a47" stroke="#ffd166" strokeWidth="3.5" />
+              <path d="M30,34 Q50,48 70,34 L70,44 Q50,56 30,44 Z" fill="#121b2d" stroke="#ffd166" strokeWidth="2.5" />
+              <circle cx="50" cy="24" r="4.5" fill="#ffd166" />
+              <path d="M50,24 C56,28 66,32 68,44" fill="none" stroke="#ffd166" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="68" cy="44" r="3.5" fill="#f59e0b" />
+            </svg>
+            <img
+              src={instructorDesc.spritePath}
+              alt={instructorDesc.name}
+              className="companion-avatar-img"
+            />
+            {instructorReaction && (
+              <div className="companion-reaction-badge">{instructorReaction}</div>
+            )}
+          </button>
+
+          <div className="instructor-companion-bubble">
+            <span className="instructor-companion-title">{instructorTitle}</span>
+            <span className="instructor-companion-prompt">{currentPrompt}</span>
+          </div>
+        </div>
 
         <div className="activity-stage-content">
           <ActivityErrorBoundary fallbackTitle={module.descriptor.title}>
