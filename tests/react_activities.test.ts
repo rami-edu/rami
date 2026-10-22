@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { ActivityShell } from '../src/react/ActivityShell';
+import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 
 const createMockModule = (id: string, title: string, backgroundUrl = './bg-test.jpg'): MinigameModule => ({
@@ -71,4 +72,22 @@ describe('React Activity Rendering', () => {
       expect(html).not.toContain('guardian-modal');
     });
   }
+
+  it('renders GeometryShapesActivityComponent with draggable shape pieces and nest sockets', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(GeometryShapesActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('shape-nest-container');
+    expect(html).toContain('shape-sockets-row');
+    expect(html).toContain('shape-choices-row');
+    expect(html).toContain('shape-piece');
+    expect(html).toContain('shape-socket');
+  });
 });
