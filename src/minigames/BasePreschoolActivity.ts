@@ -352,7 +352,7 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
       .setOrigin(0, 0.5);
 
-    // Animal Instructor (Top corner visual companion)
+    // Animal Instructor (Top corner visual companion) with dedicated Scholar Instructor Hat
     const instructorContainer = scene.add.container(-310, 20);
     const instructorGlow = scene.add
       .circle(0, 0, 42, 0xffd166, 0.2)
@@ -365,9 +365,15 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       .setOrigin(0.5)
       .setAlpha(0);
 
+    const hat = this.buildInstructorHat(
+      scene,
+      this.descriptor.animalInstructor ?? 'owl'
+    );
+
     instructorContainer.add([
       instructorGlow,
       instructorImg,
+      hat.hatContainer,
       instructorFeedbackBubble
     ]);
 
@@ -383,6 +389,8 @@ export abstract class BasePreschoolActivity implements MinigameModule {
     });
 
     const triggerInstructorCheer = (isBigCelebration = false) => {
+      hat.cheerHat(isBigCelebration);
+
       // Gentle, subtle nod (only 3-4px gentle lift, no large scaling or harsh bounces)
       scene.tweens.add({
         targets: instructorContainer,
@@ -515,6 +523,147 @@ export abstract class BasePreschoolActivity implements MinigameModule {
         });
       }
     });
+  }
+
+  /**
+   * Constructs the scholar mortarboard instructor hat to indicate the animal's
+   * teacher/instructor condition, complete with academic cap, 3D bevel, center button,
+   * golden dangling tassel, and golden instructor star crest.
+   */
+  private buildInstructorHat(
+    scene: Phaser.Scene,
+    animalId: string
+  ): {
+    hatContainer: Phaser.GameObjects.Container;
+    cheerHat: (isBig: boolean) => void;
+  } {
+    const INSTRUCTOR_HAT_CONFIG: Record<
+      string,
+      { x: number; y: number; angle: number; scale: number }
+    > = {
+      dino: { x: -3, y: -33, angle: -6, scale: 0.95 },
+      owl: { x: 0, y: -34, angle: 0, scale: 1.0 },
+      fox: { x: 0, y: -32, angle: 2, scale: 0.95 },
+      raccoon: { x: 0, y: -32, angle: -2, scale: 0.95 },
+      bear: { x: 0, y: -33, angle: 0, scale: 1.0 },
+      otter: { x: 0, y: -30, angle: 3, scale: 0.95 }
+    };
+
+    const config = INSTRUCTOR_HAT_CONFIG[animalId] ?? {
+      x: 0,
+      y: -32,
+      angle: 0,
+      scale: 1.0
+    };
+
+    const hatContainer = scene.add
+      .container(config.x, config.y)
+      .setScale(config.scale)
+      .setAngle(config.angle)
+      .setDepth(15);
+
+    // 1. Hat Base (Fitted skull cap sitting on animal crown)
+    const skullCap = scene.add
+      .ellipse(0, 5, 30, 11, 0x141f2e, 1)
+      .setStrokeStyle(1.5, 0xffd166);
+
+    // 2. Mortarboard 3D bevel / underside shadow rim
+    const bevel = scene.add.polygon(
+      0,
+      0,
+      [-27, -2, 0, 8, 27, -2, 27, 2, 0, 12, -27, 2],
+      0x0c141d,
+      1
+    );
+
+    // 3. Mortarboard Diamond Top (academic square scholar cap viewed in isometric perspective)
+    const board = scene.add
+      .polygon(0, 0, [0, -12, 27, -2, 0, 8, -27, -2], 0x1b2838, 1)
+      .setStrokeStyle(2, 0xffd166);
+
+    // 4. Center Golden Button / Stud
+    const button = scene.add
+      .circle(0, -2, 3.5, 0xffd166)
+      .setStrokeStyle(1, 0xffffff);
+
+    // 5. Dangling Golden Tassel (draped from center over the right corner)
+    const tasselContainer = scene.add.container(0, -2);
+
+    const tasselCord = scene.add.graphics();
+    tasselCord.lineStyle(2, 0xffd166, 1);
+    tasselCord.beginPath();
+    tasselCord.moveTo(0, 0);
+    tasselCord.lineTo(16, 4);
+    tasselCord.lineTo(19, 14);
+    tasselCord.strokePath();
+
+    const tasselBead = scene.add.circle(19, 14, 2, 0xffe66d);
+
+    // Tassel fringe / bell
+    const tasselFringe = scene.add
+      .polygon(19, 19, [0, -4, 4.5, 6, -4.5, 6], 0xffb703)
+      .setStrokeStyle(1, 0xffd166);
+
+    tasselContainer.add([tasselCord, tasselBead, tasselFringe]);
+
+    // 6. Instructor Condition Star Crest on the front of the cap
+    const crestStar = scene.add
+      .text(0, 4, '★', {
+        fontFamily: UI_FONT,
+        fontSize: '11px',
+        color: '#ffd166',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+
+    hatContainer.add([
+      skullCap,
+      bevel,
+      board,
+      button,
+      tasselContainer,
+      crestStar
+    ]);
+
+    // Idle tassel sway
+    scene.tweens.add({
+      targets: tasselContainer,
+      angle: { from: -5, to: 5 },
+      duration: 1300,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    const cheerHat = (isBig: boolean) => {
+      // Celebratory hat tip and cheerful bounce
+      scene.tweens.add({
+        targets: hatContainer,
+        y: config.y - (isBig ? 7 : 4),
+        angle: config.angle + (isBig ? -14 : -8),
+        duration: 220,
+        yoyo: true,
+        ease: 'Back.easeOut'
+      });
+
+      scene.tweens.add({
+        targets: tasselContainer,
+        angle: isBig ? 24 : 14,
+        duration: 240,
+        yoyo: true,
+        ease: 'Sine.easeInOut'
+      });
+
+      scene.tweens.add({
+        targets: crestStar,
+        scale: 1.35,
+        duration: 220,
+        yoyo: true,
+        ease: 'Back.easeOut'
+      });
+    };
+
+    return { hatContainer, cheerHat };
   }
 
   /**
