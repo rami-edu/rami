@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AudioManager } from '../src/managers/AudioManager';
+import { profileManager } from '../src/managers/ProfileManager';
 
 describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
   let manager: AudioManager;
@@ -25,11 +26,16 @@ describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
       }
     };
 
-    (globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage = localStorageMock;
-    (globalThis as unknown as { window: { localStorage: typeof localStorageMock } }).window = {
-      localStorage: localStorageMock
+    const windowMock = {
+      localStorage: localStorageMock,
+      dispatchEvent: () => true,
+      addEventListener: () => {},
+      removeEventListener: () => {}
     };
+    (globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage = localStorageMock;
+    (globalThis as unknown as { window: typeof windowMock }).window = windowMock;
 
+    profileManager.resetAll();
     manager = AudioManager.getInstance();
   });
 
@@ -91,5 +97,43 @@ describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
       manager.playPortalExit();
       manager.playPortalReturn();
     }).not.toThrow();
+  });
+
+  it('synchronizes audio mute settings with active profile and updates profile on toggle', () => {
+    const p1 = profileManager.createProfile('Alice');
+    const p2 = profileManager.createProfile('Bob');
+
+    profileManager.setActiveProfile(p1.id);
+    manager.syncWithActiveProfile();
+
+    // Alice starts with musicEnabled: true (so manager is not muted)
+    expect(manager.isMuted()).toBe(false);
+
+    // Alice mutes music
+    manager.toggleMute();
+    expect(manager.isMuted()).toBe(true);
+    expect(profileManager.getProfileSettings(p1.id).musicEnabled).toBe(false);
+
+    // Switch to Bob (who has musicEnabled: true by default)
+    profileManager.setActiveProfile(p2.id);
+    manager.syncWithActiveProfile();
+    expect(manager.isMuted()).toBe(false);
+
+    // Switch back to Alice (who muted music)
+    profileManager.setActiveProfile(p1.id);
+    manager.syncWithActiveProfile();
+    expect(manager.isMuted()).toBe(true);
+  });
+
+  it('safely handles unlockAudio() on user gesture', () => {
+    expect(() => {
+      manager.unlockAudio();
+    }).not.toThrow();
+    expect(manager.hasUserInteracted()).toBe(true);
+  });
+
+  it('resolves audio asset URLs reliably with getAudioSrc', () => {
+    const src = manager.getAudioSrc('sweet-piano.mp3');
+    expect(src).toContain('audio/sweet-piano.mp3');
   });
 });

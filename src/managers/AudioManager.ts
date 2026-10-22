@@ -1,9 +1,11 @@
+import { profileManager } from './ProfileManager';
+
 /**
  * Audio Manager for Rami.
  * Manages subtle, sweet background piano lullaby music across the app
  * and delightful preschool sound effects for movement and portal transitions.
  * Adheres to browser autoplay policies by starting on first user gesture.
- * Persists user mute preferences across sessions.
+ * Persists user audio settings per child profile across sessions.
  */
 export class AudioManager {
   private static instance: AudioManager | null = null;
@@ -15,7 +17,7 @@ export class AudioManager {
 
   private isInitialized = false;
   private isUserInteracted = false;
-  private baseVolume = 0.12; // "very subtle piano only tune, sweet and low"
+  private baseVolume = 0.38; // Sweet, warm piano lullaby level
   private muted = false;
   private fadeInterval: number | null = null;
   private wasPlayingBeforeHidden = false;
@@ -23,7 +25,7 @@ export class AudioManager {
   private static readonly STORAGE_KEY = 'rami_music_muted_v1';
 
   private constructor() {
-    this.muted = this.loadMutedState();
+    this.muted = this.resolveMutedState();
   }
 
   public static getInstance(): AudioManager {
@@ -31,6 +33,20 @@ export class AudioManager {
       AudioManager.instance = new AudioManager();
     }
     return AudioManager.instance;
+  }
+
+  private resolveMutedState(): boolean {
+    try {
+      if (typeof profileManager !== 'undefined') {
+        const active = profileManager.getActiveProfile();
+        if (active && active.settings) {
+          return !active.settings.musicEnabled;
+        }
+      }
+    } catch {
+      // Fallback if profileManager not initialized yet
+    }
+    return this.loadMutedState();
   }
 
   private loadMutedState(): boolean {
@@ -51,6 +67,18 @@ export class AudioManager {
       }
     } catch {
       // Ignore quota errors
+    }
+  }
+
+  public getAudioSrc(filename: string): string {
+    if (typeof window === 'undefined') {
+      return `./audio/${filename}`;
+    }
+    try {
+      const base = document.baseURI || window.location.href;
+      return new URL(`audio/${filename}`, base).href;
+    } catch {
+      return `./audio/${filename}`;
     }
   }
 
@@ -90,7 +118,7 @@ export class AudioManager {
     for (const name of sfxNames) {
       const ext =
         this.audio && !this.audio.canPlayType('audio/mpeg') ? 'ogg' : 'mp3';
-      const url = `./audio/${name}.${ext}`;
+      const url = this.getAudioSrc(`${name}.${ext}`);
 
       fetch(url)
         .then((res) => {
@@ -114,45 +142,61 @@ export class AudioManager {
     if (this.isInitialized || typeof window === 'undefined') return;
     this.isInitialized = true;
 
+    // Apply active profile settings if available
+    this.syncWithActiveProfile();
+
     try {
       this.audio = new Audio();
       this.audio.loop = true;
       this.audio.preload = 'auto';
 
       if (this.audio.canPlayType('audio/mpeg')) {
-        this.audio.src = './audio/sweet-piano.mp3';
+        this.audio.src = this.getAudioSrc('sweet-piano.mp3');
       } else {
-        this.audio.src = './audio/sweet-piano.ogg';
+        this.audio.src = this.getAudioSrc('sweet-piano.ogg');
       }
 
-      this.audio.volume = 0;
+      this.audio.volume = this.baseVolume;
     } catch (err) {
       console.warn('Audio element initialization failed:', err);
     }
 
-    const startOnInteraction = () => {
-      this.isUserInteracted = true;
+    // Attempt direct play if browser policy allows (e.g. cached user permission)
+    if (!this.muted) {
+      this.playMusic();
+    }
 
-      // Unlock Web Audio Context on first gesture
-      const ctx = this.getAudioContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
+    // Attach capture-phase gesture unlock listeners to reliably capture first interaction
+    const gestureEvents = [
+      'pointerdown',
+      'mousedown',
+      'touchstart',
+      'touchend',
+      'click',
+      'keydown'
+    ];
 
-      if (!this.muted) {
-        this.playMusic();
-      }
-      window.removeEventListener('pointerdown', startOnInteraction);
-      window.removeEventListener('keydown', startOnInteraction);
-      window.removeEventListener('touchstart', startOnInteraction);
+    const unlockHandler = () => {
+      this.unlockAudio();
     };
 
-    window.addEventListener('pointerdown', startOnInteraction, {
-      passive: true
+    gestureEvents.forEach((evt) => {
+      window.addEventListener(evt, unlockHandler, {
+        capture: true,
+        passive: true
+      });
+      document.addEventListener(evt, unlockHandler, {
+        capture: true,
+        passive: true
+      });
     });
-    window.addEventListener('keydown', startOnInteraction, { passive: true });
-    window.addEventListener('touchstart', startOnInteraction, {
-      passive: true
+
+    // React to profile switches to update mute/volume preferences automatically
+    window.addEventListener('rami:profile-changed', () => {
+      this.syncWithActiveProfile();
+    });
+    window.addEventListener('rami:profile-settings-changed', () => {
+      this.syncWithActiveProfile();
     });
 
     // Handle tab visibility changes to pause and resume gracefully
@@ -175,16 +219,83 @@ export class AudioManager {
   }
 
   /**
-   * Plays the background music with a gentle fade in.
+   * Unlocks audio context and starts music playback on user gesture.
+   */
+  public unlockAudio(): void {
+    this.isUserInteracted = true;
+
+    // Unlock Web Audio Context on first gesture
+    const ctx = this.getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    if (!this.muted && this.audio && this.audio.paused) {
+      this.playMusic();
+    }
+  }
+
+  /**
+   * Synchronizes audio state with the currently active child profile.
+   */
+  public syncWithActiveProfile(): void {
+    if (typeof profileManager === 'undefined') return;
+    const active = profileManager.getActiveProfile();
+    if (!active) return;
+
+    const settings = profileManager.getProfileSettings(active.id);
+    const shouldBeMuted = !settings.musicEnabled;
+
+    if (settings.volume !== undefined && settings.volume > 0) {
+      this.baseVolume = settings.volume;
+      if (this.audio && !this.muted) {
+        this.audio.volume = this.baseVolume;
+      }
+    }
+
+    if (this.muted !== shouldBeMuted) {
+      this.muted = shouldBeMuted;
+      this.saveMutedState(this.muted);
+
+      if (this.sfxGainNode) {
+        this.sfxGainNode.gain.value = this.muted ? 0 : 0.55;
+      }
+
+      if (this.muted) {
+        this.fadeOut(300, () => {
+          if (this.audio) this.audio.pause();
+        });
+      } else {
+        if (this.audio) {
+          this.playMusic();
+        }
+      }
+      this.updateToggleButtonUi();
+    } else if (
+      !this.muted &&
+      this.audio &&
+      this.audio.paused &&
+      this.isUserInteracted
+    ) {
+      this.playMusic();
+    }
+  }
+
+  /**
+   * Plays the background music with an audible sweet volume.
    */
   public playMusic(): void {
     if (!this.audio || this.muted) return;
+
+    if (this.audio.volume <= 0.01) {
+      this.audio.volume = this.baseVolume;
+    }
 
     const promise = this.audio.play();
     if (promise !== undefined) {
       promise
         .then(() => {
-          this.fadeIn(1800);
+          this.isUserInteracted = true;
           this.updateToggleButtonUi();
         })
         .catch(() => {
@@ -203,11 +314,21 @@ export class AudioManager {
   }
 
   /**
-   * Toggles mute on/off.
+   * Toggles mute on/off and persists setting per profile and locally.
    */
   public toggleMute(): boolean {
     this.muted = !this.muted;
     this.saveMutedState(this.muted);
+
+    if (typeof profileManager !== 'undefined') {
+      const active = profileManager.getActiveProfile();
+      if (active) {
+        profileManager.updateProfileSettings(
+          { musicEnabled: !this.muted },
+          active.id
+        );
+      }
+    }
 
     if (this.sfxGainNode) {
       this.sfxGainNode.gain.value = this.muted ? 0 : 0.55;
@@ -219,19 +340,44 @@ export class AudioManager {
       });
     } else {
       if (this.audio) {
+        if (this.audio.volume <= 0.01) {
+          this.audio.volume = this.baseVolume;
+        }
         const promise = this.audio.play();
         if (promise !== undefined) {
-          promise.then(() => this.fadeIn(1000)).catch(() => {});
+          promise.then(() => this.fadeIn(600)).catch(() => {});
         }
       }
     }
 
     this.updateToggleButtonUi();
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('rami:music-toggled', {
+            detail: { muted: this.muted }
+          })
+        );
+      } catch {
+        // Ignore
+      }
+    }
+
     return this.muted;
   }
 
   public isMuted(): boolean {
     return this.muted;
+  }
+
+  public isMusicEnabled(): boolean {
+    return !this.muted;
+  }
+
+  public setMusicEnabled(enabled: boolean): void {
+    if (this.muted === !enabled) return;
+    this.toggleMute();
   }
 
   public hasUserInteracted(): boolean {

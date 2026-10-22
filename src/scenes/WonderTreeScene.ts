@@ -681,6 +681,7 @@ export class WonderTreeScene extends Phaser.Scene {
     };
 
     const onPortalClick = () => {
+      audioManager.unlockAudio();
       if (!this.activeMinigame) {
         void this.enterPortal(instance);
       }
@@ -837,6 +838,7 @@ export class WonderTreeScene extends Phaser.Scene {
         pointer: Phaser.Input.Pointer,
         currentlyOver: Phaser.GameObjects.GameObject[]
       ) => {
+        audioManager.unlockAudio();
         if (this.activeMinigame) return;
 
         // If the pointer clicked on an interactive object (e.g. a portal or sprout bud),

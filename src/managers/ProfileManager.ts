@@ -16,6 +16,18 @@ export interface AnimalAvatarDescriptor {
   textureKey: string;
 }
 
+export interface ProfileSettings {
+  musicEnabled: boolean;
+  sfxEnabled?: boolean;
+  volume?: number;
+}
+
+export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
+  musicEnabled: true,
+  sfxEnabled: true,
+  volume: 0.4
+};
+
 export interface PlayerProfile {
   id: string;
   nickname: string;
@@ -24,6 +36,7 @@ export interface PlayerProfile {
   avatarId: AnimalAvatarId;
   createdAt: number;
   progress: Record<string, MinigameStats>;
+  settings?: ProfileSettings;
 }
 
 export interface LocalStoreData {
@@ -146,12 +159,20 @@ export class ProfileManager {
           const parsed = JSON.parse(raw);
           if (parsed.state) {
             this.state = parsed.state;
-            // Ensure backwards compatibility for profiles saved before avatarId
+            // Ensure backwards compatibility for profiles saved before avatarId or settings
             for (const p of Object.values(this.state.profiles)) {
               if (!p.avatarId) {
                 const desc = ProfileManager.getAvatarDescriptor(p.avatarEmoji);
                 p.avatarId = desc.id;
                 p.avatarEmoji = desc.emoji;
+              }
+              if (!p.settings) {
+                p.settings = { ...DEFAULT_PROFILE_SETTINGS };
+              } else {
+                p.settings = {
+                  ...DEFAULT_PROFILE_SETTINGS,
+                  ...p.settings
+                };
               }
             }
           }
@@ -227,7 +248,8 @@ export class ProfileManager {
       avatarEmoji: desc.emoji,
       avatarId: desc.id,
       createdAt: Date.now(),
-      progress: {}
+      progress: {},
+      settings: { ...DEFAULT_PROFILE_SETTINGS }
     };
 
     this.state.profiles[id] = profile;
@@ -292,7 +314,61 @@ export class ProfileManager {
     }
     this.state.activeProfileId = profileId;
     this.save();
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('rami:profile-changed', {
+            detail: { profileId, profile }
+          })
+        );
+      } catch {
+        // Ignore in non-browser context
+      }
+    }
     return profile;
+  }
+
+  public getProfileSettings(profileId?: string): ProfileSettings {
+    const targetId = profileId ?? this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return { ...DEFAULT_PROFILE_SETTINGS };
+    }
+    const profile = this.state.profiles[targetId];
+    if (!profile.settings) {
+      profile.settings = { ...DEFAULT_PROFILE_SETTINGS };
+    }
+    return { ...profile.settings };
+  }
+
+  public updateProfileSettings(
+    settings: Partial<ProfileSettings>,
+    profileId?: string
+  ): ProfileSettings {
+    const targetId = profileId ?? this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return { ...DEFAULT_PROFILE_SETTINGS, ...settings };
+    }
+    const profile = this.state.profiles[targetId];
+    profile.settings = {
+      ...DEFAULT_PROFILE_SETTINGS,
+      ...(profile.settings || {}),
+      ...settings
+    };
+    this.save();
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('rami:profile-settings-changed', {
+            detail: { profileId: targetId, settings: profile.settings }
+          })
+        );
+      } catch {
+        // Ignore in non-browser context
+      }
+    }
+
+    return { ...profile.settings };
   }
 
   public getActiveProfile(): PlayerProfile | null {

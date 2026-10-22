@@ -25,8 +25,37 @@ import { SymmetryWingsActivity } from '../src/minigames/SymmetryWingsMinigame';
 
 describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
   let profiles: ProfileManager;
+  const mockStorage: Record<string, string> = {};
 
   beforeEach(() => {
+    for (const key in mockStorage) {
+      delete mockStorage[key];
+    }
+
+    const localStorageMock = {
+      getItem: (key: string) => mockStorage[key] ?? null,
+      setItem: (key: string, value: string) => {
+        mockStorage[key] = value;
+      },
+      removeItem: (key: string) => {
+        delete mockStorage[key];
+      },
+      clear: () => {
+        for (const key in mockStorage) {
+          delete mockStorage[key];
+        }
+      }
+    };
+
+    const windowMock = {
+      localStorage: localStorageMock,
+      dispatchEvent: () => true,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    };
+    (globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage = localStorageMock;
+    (globalThis as unknown as { window: typeof windowMock }).window = windowMock;
+
     profiles = new ProfileManager();
     profiles.resetAll();
   });
@@ -307,5 +336,29 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(updatedStats.domainStats.mathematics.solves).toBeGreaterThanOrEqual(1);
     expect(updatedStats.domainStats.painting.solves).toBeGreaterThanOrEqual(1);
     expect(updatedStats.domainStats.language.solves).toBe(0);
+  });
+
+  it('persists individual settings (e.g. musicEnabled) per profile in local storage across sessions', () => {
+    const p1 = profiles.createProfile('Alice');
+    const p2 = profiles.createProfile('Bob');
+
+    // Default settings are musicEnabled: true
+    expect(profiles.getProfileSettings(p1.id).musicEnabled).toBe(true);
+    expect(profiles.getProfileSettings(p2.id).musicEnabled).toBe(true);
+
+    // Mute music for Alice only
+    profiles.updateProfileSettings({ musicEnabled: false }, p1.id);
+    expect(profiles.getProfileSettings(p1.id).musicEnabled).toBe(false);
+    expect(profiles.getProfileSettings(p2.id).musicEnabled).toBe(true);
+
+    // Simulate session reload from storage
+    const newSessionManager = new ProfileManager();
+    expect(newSessionManager.getProfileSettings(p1.id).musicEnabled).toBe(false);
+    expect(newSessionManager.getProfileSettings(p2.id).musicEnabled).toBe(true);
+
+    // Update Bob's volume
+    newSessionManager.updateProfileSettings({ volume: 0.6 }, p2.id);
+    expect(newSessionManager.getProfileSettings(p2.id).volume).toBe(0.6);
+    expect(newSessionManager.getProfileSettings(p1.id).volume).toBe(0.4);
   });
 });

@@ -359,6 +359,9 @@ function setupHudAndGuardianModal(): void {
               <span style="opacity: 0.85;">— ${p.explorerName}</span>
             </div>`;
 
+        const settings = profileManager.getProfileSettings(p.id);
+        const musicStatus = settings.musicEnabled ? '🎵 Music On' : '🔇 Music Off';
+
         return `<div style="padding: 8px 0; border-bottom: 1px solid #2d6a4f; display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <img src="${desc.spritePath}" alt="${desc.name}" style="width: 38px; height: 38px; object-fit: contain;" />
@@ -367,9 +370,14 @@ function setupHudAndGuardianModal(): void {
               <div style="font-size: 12px; color: #95d5b2;">Avatar: ${desc.name} • Minigames played: ${completedTotal}</div>
             </div>
           </div>
-          <button data-select-profile="${p.id}" class="hud-btn" style="padding: 4px 12px; font-size: 12px;">
-            ${isCurrent ? '✓ Active' : 'Switch'}
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button data-toggle-profile-music="${p.id}" class="hud-btn" style="padding: 4px 8px; font-size: 11px; background: rgba(45, 106, 79, 0.7); border-color: #52b788;" title="Toggle background piano music for this child">
+              ${musicStatus}
+            </button>
+            <button data-select-profile="${p.id}" class="hud-btn" style="padding: 4px 12px; font-size: 12px;">
+              ${isCurrent ? '✓ Active' : 'Switch'}
+            </button>
+          </div>
         </div>`;
       })
       .join('');
@@ -440,6 +448,25 @@ function setupHudAndGuardianModal(): void {
         });
       }
     }
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-toggle-profile-music]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-toggle-profile-music');
+          if (id) {
+            const current = profileManager.getProfileSettings(id);
+            profileManager.updateProfileSettings(
+              { musicEnabled: !current.musicEnabled },
+              id
+            );
+            if (id === profileManager.getActiveProfile()?.id) {
+              audioManager.syncWithActiveProfile();
+            }
+            renderProfiles();
+          }
+        });
+      });
 
     profilesList
       .querySelectorAll<HTMLButtonElement>('[data-select-profile]')

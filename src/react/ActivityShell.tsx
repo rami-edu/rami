@@ -31,6 +31,19 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
     setIsMuted(nextMuted);
   }, []);
 
+  useEffect(() => {
+    audioManager.unlockAudio();
+    const handleSync = () => {
+      setIsMuted(audioManager.isMuted());
+    };
+    window.addEventListener('rami:music-toggled', handleSync);
+    window.addEventListener('rami:profile-changed', handleSync);
+    return () => {
+      window.removeEventListener('rami:music-toggled', handleSync);
+      window.removeEventListener('rami:profile-changed', handleSync);
+    };
+  }, []);
+
   const activeProfile = profileManager.getActiveProfile();
   const avatarDesc = ProfileManager.getAvatarDescriptor(
     activeProfile?.avatarId ?? activeProfile?.avatarEmoji
