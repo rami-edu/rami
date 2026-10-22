@@ -179,10 +179,31 @@ function setupHudAndGuardianModal(): void {
           ${starMeterHtml}
           ${guideHtml}
           <div class="activity-report-summary">${details.summaryText}</div>
+          <div style="margin: 8px 0;">
+            <button class="hud-btn btn-play-activity" data-play-title="${details.activityTitle}" style="width: 100%; font-size: 13px; font-weight: bold; background: #2d6a4f; padding: 7px 12px; cursor: pointer;">
+              ▶ Play ${details.activityTitle}
+            </button>
+          </div>
           ${logHtml}
         </div>`;
       })
       .join('');
+
+    activitiesListEl
+      .querySelectorAll<HTMLButtonElement>('.btn-play-activity')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const title = btn.getAttribute('data-play-title');
+          if (title) {
+            guardianModal?.classList.remove('open');
+            window.dispatchEvent(
+              new CustomEvent('rami:launch-activity', {
+                detail: { activityTitle: title }
+              })
+            );
+          }
+        });
+      });
   };
 
   const renderProfiles = () => {

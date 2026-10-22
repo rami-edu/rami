@@ -130,6 +130,38 @@ export class WonderTreeScene extends Phaser.Scene {
         this.wonderTree.syncUnlockedTiers(this.getUnlockedActivityCount(), true);
       }
     }) as EventListener);
+
+    window.addEventListener('rami:launch-activity', ((e: Event) => {
+      const customEvent = e as CustomEvent<{ activityTitle: string }>;
+      const title = customEvent.detail?.activityTitle;
+      if (!title || this.activeMinigame) return;
+
+      const portal = this.portals.find((p) => p.anchor.minigame === title);
+      if (portal) {
+        void this.enterPortal(portal);
+      } else {
+        // Direct launch for activities not yet anchored on current tree tier
+        this.activeMinigame = true;
+        void minigameLoader.loadMinigame(title).then((mod) => {
+          const dynamicSceneKey = `MinigameActivity_direct_${Date.now()}`;
+          const activityScene = new MinigameActivityScene({
+            sceneKey: dynamicSceneKey,
+            module: mod,
+            onExit: () => {
+              profileManager.recordMinigameCompletion(title);
+              this.scene.wake('WonderTreeScene');
+              this.scene.remove(dynamicSceneKey);
+              this.activeMinigame = false;
+              const unlockedCount = this.getUnlockedActivityCount();
+              this.wonderTree.syncUnlockedTiers(unlockedCount, true);
+              this.layoutScene(this.scale.width, this.scale.height);
+            }
+          });
+          this.scene.sleep('WonderTreeScene');
+          this.scene.add(dynamicSceneKey, activityScene, true);
+        });
+      }
+    }) as EventListener);
   }
 
   /**
@@ -419,11 +451,7 @@ export class WonderTreeScene extends Phaser.Scene {
 
     const onPortalClick = () => {
       if (!this.activeMinigame) {
-        this.pendingClickedPortal = instance;
-        this.targetPos = new Phaser.Math.Vector2(
-          instance.worldX,
-          instance.worldY
-        );
+        void this.enterPortal(instance);
       }
     };
 
