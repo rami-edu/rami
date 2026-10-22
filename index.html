@@ -173,7 +173,9 @@
       #guardian-modal {
         position: absolute;
         inset: 0;
-        background: rgba(10, 20, 12, 0.82);
+        background: rgba(10, 20, 12, 0.85);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
         display: none;
         align-items: center;
         justify-content: center;
@@ -184,15 +186,54 @@
         display: flex;
       }
       .modal-card {
+        position: relative;
         background: #1b2e1e;
         border: 2px solid #52b788;
         border-radius: 16px;
         max-width: 640px;
-        max-height: 92vh;
+        max-height: 90vh;
         overflow-y: auto;
         width: 100%;
-        padding: 24px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+        padding: 0;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
+        -webkit-overflow-scrolling: touch;
+      }
+      .modal-header-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #152618;
+        padding: 14px 20px;
+        border-bottom: 1.5px solid #2d6a4f;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .modal-card-content {
+        padding: 20px;
+      }
+      .modal-close-btn {
+        background: #2d6a4f;
+        border: 1.5px solid #74c69d;
+        color: #f0f7f4;
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.18s ease;
+        flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+      .modal-close-btn:hover {
+        background: #40916c;
+        border-color: #95d5b2;
+        transform: translateY(-1px);
+        color: #ffffff;
       }
       .activity-report-card {
         background: #0f1c11;
@@ -479,51 +520,75 @@
 
       <div id="guardian-modal">
         <div class="modal-card">
+          <!-- Gate Step -->
           <div id="guardian-gate-step">
-            <h2>🔒 Guardian Verification</h2>
-            <p>Please solve this 2-digit arithmetic puzzle to open the Guardian Dashboard:</p>
-            <div style="font-size: 26px; font-weight: 700; color: #ffd166; text-align: center; margin: 16px 0;" id="math-gate-question">
-              -- + -- = ?
+            <div class="modal-header-sticky">
+              <div>
+                <h2 style="margin: 0; font-size: 18px; color: #80ed99;">🔒 Guardian Verification</h2>
+                <div style="font-size: 11px; opacity: 0.8; color: #d8f3dc;">Parent Security Gate</div>
+              </div>
+              <button id="btn-top-cancel-gate" class="modal-close-btn" title="Return to Wonder Tree" aria-label="Return to Wonder Tree">
+                ✕ Back to Tree
+              </button>
             </div>
-            <div class="form-row">
-              <input id="input-math-answer" type="number" inputmode="numeric" placeholder="Enter answer..." />
-              <button id="btn-verify-math" class="hud-btn">Unlock</button>
-            </div>
-            <div id="math-gate-error" style="color: #ffadad; font-size: 13px; min-height: 18px; margin-top: 4px;"></div>
-            <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-              <button id="btn-cancel-gate" class="hud-btn" style="background: #1b4332;">Cancel</button>
+            <div class="modal-card-content">
+              <p style="margin-bottom: 12px; font-size: 13.5px; color: #d8f3dc;">Please solve this arithmetic puzzle to open the Guardian Dashboard:</p>
+              <div style="font-size: 26px; font-weight: 700; color: #ffd166; text-align: center; margin: 16px 0;" id="math-gate-question">
+                -- + -- = ?
+              </div>
+              <div class="form-row">
+                <input id="input-math-answer" type="number" inputmode="numeric" placeholder="Enter answer..." />
+                <button id="btn-verify-math" class="hud-btn">Unlock</button>
+              </div>
+              <div id="math-gate-error" style="color: #ffadad; font-size: 13px; min-height: 18px; margin-top: 4px;"></div>
+              <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+                <button id="btn-cancel-gate" class="hud-btn" style="background: #1b4332;">Cancel</button>
+              </div>
             </div>
           </div>
 
+          <!-- Dashboard Step -->
           <div id="guardian-dashboard-step" style="display: none;">
-            <h2>Guardian Dashboard (COPPA Safe)</h2>
-            <p>Manage local child profiles, choose their animal explorer avatar, and inspect progress metrics.</p>
-            <div style="font-size: 13px; font-weight: 600; color: #95d5b2; margin-bottom: 4px;">
-              Choose Animal Avatar for Active Explorer:
-            </div>
-            <div id="avatar-selector-grid" class="avatar-grid"></div>
-            <div class="form-row">
-              <input id="input-child-name" type="text" placeholder="New child nickname (e.g. Alice)" />
-              <button id="btn-add-child" class="hud-btn">Add Profile</button>
-            </div>
-            <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
-            <div id="guardian-general-stats-container" style="margin-top: 18px;">
-              <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
-                📊 General Learning Stats (<span id="guardian-stats-child-name">Active Explorer</span>):
-              </div>
-              <div id="guardian-general-stats"></div>
-            </div>
-            <div style="margin-top: 18px;">
-              <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
-                📋 Specific Activity Stats &amp; Parent Guides:
-              </div>
-              <div id="guardian-activities-list"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 8px;">
+            <div class="modal-header-sticky">
               <div>
-                <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App on Device</button>
+                <h2 style="margin: 0; font-size: 18px; color: #80ed99; display: flex; align-items: center; gap: 6px;">
+                  <span>🛡️ Guardian Dashboard</span>
+                </h2>
+                <div style="font-size: 11px; opacity: 0.8; color: #d8f3dc;">COPPA Safe • Local-First • On-Device</div>
               </div>
-              <button id="btn-close-guardian" class="hud-btn">Close</button>
+              <button id="btn-top-close-guardian" class="modal-close-btn" title="Leave Parent Dashboard and return to tree" aria-label="Leave Parent Dashboard and return to tree">
+                ✕ Back to Tree
+              </button>
+            </div>
+            <div class="modal-card-content">
+              <p style="margin-bottom: 14px; font-size: 13px; color: #b7e4c7;">Manage local child profiles, choose their animal explorer avatar, and inspect progress metrics.</p>
+              <div style="font-size: 13px; font-weight: 600; color: #95d5b2; margin-bottom: 6px;">
+                Choose Animal Avatar for Active Explorer:
+              </div>
+              <div id="avatar-selector-grid" class="avatar-grid"></div>
+              <div class="form-row" style="margin-top: 12px;">
+                <input id="input-child-name" type="text" placeholder="New child nickname (e.g. Alice)" />
+                <button id="btn-add-child" class="hud-btn">Add Profile</button>
+              </div>
+              <div id="profiles-list" style="margin: 12px 0; font-size: 14px; color: #d8f3dc;"></div>
+              <div id="guardian-general-stats-container" style="margin-top: 18px;">
+                <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
+                  📊 General Learning Stats (<span id="guardian-stats-child-name">Active Explorer</span>):
+                </div>
+                <div id="guardian-general-stats"></div>
+              </div>
+              <div style="margin-top: 18px;">
+                <div style="font-size: 14px; font-weight: 700; color: #95d5b2; margin-bottom: 8px;">
+                  📋 Specific Activity Stats &amp; Parent Guides:
+                </div>
+                <div id="guardian-activities-list"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 14px; border-top: 1px solid #2d6a4f; gap: 8px;">
+                <div>
+                  <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App on Device</button>
+                </div>
+                <button id="btn-close-guardian" class="modal-close-btn" style="padding: 8px 18px; font-size: 13.5px;">✕ Back to Tree</button>
+              </div>
             </div>
           </div>
         </div>

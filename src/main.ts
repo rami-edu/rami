@@ -32,7 +32,9 @@ function setupHudAndGuardianModal(): void {
   const installBtn = document.getElementById('btn-install-pwa');
   const guardianBtn = document.getElementById('btn-guardian');
   const closeGuardianBtn = document.getElementById('btn-close-guardian');
+  const topCloseGuardianBtn = document.getElementById('btn-top-close-guardian');
   const cancelGateBtn = document.getElementById('btn-cancel-gate');
+  const topCancelGateBtn = document.getElementById('btn-top-cancel-gate');
   const guardianModal = document.getElementById('guardian-modal');
   const gateStep = document.getElementById('guardian-gate-step');
   const dashboardStep = document.getElementById('guardian-dashboard-step');
@@ -496,6 +498,8 @@ function setupHudAndGuardianModal(): void {
     if (gateStep) gateStep.style.display = 'block';
     if (dashboardStep) dashboardStep.style.display = 'none';
     guardianModal?.classList.add('open');
+    const modalCard = guardianModal?.querySelector('.modal-card');
+    if (modalCard) modalCard.scrollTop = 0;
     window.setTimeout(() => mathAnswerInput?.focus(), 50);
   };
 
@@ -504,6 +508,8 @@ function setupHudAndGuardianModal(): void {
     if (profileManager.verifyGuardianChallenge(raw)) {
       if (gateStep) gateStep.style.display = 'none';
       if (dashboardStep) dashboardStep.style.display = 'block';
+      const modalCard = guardianModal?.querySelector('.modal-card');
+      if (modalCard) modalCard.scrollTop = 0;
       renderProfiles();
     } else {
       const nextChallenge = profileManager.generateGuardianChallenge();
@@ -603,12 +609,27 @@ function setupHudAndGuardianModal(): void {
     }
   });
 
-  cancelGateBtn?.addEventListener('click', () => {
+  const closeGuardianModal = () => {
     guardianModal?.classList.remove('open');
+  };
+
+  cancelGateBtn?.addEventListener('click', closeGuardianModal);
+  topCancelGateBtn?.addEventListener('click', closeGuardianModal);
+  closeGuardianBtn?.addEventListener('click', closeGuardianModal);
+  topCloseGuardianBtn?.addEventListener('click', closeGuardianModal);
+
+  // Close when clicking the dark background overlay outside the modal card
+  guardianModal?.addEventListener('click', (e) => {
+    if (e.target === guardianModal) {
+      closeGuardianModal();
+    }
   });
 
-  closeGuardianBtn?.addEventListener('click', () => {
-    guardianModal?.classList.remove('open');
+  // Close when pressing the Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && guardianModal?.classList.contains('open')) {
+      closeGuardianModal();
+    }
   });
 
   addChildBtn?.addEventListener('click', () => {
