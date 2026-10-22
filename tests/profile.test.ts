@@ -16,8 +16,6 @@ import { RhythmBranchesActivity } from '../src/minigames/RhythmBranchesMinigame'
 import { CaveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
 import { GeometryShapesActivity } from '../src/minigames/GeometryShapesMinigame';
 import { ColorBloomActivity } from '../src/minigames/ColorBloomMinigame';
-import { FruitHarvestActivity } from '../src/minigames/FruitHarvestMinigame';
-import { ForestSymphonyActivity } from '../src/minigames/ForestSymphonyMinigame';
 import { PhonicsPondActivity } from '../src/minigames/PhonicsPondMinigame';
 import { CreatureLadderActivity } from '../src/minigames/CreatureLadderMinigame';
 import { PatternPathActivity } from '../src/minigames/PatternPathMinigame';
@@ -225,12 +223,10 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(p5.nextStar).toBeNull();
   });
 
-  it('implements 10 distinct preschool activities with zero-reading mechanics, knowledge tags, and parent guides', () => {
+  it('implements distinct preschool activities with zero-reading mechanics, knowledge tags, and parent guides', () => {
     const activities = [
       new GeometryShapesActivity(),
       new ColorBloomActivity(),
-      new FruitHarvestActivity(),
-      new ForestSymphonyActivity(),
       new PhonicsPondActivity(),
       new CreatureLadderActivity(),
       new PatternPathActivity(),
@@ -239,7 +235,7 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
       new SymmetryWingsActivity()
     ];
 
-    expect(activities).toHaveLength(10);
+    expect(activities).toHaveLength(8);
 
     for (const act of activities) {
       expect(act.descriptor.id).toBeTruthy();
@@ -275,8 +271,6 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     const activities = [
       new GeometryShapesActivity(),
       new ColorBloomActivity(),
-      new FruitHarvestActivity(),
-      new ForestSymphonyActivity(),
       new PhonicsPondActivity(),
       new CreatureLadderActivity(),
       new PatternPathActivity(),
@@ -292,11 +286,11 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     // Initially 0 progress
     const initialStats = calculateGeneralStats(activities, p1.id);
     expect(initialStats.totalStarsEarned).toBe(0);
-    expect(initialStats.totalPossibleStars).toBe(50);
+    expect(initialStats.totalPossibleStars).toBe(40);
     expect(initialStats.activitiesExploredCount).toBe(0);
     expect(initialStats.totalSolves).toBe(0);
     expect(initialStats.totalActions).toBe(0);
-    expect(initialStats.totalActivitiesCount).toBe(10);
+    expect(initialStats.totalActivitiesCount).toBe(8);
     expect(initialStats.starsPercentage).toBe(0);
     expect(initialStats.accuracyRate).toBe(100);
 
@@ -309,9 +303,9 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(updatedStats.activitiesExploredCount).toBe(2);
     expect(updatedStats.totalSolves).toBe(2);
     expect(updatedStats.totalActions).toBeGreaterThanOrEqual(2);
-    expect(updatedStats.starsPercentage).toBe(4);
+    expect(updatedStats.starsPercentage).toBe(5); // 2/40 = 5%
     expect(updatedStats.domainStats.mathematics.solves).toBeGreaterThanOrEqual(1);
     expect(updatedStats.domainStats.painting.solves).toBeGreaterThanOrEqual(1);
-    expect(updatedStats.domainStats.music.solves).toBe(0);
+    expect(updatedStats.domainStats.language.solves).toBe(0);
   });
 });

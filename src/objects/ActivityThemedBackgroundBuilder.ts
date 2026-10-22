@@ -121,16 +121,6 @@ export class ActivityThemedBackgroundBuilder {
         this.drawColorBloomMeadowPanorama(ctx, w, h);
         break;
 
-      case 'fruit_harvest':
-      case 'Fruit Harvest (Numbers)':
-        this.drawFruitHarvestOrchardPanorama(ctx, w, h);
-        break;
-
-      case 'forest_symphony':
-      case 'Forest Symphony (Music)':
-        this.drawForestSymphonyGladePanorama(ctx, w, h);
-        break;
-
       case 'phonics_pond':
       case 'Phonics Pond (Language)':
         this.drawPhonicsPondPanorama(ctx, w, h);
@@ -372,108 +362,6 @@ export class ActivityThemedBackgroundBuilder {
     drawFlower(320, 920, 60, 6, '#48cae4', '#90e0ef');
     drawFlower(1650, 850, 70, 7, '#ffb703', '#fb8500');
     drawFlower(1780, 930, 80, 8, '#b5179e', '#7209b7');
-  }
-
-  /**
-   * Fruit Harvest: Sunny orchard with golden sunbeams, rows of fruiting trees, and wicker baskets.
-   */
-  private static drawFruitHarvestOrchardPanorama(
-    ctx: CanvasRenderingContext2D,
-    w: number,
-    h: number
-  ): void {
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, '#588157');
-    sky.addColorStop(0.35, '#a3b18a');
-    sky.addColorStop(0.7, '#dad7cd');
-    sky.addColorStop(1, '#fefae0');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
-
-    // Warm sun rays
-    ctx.fillStyle = 'rgba(255, 230, 109, 0.16)';
-    ctx.beginPath();
-    ctx.moveTo(w * 0.5, 0);
-    ctx.lineTo(w * 0.2, h);
-    ctx.lineTo(w * 0.8, h);
-    ctx.closePath();
-    ctx.fill();
-
-    // Orchard hills
-    ctx.fillStyle = '#3a5a40';
-    ctx.beginPath();
-    ctx.moveTo(0, 680);
-    ctx.bezierCurveTo(w * 0.3, 620, w * 0.7, 720, w, 650);
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    ctx.fill();
-
-    // Orchard tree silhouettes with apples
-    const drawOrchardTree = (tx: number, ty: number, r: number) => {
-      ctx.fillStyle = '#4a2810';
-      ctx.fillRect(tx - 10, ty, 20, 70);
-      ctx.fillStyle = '#344e41';
-      ctx.beginPath();
-      ctx.arc(tx, ty, r, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Apples
-      ctx.fillStyle = '#e63946';
-      for (let a = 0; a < 7; a++) {
-        const ang = (a / 7) * Math.PI * 2;
-        const ar = r * 0.65;
-        ctx.beginPath();
-        ctx.arc(tx + Math.cos(ang) * ar, ty + Math.sin(ang) * ar, 7, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    };
-
-    drawOrchardTree(200, 740, 65);
-    drawOrchardTree(380, 720, 55);
-    drawOrchardTree(1580, 730, 60);
-    drawOrchardTree(1750, 750, 70);
-  }
-
-  /**
-   * Forest Symphony: Acoustic canopy with wind-chime bamboo and golden soundwave sunbeams.
-   */
-  private static drawForestSymphonyGladePanorama(
-    ctx: CanvasRenderingContext2D,
-    w: number,
-    h: number
-  ): void {
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, '#081c15');
-    sky.addColorStop(0.5, '#1b4332');
-    sky.addColorStop(0.85, '#2d6a4f');
-    sky.addColorStop(1, '#52b788');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
-
-    // Soundwave resonance rings
-    ctx.strokeStyle = 'rgba(255, 209, 102, 0.18)';
-    ctx.lineWidth = 2;
-    for (let r = 80; r <= 600; r += 70) {
-      ctx.beginPath();
-      ctx.arc(w / 2, 380, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    // Bamboo windpipe clusters on flanks
-    const drawBambooStalks = (startX: number) => {
-      for (let i = 0; i < 6; i++) {
-        const bx = startX + i * 28;
-        ctx.fillStyle = '#40916c';
-        ctx.fillRect(bx, 480, 14, h - 480);
-        ctx.fillStyle = '#74c69d';
-        for (let j = 520; j < h; j += 60) {
-          ctx.fillRect(bx - 2, j, 18, 4);
-        }
-      }
-    };
-    drawBambooStalks(80);
-    drawBambooStalks(w - 240);
   }
 
   /**
@@ -750,16 +638,6 @@ export class ActivityThemedBackgroundBuilder {
         this.decorateColorBloomHouse(scene, decoContainer);
         break;
 
-      case 'fruit_harvest':
-      case 'Fruit Harvest (Numbers)':
-        this.decorateFruitHarvestHouse(scene, decoContainer);
-        break;
-
-      case 'forest_symphony':
-      case 'Forest Symphony (Music)':
-        this.decorateForestSymphonyHouse(scene, decoContainer);
-        break;
-
       case 'phonics_pond':
       case 'Phonics Pond (Language)':
         this.decoratePhonicsPondHouse(scene, decoContainer);
@@ -981,65 +859,6 @@ export class ActivityThemedBackgroundBuilder {
     // Palette floor trim
     g.lineStyle(2, 0xffd166, 0.6);
     g.lineBetween(-370, 210, 370, 210);
-  }
-
-  /**
-   * Fruit Harvest (Numbers): Rustic orchard barn with timber rafters and fruit garlands.
-   */
-  private static decorateFruitHarvestHouse(
-    scene: Phaser.Scene,
-    parent: Phaser.GameObjects.Container
-  ): void {
-    const g = scene.add.graphics();
-    parent.add(g);
-
-    // Rustic oak ceiling beams
-    g.lineStyle(6, 0x5a3d28, 0.95);
-    g.lineBetween(-380, -220, 380, -220);
-
-    // Hanging grape and apple garlands
-    for (let x = -320; x <= 320; x += 80) {
-      g.fillStyle(0xe63946, 0.95); // Apple
-      g.fillCircle(x, -205, 9);
-      g.fillStyle(0x70e000, 0.8); // Leaf
-      g.fillEllipse(x + 5, -213, 8, 4);
-    }
-
-    // Picket fence lower trim
-    g.lineStyle(2, 0x7f5539, 0.8);
-    for (let px = -360; px <= 360; px += 24) {
-      g.strokeRect(px, 205, 18, 38);
-      g.strokeTriangle(px, 205, px + 9, 192, px + 18, 205);
-    }
-  }
-
-  /**
-   * Forest Symphony (Music): Resonant wood acoustic shell with stave lines and bamboo flutes.
-   */
-  private static decorateForestSymphonyHouse(
-    scene: Phaser.Scene,
-    parent: Phaser.GameObjects.Container
-  ): void {
-    const g = scene.add.graphics();
-    parent.add(g);
-
-    // 5-line musical stave wooden header
-    g.lineStyle(1.5, 0x80ed99, 0.65);
-    for (let ly = -236; ly <= -212; ly += 6) {
-      g.lineBetween(-360, ly, 360, ly);
-    }
-
-    // Hanging bamboo tuned wind chimes on flanks
-    const drawChimes = (cx: number) => {
-      g.fillStyle(0xb7e4c7, 0.9);
-      for (let i = 0; i < 5; i++) {
-        const chX = cx + i * 14;
-        const chH = 45 + (4 - i) * 10;
-        g.fillRect(chX, -195, 8, chH);
-      }
-    };
-    drawChimes(-360);
-    drawChimes(300);
   }
 
   /**

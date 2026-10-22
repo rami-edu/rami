@@ -305,8 +305,6 @@ export class MinigameLoader {
   public static readonly ACTIVITY_KEYS = [
     'Shape Nest (Geometry)',
     'Color Bloom (Colors)',
-    'Fruit Harvest (Numbers)',
-    'Forest Symphony (Music)',
     'Phonics Pond (Language)',
     'Creature Ladder (Sizes)',
     'Pattern Path (Patterns)',
@@ -318,8 +316,6 @@ export class MinigameLoader {
   private registry: Record<string, () => Promise<{ default: MinigameModule }>> = {
     'Shape Nest (Geometry)': () => import('../minigames/GeometryShapesMinigame'),
     'Color Bloom (Colors)': () => import('../minigames/ColorBloomMinigame'),
-    'Fruit Harvest (Numbers)': () => import('../minigames/FruitHarvestMinigame'),
-    'Forest Symphony (Music)': () => import('../minigames/ForestSymphonyMinigame'),
     'Phonics Pond (Language)': () => import('../minigames/PhonicsPondMinigame'),
     'Creature Ladder (Sizes)': () => import('../minigames/CreatureLadderMinigame'),
     'Pattern Path (Patterns)': () => import('../minigames/PatternPathMinigame'),
