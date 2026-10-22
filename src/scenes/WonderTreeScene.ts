@@ -86,6 +86,10 @@ export class WonderTreeScene extends Phaser.Scene {
     if (hudOverlay) {
       hudOverlay.style.display = 'flex';
     }
+    const playerBadge = document.getElementById('hud-player-badge');
+    if (playerBadge) {
+      playerBadge.style.display = 'flex';
+    }
 
     // Pre-register all 3 main area emblems and all 20 high-res topic logos
     ActivityLogoLibrary.ensureAllLogosRegistered(this);
@@ -921,6 +925,11 @@ export class WonderTreeScene extends Phaser.Scene {
       sceneKey: dynamicSceneKey,
       module: mod,
       onExit: () => {
+        this.activeMinigame = false;
+        const playerBadge = document.getElementById('hud-player-badge');
+        if (playerBadge) {
+          playerBadge.style.display = 'flex';
+        }
         profileManager.recordMinigameCompletion(portal.anchor.minigame);
 
         this.scene.wake('WonderTreeScene');

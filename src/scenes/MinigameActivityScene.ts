@@ -71,11 +71,22 @@ export class MinigameActivityScene extends Phaser.Scene {
     // Smoothly fade in from the portal swirl transition
     this.cameras.main.fadeIn(350, 11, 22, 14);
 
+    // Hide the top-left player name badge while inside the activity
+    const playerBadge = document.getElementById('hud-player-badge');
+    if (playerBadge) {
+      playerBadge.style.display = 'none';
+    }
+
     const triggerReturn = () => {
       if (this.isLeaving) return;
       this.isLeaving = true;
       this.scale.off('resize', onResize);
       this.playReverseReturnPortalTransition().then(() => {
+        // Restore player name badge upon returning to the tree
+        const badge = document.getElementById('hud-player-badge');
+        if (badge) {
+          badge.style.display = 'flex';
+        }
         this.onExitCallback();
       });
     };
