@@ -333,7 +333,7 @@ export class RhythmBranchesActivity implements MinigameModule {
     const starsRowText = scene.add
       .text(0, -172, '', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
+        fontSize: '26px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -348,15 +348,6 @@ export class RhythmBranchesActivity implements MinigameModule {
     const starBarFill = scene.add
       .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
       .setOrigin(0, 0.5);
-
-    const starBarLabel = scene.add
-      .text(0, -120, '', {
-        fontFamily: UI_FONT,
-        fontSize: '14px',
-        color: '#b7e4c7',
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
 
     const subtitle = scene.add
       .text(0, -90, '', {
@@ -409,14 +400,11 @@ export class RhythmBranchesActivity implements MinigameModule {
 
     const syncStarHeaderUi = (status: StarProgressStatus) => {
       const spacedStars = status.starsVisual.split('').join(' ');
-      starsRowText.setText(
-        `${spacedStars}   (${status.starsEarned} / ${status.maxStars} Stars)`
-      );
+      starsRowText.setText(spacedStars);
       const targetFillW = Math.round(
         (BAR_WIDTH - 4) * status.progressFraction
       );
       starBarFill.width = targetFillW;
-      starBarLabel.setText(status.progressBarLabel);
     };
 
     const updateLevelHeader = () => {
@@ -424,9 +412,7 @@ export class RhythmBranchesActivity implements MinigameModule {
       syncStarHeaderUi(starStatus);
       const pattern = getCurrentPattern();
       const targetNames = pattern.map((idx) => LEAF_DEFS[idx].label).join(' → ');
-      title.setText(
-        `Rhythm in the Branches — Star Level ${starStatus.starsEarned}/${starStatus.maxStars}`
-      );
+      title.setText('Rhythm in the Branches');
       subtitle.setText(`Play this melody: ${targetNames}`);
       scoreDisplay
         .setText(`Progress: ${stepIndex} / ${pattern.length} notes`)
@@ -443,7 +429,6 @@ export class RhythmBranchesActivity implements MinigameModule {
       starsRowText,
       starBarBg,
       starBarFill,
-      starBarLabel,
       subtitle,
       scoreDisplay
     ]);

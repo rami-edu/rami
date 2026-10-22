@@ -343,7 +343,7 @@ export class AcornScaleActivity implements MinigameModule {
     const starsRowText = scene.add
       .text(0, -172, '', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
+        fontSize: '26px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -358,15 +358,6 @@ export class AcornScaleActivity implements MinigameModule {
     const starBarFill = scene.add
       .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
       .setOrigin(0, 0.5);
-
-    const starBarLabel = scene.add
-      .text(0, -120, '', {
-        fontFamily: UI_FONT,
-        fontSize: '14px',
-        color: '#b7e4c7',
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
 
     const subtitle = scene.add
       .text(0, -92, '', {
@@ -421,14 +412,11 @@ export class AcornScaleActivity implements MinigameModule {
 
     const syncStarHeaderUi = (status: StarProgressStatus) => {
       const spacedStars = status.starsVisual.split('').join(' ');
-      starsRowText.setText(
-        `${spacedStars}   (${status.starsEarned} / ${status.maxStars} Stars)`
-      );
+      starsRowText.setText(spacedStars);
       const targetFillW = Math.round(
         (BAR_WIDTH - 4) * status.progressFraction
       );
       starBarFill.width = targetFillW;
-      starBarLabel.setText(status.progressBarLabel);
     };
 
     const showCompletionToast = (
@@ -481,9 +469,7 @@ export class AcornScaleActivity implements MinigameModule {
       const solvedCount = starStatus.successfulAttempts;
       const targetWeight = getTargetWeightForSolvedCount(solvedCount);
 
-      title.setText(
-        `Acorn Scale — Star Level ${starStatus.starsEarned}/${starStatus.maxStars}`
-      );
+      title.setText('Acorn Scale');
       subtitle.setText(
         `Match the rock of weight [${targetWeight}] with acorns!`
       );
@@ -572,7 +558,6 @@ export class AcornScaleActivity implements MinigameModule {
       starsRowText,
       starBarBg,
       starBarFill,
-      starBarLabel,
       subtitle,
       beam,
       pivot,

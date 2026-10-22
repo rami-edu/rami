@@ -365,7 +365,7 @@ export class CaveEchoesActivity implements MinigameModule {
     const starsRowText = scene.add
       .text(0, -172, '', {
         fontFamily: UI_FONT,
-        fontSize: '24px',
+        fontSize: '26px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -380,15 +380,6 @@ export class CaveEchoesActivity implements MinigameModule {
     const starBarFill = scene.add
       .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
       .setOrigin(0, 0.5);
-
-    const starBarLabel = scene.add
-      .text(0, -120, '', {
-        fontFamily: UI_FONT,
-        fontSize: '14px',
-        color: '#b7e4c7',
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
 
     const status = scene.add
       .text(0, -88, '', {
@@ -443,16 +434,11 @@ export class CaveEchoesActivity implements MinigameModule {
 
     const syncStarHeaderUi = (starStatus: StarProgressStatus) => {
       const spacedStars = starStatus.starsVisual.split('').join(' ');
-      starsRowText.setText(
-        `${spacedStars}   (${starStatus.starsEarned} / ${starStatus.maxStars} Stars)`
-      );
+      starsRowText.setText(spacedStars);
       const targetFillW = Math.round(
         (BAR_WIDTH - 4) * starStatus.progressFraction
       );
       starBarFill.width = targetFillW;
-      starBarLabel.setText(
-        `${starStatus.progressBarLabel} • Difficulty ${starStatus.activeDifficultyTier}`
-      );
     };
 
     const updateLevelHeader = () => {
@@ -460,9 +446,7 @@ export class CaveEchoesActivity implements MinigameModule {
       syncStarHeaderUi(starStatus);
       const pattern = getCurrentPattern();
       const seqNames = pattern.map((idx) => CRYSTALS[idx].shortName).join(' → ');
-      title.setText(
-        `Cave Echoes — Star Level ${starStatus.starsEarned}/${starStatus.maxStars} (Difficulty ${starStatus.activeDifficultyTier})`
-      );
+      title.setText('Cave Echoes');
       status.setText(`Repeat the ${pattern.length}-crystal sequence: ${seqNames}`);
       feedback
         .setText(`Progress: ${step} / ${pattern.length}`)
@@ -479,7 +463,6 @@ export class CaveEchoesActivity implements MinigameModule {
       starsRowText,
       starBarBg,
       starBarFill,
-      starBarLabel,
       status,
       feedback
     ]);

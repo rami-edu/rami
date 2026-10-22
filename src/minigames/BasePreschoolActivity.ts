@@ -333,9 +333,9 @@ export abstract class BasePreschoolActivity implements MinigameModule {
 
     // 5 Stars Display
     const starsRowText = scene.add
-      .text(0, -174, '', {
+      .text(0, -172, '', {
         fontFamily: UI_FONT,
-        fontSize: '22px',
+        fontSize: '26px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -345,21 +345,12 @@ export abstract class BasePreschoolActivity implements MinigameModule {
     const BAR_WIDTH = 440;
     const BAR_HEIGHT = 15;
     const starBarBg = scene.add
-      .rectangle(0, -145, BAR_WIDTH, BAR_HEIGHT, 0x0a160d, 0.96)
+      .rectangle(0, -142, BAR_WIDTH, BAR_HEIGHT, 0x0a160d, 0.96)
       .setStrokeStyle(2, 0x52b788);
 
     const starBarFill = scene.add
-      .rectangle(-BAR_WIDTH / 2 + 2, -145, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
+      .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
       .setOrigin(0, 0.5);
-
-    const starBarLabel = scene.add
-      .text(0, -125, '', {
-        fontFamily: UI_FONT,
-        fontSize: '13px',
-        color: '#b7e4c7',
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
 
     // Animal Instructor (Top corner visual companion)
     const instructorContainer = scene.add.container(-310, 20);
@@ -447,14 +438,11 @@ export abstract class BasePreschoolActivity implements MinigameModule {
 
     const syncStarHeaderUi = (status: StarProgressStatus) => {
       const spacedStars = status.starsVisual.split('').join(' ');
-      starsRowText.setText(
-        `${spacedStars}   (${status.starsEarned} / ${status.maxStars} Stars)`
-      );
+      starsRowText.setText(spacedStars);
       const targetFillW = Math.round(
         (BAR_WIDTH - 4) * status.progressFraction
       );
       starBarFill.width = targetFillW;
-      starBarLabel.setText(status.progressBarLabel);
     };
 
     syncStarHeaderUi(this.getStarProgress());
@@ -476,7 +464,6 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       starsRowText,
       starBarBg,
       starBarFill,
-      starBarLabel,
       instructorContainer,
       toastContainer
     ]);
