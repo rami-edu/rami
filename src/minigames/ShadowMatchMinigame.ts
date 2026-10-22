@@ -74,15 +74,15 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
     const animalCount = Math.min(5, starLevel + 1);
     const activeAnimals = ANIMALS.slice(0, animalCount);
 
-    // Glowing parchment board across top
+    // Glowing parchment board across top (spacious observation display)
     const board = scene.add
-      .rectangle(0, -30, 560, 100, 0x1b2e1e, 0.9)
-      .setStrokeStyle(3, 0xffd166, 0.8);
+      .rectangle(0, -32, 620, 120, 0x1b2e1e, 0.94)
+      .setStrokeStyle(3.5, 0xffd166, 0.9);
     playArea.add(board);
 
-    const spacing = 500 / (animalCount + 1);
+    const spacing = 520 / (animalCount + 1);
     const startX = -((animalCount - 1) * spacing) / 2;
-    const shadowY = -30;
+    const shadowY = -32;
 
     const shadowSlots: Array<{
       x: number;
@@ -93,27 +93,27 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
     activeAnimals.forEach((animal, i) => {
       const sx = startX + i * spacing;
 
-      // Dark shadow outline
+      // Dark shadow outline (generous preschool size: 92px)
       const shadowHole = scene.add
-        .circle(sx, shadowY, 32, 0x050e07, 0.98)
-        .setStrokeStyle(2, 0x2d6a4f);
+        .circle(sx, shadowY, 46, 0x050e07, 0.98)
+        .setStrokeStyle(3, 0x2d6a4f);
 
       // Darkened silhouette icon
       const silhouette = scene.add
-        .text(sx, shadowY, animal.emoji, { fontSize: '32px' })
+        .text(sx, shadowY, animal.emoji, { fontSize: '52px' })
         .setOrigin(0.5)
         .setTint(0x000000)
-        .setAlpha(0.65);
+        .setAlpha(0.68);
 
       playArea.add([shadowHole, silhouette]);
       shadowSlots.push({ x: sx, y: shadowY, animal });
     });
 
-    // Colored animals on shelf at bottom
-    const shelfY = 110;
+    // Colored animals on shelf at bottom (generous tactile shelf)
+    const shelfY = 118;
     const shelf = scene.add
-      .rectangle(0, shelfY, 520, 75, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
+      .rectangle(0, shelfY, 620, 115, 0x0f1c11, 0.9)
+      .setStrokeStyle(2.5, 0x2d6a4f);
     playArea.add(shelf);
 
     // Shuffle animal order on bottom shelf
@@ -124,20 +124,36 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
       const px = startX + i * spacing;
       const card = scene.add.container(px, shelfY);
 
+      // Recessed guide on shelf
+      const slotGuide = scene.add
+        .circle(px, shelfY, 48, 0x09140c, 0.75)
+        .setStrokeStyle(1.5, 0x1b4332);
+      playArea.add(slotGuide);
+
       const plate = scene.add
-        .circle(0, 0, 30, animal.color, 0.9)
-        .setStrokeStyle(2.5, 0xffffff);
+        .circle(0, 0, 44, animal.color, 0.95)
+        .setStrokeStyle(3.5, 0xffffff);
 
       const emoji = scene.add
-        .text(0, 0, animal.emoji, { fontSize: '30px' })
+        .text(0, 0, animal.emoji, { fontSize: '48px' })
         .setOrigin(0.5);
 
       card.add([plate, emoji]);
-      card.setSize(60, 60);
+      card.setSize(88, 88);
       card.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(card);
 
       scene.input.setDraggable(card);
+
+      card.on('dragstart', () => {
+        card.setDepth(150);
+        scene.tweens.add({
+          targets: card,
+          scale: 1.15,
+          duration: 120,
+          ease: 'Back.easeOut'
+        });
+      });
 
       card.on(
         'drag',
@@ -147,6 +163,7 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
       );
 
       card.on('dragend', () => {
+        card.setDepth(100);
         const matchingSlot = shadowSlots.find(
           (s) => s.animal.id === animal.id
         );
@@ -157,7 +174,7 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
             card.y - matchingSlot.y
           );
 
-          if (dist < 65) {
+          if (dist < 80) {
             // Matched into shadow!
             card.disableInteractive();
             matchedCount++;

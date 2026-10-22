@@ -73,16 +73,16 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
       });
     }
 
-    // Creek river in middle
+    // Creek river in middle (spacious natural channel)
     const river = scene.add
-      .rectangle(0, -20, 560, 95, 0x0f352c, 0.7)
-      .setStrokeStyle(2, 0x4cc9f0);
+      .rectangle(0, -25, 620, 120, 0x0f352c, 0.85)
+      .setStrokeStyle(3, 0x4cc9f0);
     playArea.add(river);
 
     // Stepping stone target slots across the river (ordered smallest to largest left to right)
-    const slotSpacing = 480 / (itemCount + 1);
+    const slotSpacing = 520 / (itemCount + 1);
     const startSlotX = -((itemCount - 1) * slotSpacing) / 2;
-    const slotY = -20;
+    const slotY = -25;
 
     const slots: Array<{
       x: number;
@@ -93,13 +93,13 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
 
     items.forEach((item, i) => {
       const sx = startSlotX + i * slotSpacing;
-      const baseW = 44 * item.sizeRatio;
-      const baseH = 26 * item.sizeRatio;
+      const baseW = 58 * item.sizeRatio;
+      const baseH = 38 * item.sizeRatio;
 
       // Dashed slot outline
       const slotBg = scene.add
-        .ellipse(sx, slotY, baseW * 2, baseH * 2, 0x071b12, 0.9)
-        .setStrokeStyle(2, 0x74c69d, 0.6);
+        .ellipse(sx, slotY, baseW * 2, baseH * 2, 0x071b12, 0.95)
+        .setStrokeStyle(2.5, 0x74c69d, 0.85);
       playArea.add(slotBg);
 
       slots.push({
@@ -110,11 +110,11 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
       });
     });
 
-    // Unordered stones on shelf at bottom
-    const shelfY = 110;
+    // Unordered stones on shelf at bottom (generous tactile shelf)
+    const shelfY = 118;
     const shelf = scene.add
-      .rectangle(0, shelfY, 540, 75, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
+      .rectangle(0, shelfY, 620, 115, 0x0f1c11, 0.9)
+      .setStrokeStyle(2.5, 0x2d6a4f);
     playArea.add(shelf);
 
     // Shuffle items for the player to drag
@@ -123,27 +123,39 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
 
     shuffledItems.forEach((item, i) => {
       const px = startSlotX + i * slotSpacing;
-      const baseW = 40 * item.sizeRatio;
-      const baseH = 24 * item.sizeRatio;
+      const stoneW = 54 * item.sizeRatio;
+      const stoneH = 34 * item.sizeRatio;
 
       const stoneContainer = scene.add.container(px, shelfY);
 
       // Stone visual
       const stoneBody = scene.add
-        .ellipse(0, 0, baseW * 2, baseH * 2, 0x5c677d)
-        .setStrokeStyle(2, 0xffffff);
+        .ellipse(0, 0, stoneW * 2, stoneH * 2, 0x5c677d)
+        .setStrokeStyle(3, 0xffffff);
 
       // Mushroom on stone
+      const mushroomStem = scene.add
+        .rectangle(0, -stoneH * 0.45, 6 * item.sizeRatio, 12 * item.sizeRatio, 0xffeedd);
       const mushroomCap = scene.add
-        .circle(0, -baseH * 0.7, 10 * item.sizeRatio, 0xe63946)
-        .setStrokeStyle(1.5, 0xffffff);
+        .circle(0, -stoneH * 0.75, 14 * item.sizeRatio, 0xe63946)
+        .setStrokeStyle(2, 0xffffff);
 
-      stoneContainer.add([stoneBody, mushroomCap]);
-      stoneContainer.setSize(baseW * 2, baseH * 2);
+      stoneContainer.add([stoneBody, mushroomStem, mushroomCap]);
+      stoneContainer.setSize(stoneW * 2 + 10, stoneH * 2 + 15);
       stoneContainer.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(stoneContainer);
 
       scene.input.setDraggable(stoneContainer);
+
+      stoneContainer.on('dragstart', () => {
+        stoneContainer.setDepth(150);
+        scene.tweens.add({
+          targets: stoneContainer,
+          scale: 1.12,
+          duration: 120,
+          ease: 'Back.easeOut'
+        });
+      });
 
       stoneContainer.on(
         'drag',
@@ -153,6 +165,7 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
       );
 
       stoneContainer.on('dragend', () => {
+        stoneContainer.setDepth(100);
         // Find matching slot for this size
         const targetSlot = slots[item.id];
         const dist = Math.hypot(
@@ -160,7 +173,7 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
           stoneContainer.y - targetSlot.y
         );
 
-        if (dist < 65) {
+        if (dist < 85) {
           // Correctly placed in ladder sequence!
           stoneContainer.disableInteractive();
           placedCount++;

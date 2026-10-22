@@ -16,9 +16,9 @@ const UI_FONT =
   "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const CRYSTALS = [
-  { idx: 0, name: 'Emerald (1)', shortName: 'Emerald', x: -160, color: 0x52b788 },
+  { idx: 0, name: 'Emerald (1)', shortName: 'Emerald', x: -200, color: 0x52b788 },
   { idx: 1, name: 'Ruby (2)', shortName: 'Ruby', x: 0, color: 0xe63946 },
-  { idx: 2, name: 'Sapphire (3)', shortName: 'Sapphire', x: 160, color: 0x4cc9f0 }
+  { idx: 2, name: 'Sapphire (3)', shortName: 'Sapphire', x: 200, color: 0x4cc9f0 }
 ];
 
 const ECHO_LEVELS: number[][] = [
@@ -393,7 +393,7 @@ export class CaveEchoesActivity implements MinigameModule {
     const status = scene.add
       .text(0, -88, '', {
         fontFamily: UI_FONT,
-        fontSize: '16.5px',
+        fontSize: '18px',
         color: '#d8f3dc',
         align: 'center',
         wordWrap: { width: 700 }
@@ -401,9 +401,9 @@ export class CaveEchoesActivity implements MinigameModule {
       .setOrigin(0.5);
 
     const feedback = scene.add
-      .text(0, 102, '', {
+      .text(0, 125, '', {
         fontFamily: UI_FONT,
-        fontSize: '21px',
+        fontSize: '23px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -486,14 +486,14 @@ export class CaveEchoesActivity implements MinigameModule {
 
     for (const c of CRYSTALS) {
       const gem = scene.add
-        .polygon(c.x, 0, [0, -45, 35, 0, 0, 45, -35, 0], c.color)
-        .setStrokeStyle(3, 0xffffff)
+        .polygon(c.x, 0, [0, -68, 55, 0, 0, 68, -55, 0], c.color)
+        .setStrokeStyle(4, 0xffffff)
         .setInteractive({ useHandCursor: true });
 
       const lbl = scene.add
-        .text(c.x, 58, c.name, {
+        .text(c.x, 86, c.name, {
           fontFamily: UI_FONT,
-          fontSize: '15px',
+          fontSize: '19px',
           color: '#ffffff',
           fontStyle: 'bold'
         })

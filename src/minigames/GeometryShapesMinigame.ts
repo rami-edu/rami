@@ -102,7 +102,7 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
     }
 
     const count = shapeDefs.length;
-    const spacing = Math.min(140, 520 / (count + 1));
+    const spacing = Math.min(150, 580 / (count + 1));
     const startX = -((count - 1) * spacing) / 2;
 
     let placedCount = 0;
@@ -117,22 +117,22 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
     }> = [];
 
     const slotY = -35;
-    const pieceY = 110;
+    const pieceY = 118;
 
-    // Background geometric workbench shelf for pieces
+    // Background geometric workbench shelf for pieces (generous tactile depth)
     const shelf = scene.add
-      .rectangle(0, pieceY, 560, 80, 0x0f1c11, 0.85)
-      .setStrokeStyle(2, 0x52b788);
+      .rectangle(0, pieceY, 620, 115, 0x0f1c11, 0.9)
+      .setStrokeStyle(3, 0x52b788);
     const shelfTrim = scene.add.graphics();
-    shelfTrim.lineStyle(1.5, 0xffd166, 0.45);
-    for (let bx = -260; bx < 260; bx += 32) {
+    shelfTrim.lineStyle(2, 0xffd166, 0.55);
+    for (let bx = -280; bx < 280; bx += 36) {
       shelfTrim.strokeTriangle(
         bx,
-        pieceY + 34,
-        bx + 16,
-        pieceY + 14,
-        bx + 32,
-        pieceY + 34
+        pieceY + 48,
+        bx + 18,
+        pieceY + 26,
+        bx + 36,
+        pieceY + 48
       );
     }
     playArea.add([shelf, shelfTrim]);
@@ -229,7 +229,7 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
           const isAngleCorrect =
             !requireRotation || Math.abs(currentAngle % 360) === 0;
 
-          if (dist < 65 && isAngleCorrect) {
+          if (dist < 85 && isAngleCorrect) {
             // Magnetic snap to slot!
             scene.tweens.add({
               targets: pieceObj,
@@ -246,14 +246,14 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
 
             // Visual sparkle
             const sparkle = scene.add
-              .circle(matchingSlot.x, matchingSlot.y, 28, 0xffd166, 0.4)
-              .setStrokeStyle(2, 0xffffff);
+              .circle(matchingSlot.x, matchingSlot.y, 42, 0xffd166, 0.45)
+              .setStrokeStyle(3, 0xffffff);
             playArea.add(sparkle);
             scene.tweens.add({
               targets: sparkle,
-              scale: 1.6,
+              scale: 1.8,
               alpha: 0,
-              duration: 400,
+              duration: 420,
               onComplete: () => sparkle.destroy()
             });
 
@@ -292,32 +292,32 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
 
     switch (type) {
       case 'circle': {
-        const c = scene.add.circle(0, 0, 28, fillColor);
-        c.setStrokeStyle(3, strokeColor);
+        const c = scene.add.circle(0, 0, 48, fillColor);
+        c.setStrokeStyle(4.5, strokeColor);
         container.add(c);
         break;
       }
       case 'square': {
-        const s = scene.add.rectangle(0, 0, 52, 52, fillColor);
-        s.setStrokeStyle(3, strokeColor);
+        const s = scene.add.rectangle(0, 0, 88, 88, fillColor);
+        s.setStrokeStyle(4.5, strokeColor);
         container.add(s);
         break;
       }
       case 'triangle': {
-        const t = scene.add.triangle(0, 0, 0, -28, 28, 24, -28, 24, fillColor);
-        t.setStrokeStyle(3, strokeColor);
+        const t = scene.add.triangle(0, 0, 0, -48, 48, 40, -48, 40, fillColor);
+        t.setStrokeStyle(4.5, strokeColor);
         container.add(t);
         break;
       }
       case 'star': {
         const points = [];
         for (let i = 0; i < 10; i++) {
-          const r = i % 2 === 0 ? 30 : 14;
+          const r = i % 2 === 0 ? 50 : 24;
           const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
           points.push(Math.cos(a) * r, Math.sin(a) * r);
         }
         const st = scene.add.polygon(0, 0, points, fillColor);
-        st.setStrokeStyle(3, strokeColor);
+        st.setStrokeStyle(4.5, strokeColor);
         container.add(st);
         break;
       }
@@ -325,10 +325,10 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
         const d = scene.add.polygon(
           0,
           0,
-          [0, -32, 24, 0, 0, 32, -24, 0],
+          [0, -52, 40, 0, 0, 52, -40, 0],
           fillColor
         );
-        d.setStrokeStyle(3, strokeColor);
+        d.setStrokeStyle(4.5, strokeColor);
         container.add(d);
         break;
       }
@@ -336,16 +336,16 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
         const points = [];
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2;
-          points.push(Math.cos(a) * 28, Math.sin(a) * 28);
+          points.push(Math.cos(a) * 48, Math.sin(a) * 48);
         }
         const hex = scene.add.polygon(0, 0, points, fillColor);
-        hex.setStrokeStyle(3, strokeColor);
+        hex.setStrokeStyle(4.5, strokeColor);
         container.add(hex);
         break;
       }
     }
 
-    container.setSize(60, 60);
+    container.setSize(100, 100);
     return container;
   }
 }

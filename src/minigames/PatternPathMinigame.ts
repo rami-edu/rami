@@ -90,22 +90,22 @@ export class PatternPathActivity extends BasePreschoolActivity {
     const targetType = sequenceTemplate[sequenceTemplate.length - 1];
     const pathItems = sequenceTemplate.slice(0, sequenceTemplate.length - 1);
 
-    // River bed trail in center
+    // River bed trail in center (spacious natural channel)
     const river = scene.add
-      .rectangle(0, -20, 560, 95, 0x142b20, 0.8)
-      .setStrokeStyle(2, 0x52b788);
+      .rectangle(0, -25, 620, 115, 0x142b20, 0.85)
+      .setStrokeStyle(3, 0x52b788);
     playArea.add(river);
 
     const totalSlots = sequenceTemplate.length;
-    const spacing = Math.min(85, 520 / (totalSlots + 1));
+    const spacing = Math.min(95, 540 / (totalSlots + 1));
     const startX = -((totalSlots - 1) * spacing) / 2;
-    const pathY = -20;
+    const pathY = -25;
 
-    // Draw given pattern items
+    // Draw given pattern items (large, tactile stepping stones)
     pathItems.forEach((type, idx) => {
       const x = startX + idx * spacing;
-      const stoneBg = scene.add.circle(x, pathY, 26, 0x243828);
-      stoneBg.setStrokeStyle(2, 0x74c69d);
+      const stoneBg = scene.add.circle(x, pathY, 36, 0x243828);
+      stoneBg.setStrokeStyle(3, 0x74c69d);
       playArea.add(stoneBg);
 
       const tokenObj = this.drawToken(scene, x, pathY, type);
@@ -115,24 +115,32 @@ export class PatternPathActivity extends BasePreschoolActivity {
     // Empty slot at the end
     const targetSlotX = startX + pathItems.length * spacing;
     const targetSlot = scene.add
-      .circle(targetSlotX, pathY, 28, 0x0a160d, 0.95)
-      .setStrokeStyle(3, 0xffd166, 0.9);
-    playArea.add(targetSlot);
+      .circle(targetSlotX, pathY, 38, 0x0a160d, 0.95)
+      .setStrokeStyle(3.5, 0xffd166, 0.95);
+    const questionText = scene.add
+      .text(targetSlotX, pathY, '?', {
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: '28px',
+        color: '#ffd166',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+    playArea.add([targetSlot, questionText]);
 
     // Pulse animation on the empty question slot
     scene.tweens.add({
-      targets: targetSlot,
+      targets: [targetSlot, questionText],
       scale: 1.12,
       duration: 800,
       yoyo: true,
       repeat: -1
     });
 
-    // Choices shelf at bottom
-    const shelfY = 110;
+    // Choices shelf at bottom (generous tactile shelf)
+    const shelfY = 118;
     const shelf = scene.add
-      .rectangle(0, shelfY, 520, 75, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
+      .rectangle(0, shelfY, 620, 115, 0x0f1c11, 0.9)
+      .setStrokeStyle(2.5, 0x2d6a4f);
     playArea.add(shelf);
 
     // Available token choices
@@ -140,24 +148,40 @@ export class PatternPathActivity extends BasePreschoolActivity {
     // Ensure at least 2 choices
     if (choices.length < 2) choices.push('acorn');
 
-    const choiceSpacing = 380 / (choices.length + 1);
+    const choiceSpacing = 420 / (choices.length + 1);
     const startChoiceX = -((choices.length - 1) * choiceSpacing) / 2;
 
     choices.forEach((type, i) => {
       const cx = startChoiceX + i * choiceSpacing;
       const choiceContainer = scene.add.container(cx, shelfY);
 
+      // Recessed slot guide on shelf
+      const slotGuide = scene.add
+        .circle(cx, shelfY, 44, 0x09140c, 0.75)
+        .setStrokeStyle(1.5, 0x1b4332);
+      playArea.add(slotGuide);
+
       const choicePlate = scene.add
-        .circle(0, 0, 28, 0x1e3321)
-        .setStrokeStyle(2, 0xffffff);
+        .circle(0, 0, 40, 0x1e3321, 0.96)
+        .setStrokeStyle(3, 0xffffff);
       const token = this.drawToken(scene, 0, 0, type);
 
       choiceContainer.add([choicePlate, token]);
-      choiceContainer.setSize(56, 56);
+      choiceContainer.setSize(80, 80);
       choiceContainer.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(choiceContainer);
 
       scene.input.setDraggable(choiceContainer);
+
+      choiceContainer.on('dragstart', () => {
+        choiceContainer.setDepth(150);
+        scene.tweens.add({
+          targets: choiceContainer,
+          scale: 1.15,
+          duration: 120,
+          ease: 'Back.easeOut'
+        });
+      });
 
       choiceContainer.on(
         'drag',
@@ -167,12 +191,13 @@ export class PatternPathActivity extends BasePreschoolActivity {
       );
 
       choiceContainer.on('dragend', () => {
+        choiceContainer.setDepth(100);
         const dist = Math.hypot(
           choiceContainer.x - targetSlotX,
           choiceContainer.y - pathY
         );
 
-        if (dist < 65) {
+        if (dist < 80) {
           if (type === targetType) {
             // Correct token placed!
             choiceContainer.disableInteractive();
@@ -224,27 +249,37 @@ export class PatternPathActivity extends BasePreschoolActivity {
     switch (type) {
       case 'leaf': {
         const leaf = scene.add
-          .ellipse(x, y, 22, 14, def.color)
-          .setStrokeStyle(1.5, 0xffffff);
+          .ellipse(x, y, 40, 24, def.color)
+          .setStrokeStyle(2.5, 0xffffff);
         return leaf;
       }
       case 'acorn': {
         const acorn = scene.add.container(x, y);
-        const nut = scene.add.circle(0, 4, 11, 0x8b5a2b);
-        const cap = scene.add.rectangle(0, -6, 20, 8, def.color);
-        acorn.add([nut, cap]);
+        const nut = scene.add.circle(0, 7, 16, 0x8b5a2b);
+        const cap = scene.add.rectangle(0, -9, 32, 12, def.color);
+        const stem = scene.add.rectangle(0, -17, 4, 6, 0x5a3d1c);
+        acorn.add([nut, cap, stem]);
         return acorn;
       }
       case 'flower': {
-        const flower = scene.add
-          .circle(x, y, 13, def.color)
-          .setStrokeStyle(2, 0xffffff);
+        const flower = scene.add.container(x, y);
+        for (let p = 0; p < 5; p++) {
+          const a = (p / 5) * Math.PI * 2;
+          const px = Math.cos(a) * 12;
+          const py = Math.sin(a) * 12;
+          const petal = scene.add.circle(px, py, 9, def.color);
+          flower.add(petal);
+        }
+        const center = scene.add
+          .circle(0, 0, 9, 0xffd166)
+          .setStrokeStyle(1.5, 0xffffff);
+        flower.add(center);
         return flower;
       }
       case 'crystal': {
         const crystal = scene.add
-          .polygon(x, y, [0, -15, 12, 0, 0, 15, -12, 0], def.color)
-          .setStrokeStyle(1.5, 0xffffff);
+          .polygon(x, y, [0, -24, 18, 0, 0, 24, -18, 0], def.color)
+          .setStrokeStyle(2.5, 0xffffff);
         return crystal;
       }
     }

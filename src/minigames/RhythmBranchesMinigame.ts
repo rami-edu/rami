@@ -17,11 +17,11 @@ const UI_FONT =
   "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const LEAF_DEFS = [
-  { label: '🍃 Do', x: -200, color: 0x52b788 },
-  { label: '🌿 Re', x: -100, color: 0x74c69d },
+  { label: '🍃 Do', x: -220, color: 0x52b788 },
+  { label: '🌿 Re', x: -110, color: 0x74c69d },
   { label: '🍀 Mi', x: 0, color: 0x95d5b2 },
-  { label: '🌱 Sol', x: 100, color: 0x40916c },
-  { label: '🍂 La', x: 200, color: 0x2d6a4f }
+  { label: '🌱 Sol', x: 110, color: 0x40916c },
+  { label: '🍂 La', x: 220, color: 0x2d6a4f }
 ];
 
 const MELODY_LEVELS: number[][] = [
@@ -361,16 +361,16 @@ export class RhythmBranchesActivity implements MinigameModule {
     const subtitle = scene.add
       .text(0, -90, '', {
         fontFamily: UI_FONT,
-        fontSize: '17px',
+        fontSize: '19px',
         color: '#d8f3dc',
         align: 'center'
       })
       .setOrigin(0.5);
 
     const scoreDisplay = scene.add
-      .text(0, 92, 'Tap the first note in the target melody!', {
+      .text(0, 96, 'Tap the first note in the target melody!', {
         fontFamily: UI_FONT,
-        fontSize: '20px',
+        fontSize: '22px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
@@ -450,14 +450,14 @@ export class RhythmBranchesActivity implements MinigameModule {
 
     LEAF_DEFS.forEach((leaf, idx) => {
       const circle = scene.add
-        .circle(leaf.x, -5, 38, leaf.color)
-        .setStrokeStyle(3, 0xd8f3dc)
+        .circle(leaf.x, -5, 48, leaf.color)
+        .setStrokeStyle(4, 0xd8f3dc)
         .setInteractive({ useHandCursor: true });
 
       const label = scene.add
         .text(leaf.x, -5, leaf.label, {
           fontFamily: UI_FONT,
-          fontSize: '16px',
+          fontSize: '20px',
           color: '#081c15',
           fontStyle: 'bold'
         })

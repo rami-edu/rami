@@ -96,9 +96,9 @@ export class NatureSortingActivity extends BasePreschoolActivity {
     const totalItems = activeCategories.length * itemsPerCategory;
     let placedCount = 0;
 
-    // Build Category Baskets across the upper row
+    // Build Category Baskets across the upper row (generous wicker hamper size)
     const basketY = -35;
-    const basketSpacing = 500 / (activeCategories.length + 1);
+    const basketSpacing = 520 / (activeCategories.length + 1);
     const startBasketX = -((activeCategories.length - 1) * basketSpacing) / 2;
 
     const basketSlots: Array<{
@@ -115,12 +115,12 @@ export class NatureSortingActivity extends BasePreschoolActivity {
 
       // Wicker basket bowl
       const bowl = scene.add
-        .ellipse(0, 8, 86, 52, 0x2d1e12, 0.95)
-        .setStrokeStyle(3, def.color);
+        .ellipse(0, 10, 116, 68, 0x2d1e12, 0.95)
+        .setStrokeStyle(3.5, def.color);
 
       // Category icon emblem
       const icon = scene.add
-        .text(0, 0, def.emoji, { fontSize: '28px' })
+        .text(0, 0, def.emoji, { fontSize: '38px' })
         .setOrigin(0.5);
 
       basketContainer.add([bowl, icon]);
@@ -147,33 +147,49 @@ export class NatureSortingActivity extends BasePreschoolActivity {
     // Shuffle items
     itemsToSpawn.sort(() => Math.random() - 0.5);
 
-    // Bottom shelf for unsorted items
-    const shelfY = 110;
+    // Bottom shelf for unsorted items (generous tactile shelf)
+    const shelfY = 118;
     const shelf = scene.add
-      .rectangle(0, shelfY, 540, 75, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
+      .rectangle(0, shelfY, 620, 115, 0x0f1c11, 0.9)
+      .setStrokeStyle(2.5, 0x2d6a4f);
     playArea.add(shelf);
 
-    const itemSpacing = Math.min(65, 500 / (itemsToSpawn.length + 1));
+    const itemSpacing = Math.min(78, 540 / (itemsToSpawn.length + 1));
     const startItemX = -((itemsToSpawn.length - 1) * itemSpacing) / 2;
 
     itemsToSpawn.forEach((item, idx) => {
       const ix = startItemX + idx * itemSpacing;
       const itemContainer = scene.add.container(ix, shelfY);
 
+      // Recessed slot guide on shelf
+      const slotGuide = scene.add
+        .circle(ix, shelfY, 36, 0x09140c, 0.75)
+        .setStrokeStyle(1.5, 0x1b4332);
+      playArea.add(slotGuide);
+
       const plate = scene.add
-        .circle(0, 0, 24, 0x1e3321, 0.9)
-        .setStrokeStyle(2, 0xffffff);
+        .circle(0, 0, 34, 0x1e3321, 0.95)
+        .setStrokeStyle(3, 0xffffff);
       const text = scene.add
-        .text(0, 0, item.emoji, { fontSize: '24px' })
+        .text(0, 0, item.emoji, { fontSize: '36px' })
         .setOrigin(0.5);
 
       itemContainer.add([plate, text]);
-      itemContainer.setSize(48, 48);
+      itemContainer.setSize(68, 68);
       itemContainer.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(itemContainer);
 
       scene.input.setDraggable(itemContainer);
+
+      itemContainer.on('dragstart', () => {
+        itemContainer.setDepth(150);
+        scene.tweens.add({
+          targets: itemContainer,
+          scale: 1.15,
+          duration: 120,
+          ease: 'Back.easeOut'
+        });
+      });
 
       itemContainer.on(
         'drag',
@@ -183,6 +199,7 @@ export class NatureSortingActivity extends BasePreschoolActivity {
       );
 
       itemContainer.on('dragend', () => {
+        itemContainer.setDepth(100);
         const targetSlot = basketSlots.find(
           (b) => b.category === item.category
         );
@@ -193,7 +210,7 @@ export class NatureSortingActivity extends BasePreschoolActivity {
             itemContainer.y - targetSlot.y
           );
 
-          if (dist < 75) {
+          if (dist < 85) {
             // Correct basket!
             itemContainer.disableInteractive();
             placedCount++;

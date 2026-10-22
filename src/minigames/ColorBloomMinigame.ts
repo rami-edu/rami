@@ -239,35 +239,35 @@ export class ColorBloomActivity extends BasePreschoolActivity {
     const appliedColors: number[] = [];
 
     // Flower pot in center
-    const flowerY = -15;
+    const flowerY = -25;
     const flowerContainer = scene.add.container(0, flowerY);
 
     // Glowing target halo showing desired blooming hue
     const targetHalo = scene.add
-      .circle(0, 0, 76, targetHex, 0.22)
-      .setStrokeStyle(3.5, targetHex, 0.88);
+      .circle(0, 0, 94, targetHex, 0.22)
+      .setStrokeStyle(4, targetHex, 0.88);
 
     // Flower stem & leaves
-    const stem = scene.add.rectangle(0, 52, 10, 48, 0x2d6a4f);
-    const leafLeft = scene.add.ellipse(-20, 56, 28, 14, 0x52b788).setAngle(-25);
-    const leafRight = scene.add.ellipse(20, 56, 28, 14, 0x52b788).setAngle(25);
+    const stem = scene.add.rectangle(0, 64, 14, 56, 0x2d6a4f);
+    const leafLeft = scene.add.ellipse(-26, 68, 36, 18, 0x52b788).setAngle(-25);
+    const leafRight = scene.add.ellipse(26, 68, 36, 18, 0x52b788).setAngle(25);
 
     // Flower petals (start uncolored / bud state)
     const petals: Phaser.GameObjects.Arc[] = [];
     for (let p = 0; p < 6; p++) {
       const a = (p / 6) * Math.PI * 2;
-      const px = Math.cos(a) * 34;
-      const py = Math.sin(a) * 34;
-      const petal = scene.add.circle(px, py, 22, 0x243828, 0.9);
-      petal.setStrokeStyle(2.5, 0x74c69d);
+      const px = Math.cos(a) * 44;
+      const py = Math.sin(a) * 44;
+      const petal = scene.add.circle(px, py, 28, 0x243828, 0.9);
+      petal.setStrokeStyle(3, 0x74c69d);
       flowerContainer.add(petal);
       petals.push(petal);
     }
 
     // Flower center bud
     const centerBud = scene.add
-      .circle(0, 0, 26, 0x1b2e1e)
-      .setStrokeStyle(3.5, 0xffd166);
+      .circle(0, 0, 34, 0x1b2e1e)
+      .setStrokeStyle(4, 0xffd166);
 
     flowerContainer.add([
       targetHalo,
@@ -283,38 +283,38 @@ export class ColorBloomActivity extends BasePreschoolActivity {
     let ing2Dot: Phaser.GameObjects.Arc | undefined;
 
     if (recipeIngredients && recipeIngredients.length >= 2) {
-      const recipeContainer = scene.add.container(0, 92);
+      const recipeContainer = scene.add.container(0, 106);
       const recipeBg = scene.add
-        .rectangle(0, 0, 168, 30, 0x0a160d, 0.9)
-        .setStrokeStyle(1.5, 0x2d6a4f);
+        .rectangle(0, 0, 190, 36, 0x0a160d, 0.9)
+        .setStrokeStyle(2, 0x2d6a4f);
 
       ing1Dot = scene.add
-        .circle(-48, 0, 10, recipeIngredients[0].color)
-        .setStrokeStyle(2, 0xffffff);
+        .circle(-54, 0, 13, recipeIngredients[0].color)
+        .setStrokeStyle(2.5, 0xffffff);
 
       const plusText = scene.add
-        .text(-22, -1, '+', {
-          fontSize: '17px',
+        .text(-25, -1, '+', {
+          fontSize: '20px',
           color: '#b7e4c7',
           fontStyle: 'bold'
         })
         .setOrigin(0.5);
 
       ing2Dot = scene.add
-        .circle(4, 0, 10, recipeIngredients[1].color)
-        .setStrokeStyle(2, 0xffffff);
+        .circle(4, 0, 13, recipeIngredients[1].color)
+        .setStrokeStyle(2.5, 0xffffff);
 
       const arrowText = scene.add
-        .text(28, -1, '=', {
-          fontSize: '17px',
+        .text(32, -1, '=', {
+          fontSize: '20px',
           color: '#b7e4c7',
           fontStyle: 'bold'
         })
         .setOrigin(0.5);
 
       const targetDot = scene.add
-        .circle(54, 0, 11, targetHex)
-        .setStrokeStyle(2.5, 0xffd166);
+        .circle(62, 0, 14, targetHex)
+        .setStrokeStyle(3, 0xffd166);
 
       recipeContainer.add([
         recipeBg,
@@ -342,11 +342,11 @@ export class ColorBloomActivity extends BasePreschoolActivity {
     // Drops shelf at bottom
     const dropsY = 120;
     const shelf = scene.add
-      .rectangle(0, dropsY, 560, 85, 0x0f1c11, 0.88)
-      .setStrokeStyle(2.5, 0x2d6a4f);
+      .rectangle(0, dropsY, 620, 105, 0x0f1c11, 0.88)
+      .setStrokeStyle(3, 0x2d6a4f);
     playArea.add(shelf);
 
-    const spacing = 480 / (availableDrops.length + 1);
+    const spacing = 520 / (availableDrops.length + 1);
     const startX = -((availableDrops.length - 1) * spacing) / 2;
 
     availableDrops.forEach((drop, i) => {
@@ -355,33 +355,33 @@ export class ColorBloomActivity extends BasePreschoolActivity {
 
       // Recessed slot guide on shelf
       const slotGuide = scene.add
-        .circle(dx, dropsY, 34, 0x09140c, 0.75)
-        .setStrokeStyle(1.5, 0x1b4332);
+        .circle(dx, dropsY, 40, 0x09140c, 0.75)
+        .setStrokeStyle(2, 0x1b4332);
       playArea.add(slotGuide);
 
-      // Water drop shape (generous preschool size: 60px)
+      // Water drop shape (generous preschool size: 68px)
       const dropBg = scene.add
-        .circle(0, 6, 28, drop.color, 0.96)
-        .setStrokeStyle(3.5, 0xffffff);
+        .circle(0, 8, 34, drop.color, 0.96)
+        .setStrokeStyle(4, 0xffffff);
       const dropTip = scene.add.triangle(
         0,
-        -20,
+        -24,
         0,
-        -14,
-        18,
-        10,
         -18,
-        10,
+        22,
+        12,
+        -22,
+        12,
         drop.color
       );
 
       // Glossy specular shine highlight
       const dropGleam = scene.add
-        .ellipse(-8, -2, 10, 6, 0xffffff, 0.6)
+        .ellipse(-10, -2, 12, 7, 0xffffff, 0.6)
         .setAngle(-35);
 
       dropContainer.add([dropBg, dropTip, dropGleam]);
-      dropContainer.setSize(62, 62);
+      dropContainer.setSize(72, 76);
       dropContainer.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(dropContainer);
 
@@ -411,7 +411,7 @@ export class ColorBloomActivity extends BasePreschoolActivity {
           dropContainer.y - flowerY
         );
 
-        if (dist < 95) {
+        if (dist < 110) {
           // Check if this color was already absorbed into the flower
           if (appliedColors.includes(drop.color)) {
             // Already absorbed: snap back with gentle feedback

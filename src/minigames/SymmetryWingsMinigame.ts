@@ -67,45 +67,45 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
     const gemCount = Math.min(5, starLevel + 1);
 
     const ALL_GEMS: readonly WingGem[] = [
-      { id: 0, type: 'circle', color: 0xffbe0b, relX: 65, relY: -35 },
-      { id: 1, type: 'diamond', color: 0x4cc9f0, relX: 110, relY: -15 },
-      { id: 2, type: 'star', color: 0xff99c8, relX: 75, relY: 30 },
-      { id: 3, type: 'circle', color: 0x52b788, relX: 120, relY: 25 },
-      { id: 4, type: 'diamond', color: 0xf4a261, relX: 50, relY: 5 }
+      { id: 0, type: 'circle', color: 0xffbe0b, relX: 85, relY: -40 },
+      { id: 1, type: 'diamond', color: 0x4cc9f0, relX: 140, relY: -20 },
+      { id: 2, type: 'star', color: 0xff99c8, relX: 95, relY: 40 },
+      { id: 3, type: 'circle', color: 0x52b788, relX: 145, relY: 35 },
+      { id: 4, type: 'diamond', color: 0xf4a261, relX: 60, relY: 5 }
     ];
     const availableGems = ALL_GEMS.slice(0, gemCount);
 
-    const butterflyY = -25;
+    const butterflyY = -28;
     const butterflyContainer = scene.add.container(0, butterflyY);
 
     // Butterfly Wings Base
     // Left Wing (Fixed Reference with gems already in place)
     const leftUpperWing = scene.add
-      .ellipse(-85, -20, 110, 80, 0x1b4332, 0.9)
+      .ellipse(-110, -20, 145, 105, 0x1b4332, 0.9)
       .setAngle(-15)
-      .setStrokeStyle(3, 0x52b788);
+      .setStrokeStyle(3.5, 0x52b788);
     const leftLowerWing = scene.add
-      .ellipse(-75, 45, 85, 65, 0x143527, 0.9)
+      .ellipse(-95, 50, 110, 85, 0x143527, 0.9)
       .setAngle(15)
-      .setStrokeStyle(3, 0x52b788);
+      .setStrokeStyle(3.5, 0x52b788);
 
     // Right Wing (Target Wing where player must mirror gems)
     const rightUpperWing = scene.add
-      .ellipse(85, -20, 110, 80, 0x1b4332, 0.9)
+      .ellipse(110, -20, 145, 105, 0x1b4332, 0.9)
       .setAngle(15)
-      .setStrokeStyle(3, 0x52b788);
+      .setStrokeStyle(3.5, 0x52b788);
     const rightLowerWing = scene.add
-      .ellipse(75, 45, 85, 65, 0x143527, 0.9)
+      .ellipse(95, 50, 110, 85, 0x143527, 0.9)
       .setAngle(-15)
-      .setStrokeStyle(3, 0x52b788);
+      .setStrokeStyle(3.5, 0x52b788);
 
     // Golden butterfly spine / body
     const spine = scene.add
-      .rectangle(0, 10, 14, 110, 0xffd166)
-      .setStrokeStyle(2, 0xffffff);
+      .rectangle(0, 14, 18, 130, 0xffd166)
+      .setStrokeStyle(2.5, 0xffffff);
     const head = scene.add
-      .circle(0, -48, 14, 0xffd166)
-      .setStrokeStyle(2, 0xffffff);
+      .circle(0, -56, 18, 0xffd166)
+      .setStrokeStyle(2.5, 0xffffff);
 
     butterflyContainer.add([
       leftUpperWing,
@@ -141,22 +141,22 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
       const ry = butterflyY + gem.relY;
 
       const slotOutline = scene.add
-        .circle(rx, ry, 18, 0x0a160d, 0.9)
-        .setStrokeStyle(2, 0xffd166, 0.7);
+        .circle(rx, ry, 26, 0x0a160d, 0.9)
+        .setStrokeStyle(3, 0xffd166, 0.8);
       playArea.add(slotOutline);
 
       slots.push({ gem, x: rx, y: ry });
     });
 
     // Shelf of gems to place at bottom
-    const shelfY = 110;
+    const shelfY = 115;
     const shelf = scene.add
-      .rectangle(0, shelfY, 520, 75, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
+      .rectangle(0, shelfY, 620, 105, 0x0f1c11, 0.85)
+      .setStrokeStyle(3, 0x2d6a4f);
     playArea.add(shelf);
 
     let placedCount = 0;
-    const spacing = 440 / (availableGems.length + 1);
+    const spacing = 480 / (availableGems.length + 1);
     const startX = -((availableGems.length - 1) * spacing) / 2;
 
     const shuffled = [...availableGems].sort(() => Math.random() - 0.5);
@@ -166,12 +166,12 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
       const gemContainer = scene.add.container(gx, shelfY);
 
       const plate = scene.add
-        .circle(0, 0, 24, 0x1e3321, 0.95)
-        .setStrokeStyle(2, 0xffffff);
+        .circle(0, 0, 36, 0x1e3321, 0.95)
+        .setStrokeStyle(3, 0xffffff);
       const piece = this.drawGem(scene, 0, 0, gem.type, gem.color);
 
       gemContainer.add([plate, piece]);
-      gemContainer.setSize(48, 48);
+      gemContainer.setSize(72, 72);
       gemContainer.setInteractive({ useHandCursor: true, draggable: true });
       playArea.add(gemContainer);
 
@@ -193,7 +193,7 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
             gemContainer.y - targetSlot.y
           );
 
-          if (dist < 55) {
+          if (dist < 75) {
             // Correct mirrored slot!
             gemContainer.disableInteractive();
             placedCount++;
@@ -246,29 +246,29 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
   ): Phaser.GameObjects.GameObject {
     switch (type) {
       case 'circle': {
-        const c = scene.add.circle(x, y, 13, color);
-        c.setStrokeStyle(2, 0xffffff);
+        const c = scene.add.circle(x, y, 22, color);
+        c.setStrokeStyle(3, 0xffffff);
         return c;
       }
       case 'diamond': {
         const d = scene.add.polygon(
           x,
           y,
-          [0, -16, 12, 0, 0, 16, -12, 0],
+          [0, -25, 19, 0, 0, 25, -19, 0],
           color
         );
-        d.setStrokeStyle(2, 0xffffff);
+        d.setStrokeStyle(3, 0xffffff);
         return d;
       }
       case 'star': {
         const points = [];
         for (let i = 0; i < 10; i++) {
-          const r = i % 2 === 0 ? 15 : 7;
+          const r = i % 2 === 0 ? 24 : 11;
           const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
           points.push(Math.cos(a) * r, Math.sin(a) * r);
         }
         const st = scene.add.polygon(x, y, points, color);
-        st.setStrokeStyle(2, 0xffffff);
+        st.setStrokeStyle(3, 0xffffff);
         return st;
       }
     }

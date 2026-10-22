@@ -371,22 +371,22 @@ export class AcornScaleActivity implements MinigameModule {
     const subtitle = scene.add
       .text(0, -92, '', {
         fontFamily: UI_FONT,
-        fontSize: '17px',
+        fontSize: '19px',
         color: '#d8f3dc'
       })
       .setOrigin(0.5);
 
     const statusText = scene.add
-      .text(0, 42, '', {
+      .text(0, 46, '', {
         fontFamily: UI_FONT,
-        fontSize: '27px',
+        fontSize: '32px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    const beam = scene.add.rectangle(0, -18, 380, 12, 0x74c69d);
-    const pivot = scene.add.triangle(0, 12, 0, -25, -20, 15, 20, 15, 0x52b788);
+    const beam = scene.add.rectangle(0, -18, 480, 20, 0x74c69d);
+    const pivot = scene.add.triangle(0, 18, 0, -35, -30, 24, 30, 24, 0x52b788);
 
     // Star / Instance Completion Notification Banner
     const toastContainer = scene.add
@@ -511,12 +511,12 @@ export class AcornScaleActivity implements MinigameModule {
     updateScale();
 
     const addBtn = scene.add
-      .text(-95, 110, '➕ Add Acorn', {
+      .text(-120, 118, '➕ Add Acorn', {
         fontFamily: UI_FONT,
-        fontSize: '20px',
+        fontSize: '24px',
         backgroundColor: '#2d6a4f',
         color: '#ffffff',
-        padding: { x: 16, y: 10 }
+        padding: { x: 22, y: 12 }
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
@@ -538,12 +538,12 @@ export class AcornScaleActivity implements MinigameModule {
       });
 
     const removeBtn = scene.add
-      .text(95, 110, '➖ Remove', {
+      .text(120, 118, '➖ Remove', {
         fontFamily: UI_FONT,
-        fontSize: '20px',
+        fontSize: '24px',
         backgroundColor: '#3a5a40',
         color: '#ffffff',
-        padding: { x: 16, y: 10 }
+        padding: { x: 22, y: 12 }
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
