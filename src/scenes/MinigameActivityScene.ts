@@ -74,58 +74,96 @@ export class MinigameActivityScene extends Phaser.Scene {
   }
 
   /**
-   * Standardized Return Portal button rendered at the bottom of every activity.
+   * Standardized Return to Wonder Tree button:
+   * - No text (zero-reading preschool UX).
+   * - Placed on the top-left of the screen.
+   * - Has an iconic visual of "going outside a portal": a celestial portal aperture
+   *   with an energetic golden exit arrow breaking out toward the outside/left.
    */
   private createStandardReturnButton(): void {
-    const { width, height } = this.scale;
+    const dpr = this.getDpr();
+    const margin = Math.max(38, 28 * dpr);
     this.returnPortalBtn = this.add
-      .container(width / 2, height - 48)
-      .setDepth(150);
+      .container(margin, margin)
+      .setDepth(160);
 
-    const aura = this.add.circle(-118, 0, 26, 0xffd166, 0.24);
+    // Glowing outer portal aura
+    const aura = this.add.circle(0, 0, 32, 0xffd166, 0.22);
 
+    // Rotating celestial portal rune ring
     this.returnRuneRing = this.add.graphics();
-    this.returnRuneRing.lineStyle(2, 0xffd166, 0.9);
-    this.returnRuneRing.strokeCircle(0, 0, 20);
+    this.returnRuneRing.lineStyle(1.5, 0x48cae4, 0.85);
+    this.returnRuneRing.strokeCircle(0, 0, 27);
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
       this.returnRuneRing.fillStyle(0x90e0ef, 0.95);
       this.returnRuneRing.fillCircle(
-        Math.cos(angle) * 20,
-        Math.sin(angle) * 20,
-        2.5
+        Math.cos(angle) * 27,
+        Math.sin(angle) * 27,
+        2
       );
     }
-    this.returnRuneRing.setPosition(-118, 0);
 
-    const pillBg = this.add
-      .rectangle(0, 0, 290, 48, 0x1b2e1e, 0.95)
-      .setStrokeStyle(2.5, 0xffd166)
+    // Circular button background with golden rim
+    const btnBg = this.add
+      .circle(0, 0, 25, 0x162418, 0.96)
+      .setStrokeStyle(2.5, 0xffd166);
+
+    // Interactive hit zone
+    const hitZone = this.add
+      .circle(0, 0, 28, 0x000000, 0.001)
       .setInteractive({ useHandCursor: true });
 
-    const portalBadge = this.add
-      .circle(-118, 0, 16, 0x162418, 0.95)
-      .setStrokeStyle(2, 0x90e0ef);
+    // "Going outside a portal" vector icon
+    const iconGraphics = this.add.graphics();
 
-    const portalIcon = this.add
-      .text(-118, 0, '🌀', { fontSize: '18px' })
-      .setOrigin(0.5);
+    // 1. Portal aperture ellipse on right
+    iconGraphics.lineStyle(2.5, 0x48cae4, 0.95);
+    iconGraphics.strokeEllipse(6, 0, 16, 28);
+    iconGraphics.fillStyle(0x0a1e17, 0.95);
+    iconGraphics.fillEllipse(6, 0, 14, 26);
 
-    const btnLabel = this.add
-      .text(14, 0, 'Return to Wonder Tree', {
-        fontFamily:
-          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        fontSize: '18px',
-        color: '#d8f3dc',
-        fontStyle: '600',
-        resolution: 2
-      })
-      .setOrigin(0.5);
+    // Inner swirling vortex ripples inside the portal
+    iconGraphics.lineStyle(1.5, 0x90e0ef, 0.8);
+    iconGraphics.beginPath();
+    iconGraphics.arc(6, -4, 5, 0, Math.PI, false);
+    iconGraphics.strokePath();
+    iconGraphics.beginPath();
+    iconGraphics.arc(6, 4, 5, Math.PI, 0, false);
+    iconGraphics.strokePath();
 
+    // 2. Outward exit arrow emerging from inside the portal toward the outside / left
+    iconGraphics.lineStyle(3.5, 0xffd166, 1);
+    iconGraphics.beginPath();
+    iconGraphics.moveTo(8, 0);   // origin inside portal
+    iconGraphics.lineTo(-13, 0); // shoots out to the left
+    iconGraphics.strokePath();
+
+    // Bold golden arrowhead pointing left (going outside)
+    iconGraphics.fillStyle(0xffd166, 1);
+    iconGraphics.beginPath();
+    iconGraphics.moveTo(-16, 0);
+    iconGraphics.lineTo(-7, -7);
+    iconGraphics.lineTo(-7, 7);
+    iconGraphics.closePath();
+    iconGraphics.fillPath();
+
+    // 3. Dimensional exit ripples / motion waves on the left
+    iconGraphics.lineStyle(2, 0x80ed99, 0.85);
+    iconGraphics.beginPath();
+    iconGraphics.arc(-13, 0, 7, Math.PI * 0.65, Math.PI * 1.35, false);
+    iconGraphics.strokePath();
+
+    iconGraphics.lineStyle(1.5, 0x48cae4, 0.55);
+    iconGraphics.beginPath();
+    iconGraphics.arc(-16, 0, 11, Math.PI * 0.7, Math.PI * 1.3, false);
+    iconGraphics.strokePath();
+
+    // Idle animations
     this.tweens.add({
       targets: aura,
       scale: 1.25,
-      alpha: 0.45,
+      alpha: 0.38,
       duration: 1100,
       yoyo: true,
       repeat: -1,
@@ -139,13 +177,30 @@ export class MinigameActivityScene extends Phaser.Scene {
       repeat: -1
     });
 
-    pillBg.on('pointerover', () => {
-      pillBg.setFillStyle(0x2d6a4f, 0.98);
+    // Hover & click handlers
+    hitZone.on('pointerover', () => {
+      btnBg.setFillStyle(0x2d6a4f, 0.98);
+      btnBg.setStrokeStyle(3, 0xfff3b0);
+      this.tweens.add({
+        targets: this.returnPortalBtn,
+        scale: 1.1,
+        duration: 160,
+        ease: 'Back.easeOut'
+      });
     });
-    pillBg.on('pointerout', () => {
-      pillBg.setFillStyle(0x1b2e1e, 0.95);
+
+    hitZone.on('pointerout', () => {
+      btnBg.setFillStyle(0x162418, 0.96);
+      btnBg.setStrokeStyle(2.5, 0xffd166);
+      this.tweens.add({
+        targets: this.returnPortalBtn,
+        scale: 1.0,
+        duration: 160,
+        ease: 'Cubic.easeOut'
+      });
     });
-    pillBg.on('pointerdown', () => {
+
+    hitZone.on('pointerdown', () => {
       if (this.isLeaving) return;
       this.isLeaving = true;
       this.playReverseReturnPortalTransition().then(() => {
@@ -154,12 +209,11 @@ export class MinigameActivityScene extends Phaser.Scene {
     });
 
     this.returnPortalBtn.add([
-      pillBg,
       aura,
       this.returnRuneRing,
-      portalBadge,
-      portalIcon,
-      btnLabel
+      btnBg,
+      iconGraphics,
+      hitZone
     ]);
   }
 
@@ -256,15 +310,8 @@ export class MinigameActivityScene extends Phaser.Scene {
       .setScale(Math.max(scaleX, scaleY));
 
     if (this.returnPortalBtn) {
-      const panelScale = Math.min(
-        dpr,
-        (width - 24 * dpr) / 760,
-        (height - 40 * dpr) / 460
-      );
-      const panelBottomY = height / 2 + 145 * panelScale;
-      this.returnPortalBtn
-        .setPosition(width / 2, Math.min(height - 36 * dpr, panelBottomY))
-        .setScale(panelScale);
+      const margin = Math.max(38, 28 * dpr);
+      this.returnPortalBtn.setPosition(margin, margin).setScale(1);
     }
   }
 }

@@ -268,7 +268,7 @@ export abstract class BasePreschoolActivity implements MinigameModule {
    * Launch implementation: builds standardized UI frame (logo, badges, stars,
    * progress bar, animal instructor, return button) and delegates gameplay to `setupGameplay`.
    */
-  public launch(scene: Phaser.Scene, onComplete: () => void): void {
+  public launch(scene: Phaser.Scene, _onComplete: () => void): void {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
 
@@ -410,20 +410,6 @@ export abstract class BasePreschoolActivity implements MinigameModule {
         ease: 'Cubic.easeOut'
       });
     };
-
-    // Quick exit button in top corner
-    const exitBtn = scene.add
-      .text(-335, -208, '🌀 Exit', {
-        fontFamily: UI_FONT,
-        fontSize: '14px',
-        backgroundColor: '#1b4332',
-        color: '#d8f3dc',
-        padding: { x: 10, y: 6 }
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', onComplete);
-    container.add(exitBtn);
 
     // Star / Level Completion Toast Notification
     const toastContainer = scene.add
