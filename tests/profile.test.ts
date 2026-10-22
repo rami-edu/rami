@@ -5,9 +5,24 @@ import {
   PILLAR_DEFINITIONS,
   TOPIC_LOGO_DEFINITIONS
 } from '../src/objects/ActivityLogoLibrary';
+import { KNOWLEDGE_TAGS } from '../src/objects/ActivityKnowledgeTags';
+import {
+  evaluateStarProgress,
+  DEFAULT_STAR_REQUIREMENTS
+} from '../src/managers/MinigameLoader';
 import { AcornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { RhythmBranchesActivity } from '../src/minigames/RhythmBranchesMinigame';
 import { CaveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
+import { GeometryShapesActivity } from '../src/minigames/GeometryShapesMinigame';
+import { ColorBloomActivity } from '../src/minigames/ColorBloomMinigame';
+import { FruitHarvestActivity } from '../src/minigames/FruitHarvestMinigame';
+import { ForestSymphonyActivity } from '../src/minigames/ForestSymphonyMinigame';
+import { PhonicsPondActivity } from '../src/minigames/PhonicsPondMinigame';
+import { CreatureLadderActivity } from '../src/minigames/CreatureLadderMinigame';
+import { PatternPathActivity } from '../src/minigames/PatternPathMinigame';
+import { ShadowMatchActivity } from '../src/minigames/ShadowMatchMinigame';
+import { NatureSortingActivity } from '../src/minigames/NatureSortingMinigame';
+import { SymmetryWingsActivity } from '../src/minigames/SymmetryWingsMinigame';
 
 describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
   let profiles: ProfileManager;
@@ -131,5 +146,108 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(caveDetails.actionHistory[0].description).toContain(
       'Recalled Level 1 crystal sequence: Emerald → Sapphire → Ruby'
     );
+  });
+
+  it('standardizes knowledge tags with circular iconic badges and descriptions', () => {
+    const expectedTags = [
+      'mathematics',
+      'music',
+      'language',
+      'painting',
+      'science',
+      'logic',
+      'motor_skills'
+    ];
+    for (const tagId of expectedTags) {
+      const tag = KNOWLEDGE_TAGS[tagId as keyof typeof KNOWLEDGE_TAGS];
+      expect(tag).toBeDefined();
+      expect(tag.name.length).toBeGreaterThan(0);
+      expect(tag.iconSymbol.length).toBeGreaterThan(0);
+      expect(tag.colorHex).toMatch(/^#/);
+    }
+  });
+
+  it('evaluates 5-star progression starting at 0 stars and advancing exponentially', () => {
+    // At start (0 solves) -> 0 stars
+    const p0 = evaluateStarProgress(0, DEFAULT_STAR_REQUIREMENTS);
+    expect(p0.starsEarned).toBe(0);
+    expect(p0.starsVisual).toBe('☆☆☆☆☆');
+    expect(p0.nextStar).toBe(1);
+    expect(p0.nextStarRequiredAttempts).toBe(1);
+
+    // After 1 solve -> Star 1
+    const p1 = evaluateStarProgress(1, DEFAULT_STAR_REQUIREMENTS);
+    expect(p1.starsEarned).toBe(1);
+    expect(p1.starsVisual).toBe('★☆☆☆☆');
+    expect(p1.nextStar).toBe(2);
+    expect(p1.nextStarRequiredAttempts).toBe(10);
+
+    // After 10 solves -> Star 2
+    const p2 = evaluateStarProgress(10, DEFAULT_STAR_REQUIREMENTS);
+    expect(p2.starsEarned).toBe(2);
+    expect(p2.starsVisual).toBe('★★☆☆☆');
+    expect(p2.nextStar).toBe(3);
+    expect(p2.nextStarRequiredAttempts).toBe(100);
+
+    // After 100 solves -> Star 3
+    const p3 = evaluateStarProgress(100, DEFAULT_STAR_REQUIREMENTS);
+    expect(p3.starsEarned).toBe(3);
+    expect(p3.starsVisual).toBe('★★★☆☆');
+
+    // After 1,000 solves -> Star 4
+    const p4 = evaluateStarProgress(1000, DEFAULT_STAR_REQUIREMENTS);
+    expect(p4.starsEarned).toBe(4);
+    expect(p4.starsVisual).toBe('★★★★☆');
+
+    // After 10,000 solves -> Star 5
+    const p5 = evaluateStarProgress(10000, DEFAULT_STAR_REQUIREMENTS);
+    expect(p5.starsEarned).toBe(5);
+    expect(p5.starsVisual).toBe('★★★★★');
+    expect(p5.nextStar).toBeNull();
+  });
+
+  it('implements 10 distinct preschool activities with zero-reading mechanics, knowledge tags, and parent guides', () => {
+    const activities = [
+      new GeometryShapesActivity(),
+      new ColorBloomActivity(),
+      new FruitHarvestActivity(),
+      new ForestSymphonyActivity(),
+      new PhonicsPondActivity(),
+      new CreatureLadderActivity(),
+      new PatternPathActivity(),
+      new ShadowMatchActivity(),
+      new NatureSortingActivity(),
+      new SymmetryWingsActivity()
+    ];
+
+    expect(activities).toHaveLength(10);
+
+    for (const act of activities) {
+      expect(act.descriptor.id).toBeTruthy();
+      expect(act.descriptor.title).toBeTruthy();
+      expect(act.descriptor.shortTitle).toBeTruthy();
+      expect(act.descriptor.knowledgeTags?.length).toBeGreaterThanOrEqual(1);
+      expect(act.descriptor.parentGuide?.pedagogicalGoals.length).toBeGreaterThan(15);
+      expect(act.descriptor.parentGuide?.parentRecommendation.length).toBeGreaterThan(15);
+      expect(act.descriptor.animalInstructor).toBeTruthy();
+
+      // Check initial star status
+      const starProgress = act.getStarProgress('test_profile');
+      expect(starProgress.starsEarned).toBe(0);
+      expect(starProgress.maxStars).toBe(5);
+
+      // Verify solving an instance earns Star 1 and logs telemetry
+      const newStatus = act.recordSolvedInstance(
+        'Completed sample preschool instance',
+        'test_profile'
+      );
+      expect(newStatus.starsEarned).toBe(1);
+      expect(newStatus.starsVisual).toBe('★☆☆☆☆');
+
+      const details = act.getActivityDetails('test_profile');
+      expect(details.levelsCompleted).toBe(1);
+      expect(details.starsEarned).toBe(1);
+      expect(details.parentGuide).toBeDefined();
+    }
   });
 });

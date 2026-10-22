@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { userManager } from '../managers/UserManager';
 import { profileManager, ProfileManager } from '../managers/ProfileManager';
-import { minigameLoader } from '../managers/MinigameLoader';
+import { minigameLoader, formatStarsVisual } from '../managers/MinigameLoader';
 import { MinigameActivityScene } from './MinigameActivityScene';
 import {
   DynamicWonderTree,
@@ -120,7 +120,7 @@ export class WonderTreeScene extends Phaser.Scene {
     window.addEventListener('rami:profile-changed', (() => {
       const current = profileManager.getActiveProfile();
       if (this.nameLabel) {
-        this.nameLabel.setText(current?.explorerName ?? userManager.getUsername());
+        this.nameLabel.setText(current?.nickname || current?.explorerName || userManager.getUsername());
       }
       if (this.avatarSprite && current) {
         const desc = ProfileManager.getAvatarDescriptor(current.avatarId);
@@ -200,27 +200,91 @@ export class WonderTreeScene extends Phaser.Scene {
     glowColor: number;
     subtitle: string;
   } {
-    if (minigame.includes('Acorn')) {
+    if (minigame.includes('Shape') || minigame.includes('Acorn')) {
       return {
-        icon: '⚖️',
+        icon: '📐',
         ringColor: 0xffd166,
         glowColor: 0xf4a261,
-        subtitle: 'Math Hollow'
+        subtitle: 'Geometry Hollow'
       };
     }
-    if (minigame.includes('Rhythm')) {
+    if (minigame.includes('Color')) {
+      return {
+        icon: '🎨',
+        ringColor: 0xff99c8,
+        glowColor: 0xec4899,
+        subtitle: 'Color Hollow'
+      };
+    }
+    if (minigame.includes('Fruit') || minigame.includes('Harvest')) {
+      return {
+        icon: '🍎',
+        ringColor: 0xe63946,
+        glowColor: 0xf4a261,
+        subtitle: 'Counting Hollow'
+      };
+    }
+    if (minigame.includes('Symphony') || minigame.includes('Rhythm')) {
       return {
         icon: '🎵',
         ringColor: 0x80ed99,
         glowColor: 0x52b788,
-        subtitle: 'Canopy Hollow'
+        subtitle: 'Music Hollow'
+      };
+    }
+    if (minigame.includes('Phonics') || minigame.includes('Pond')) {
+      return {
+        icon: '🗣️',
+        ringColor: 0x48cae4,
+        glowColor: 0x0ea5e9,
+        subtitle: 'Phonics Hollow'
+      };
+    }
+    if (minigame.includes('Ladder') || minigame.includes('Size')) {
+      return {
+        icon: '🪜',
+        ringColor: 0xa7c957,
+        glowColor: 0x84cc16,
+        subtitle: 'Sizes Hollow'
+      };
+    }
+    if (minigame.includes('Pattern')) {
+      return {
+        icon: '🐾',
+        ringColor: 0xf4a261,
+        glowColor: 0xe76f51,
+        subtitle: 'Patterns Hollow'
+      };
+    }
+    if (minigame.includes('Shadow') || minigame.includes('Clockwork')) {
+      return {
+        icon: '🔦',
+        ringColor: 0x90e0ef,
+        glowColor: 0x48cae4,
+        subtitle: 'Shadow Hollow'
+      };
+    }
+    if (minigame.includes('Nature') || minigame.includes('Sorting')) {
+      return {
+        icon: '🧺',
+        ringColor: 0x52b788,
+        glowColor: 0x2a9d8f,
+        subtitle: 'Sorting Hollow'
+      };
+    }
+    if (minigame.includes('Symmetry')) {
+      return {
+        icon: '🦋',
+        ringColor: 0xc77dff,
+        glowColor: 0x8b5cf6,
+        subtitle: 'Symmetry Hollow'
       };
     }
     return {
-      icon: '🔮',
+      icon: '✨',
       ringColor: 0x90e0ef,
       glowColor: 0x48cae4,
-      subtitle: 'Memory Hollow'
+      subtitle: 'Enchanted Hollow'
     };
   }
 
@@ -233,12 +297,12 @@ export class WonderTreeScene extends Phaser.Scene {
       return;
     }
     const theme = this.getPortalTheme(anchor.minigame);
-    const { topic, pillar } = ActivityLogoLibrary.resolveMinigameTopic(
+    const { pillar } = ActivityLogoLibrary.resolveMinigameTopic(
       anchor.minigame
     );
-    const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
+    const activityLogoKey = ActivityLogoLibrary.getActivityLogoTexture(
       this,
-      topic.id
+      anchor.id.replace('portal_', '')
     );
     const pillarLogoKey = ActivityLogoLibrary.getPillarLogoTexture(
       this,
@@ -274,27 +338,32 @@ export class WonderTreeScene extends Phaser.Scene {
       .circle(0, 0, 52, 0x000000, 0.01)
       .setInteractive({ useHandCursor: true });
 
-    // High-resolution 256x256 vector-rendered topic medallion inside the tree hollow
+    // High-resolution 256x256 vector-rendered activity logo inside the tree hollow
     const logoImg = this.add
-      .image(0, -2, topicLogoKey)
+      .image(0, -2, activityLogoKey)
       .setDisplaySize(58, 58)
       .setOrigin(0.5);
 
     // Main-UI-matched badge beneath the tree hole
     const bannerBg = this.add
-      .rectangle(0, 62, 276, 52, 0x162418, 0.92)
+      .rectangle(0, 62, 280, 54, 0x162418, 0.94)
       .setStrokeStyle(2.5, theme.ringColor)
       .setInteractive({ useHandCursor: true });
 
     const pillarBadgeImg = this.add
-      .image(-112, 62, pillarLogoKey)
+      .image(-114, 62, pillarLogoKey)
       .setDisplaySize(34, 34)
       .setOrigin(0.5);
 
+    const activeProfile = profileManager.getActiveProfile();
+    const stats = activeProfile?.progress[anchor.minigame];
+    const starsEarned = stats?.highestLevel ?? 0;
+    const starsVisual = formatStarsVisual(starsEarned);
+
     const titleLabel = this.add
-      .text(12, 52, anchor.minigame, {
+      .text(12, 51, anchor.minigame, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: '18px',
+        fontSize: '17px',
         color: '#d8f3dc',
         fontStyle: '700',
         resolution: 2
@@ -302,11 +371,11 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subLabel = this.add
-      .text(12, 73, `${pillar.title} • ${topic.title}`, {
+      .text(12, 73, `${starsVisual} • ${theme.subtitle}`, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: '13px',
-        color: '#95d5b2',
-        fontStyle: '600',
+        color: '#ffd166',
+        fontStyle: 'bold',
         resolution: 2
       })
       .setOrigin(0.5);
@@ -444,7 +513,7 @@ export class WonderTreeScene extends Phaser.Scene {
     });
 
     this.nameLabel = this.add
-      .text(0, 54, activeProfile?.explorerName ?? userManager.getUsername(), {
+      .text(0, 54, activeProfile?.nickname || activeProfile?.explorerName || userManager.getUsername(), {
         fontFamily: UI_FONT_FAMILY,
         fontSize: '14px',
         color: '#d8f3dc',

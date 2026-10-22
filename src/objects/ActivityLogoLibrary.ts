@@ -252,6 +252,423 @@ export class ActivityLogoLibrary {
     return { topic, pillar: PILLAR_DEFINITIONS[topic.pillar] };
   }
 
+  public static getActivityLogoTexture(
+    scene: Phaser.Scene,
+    activityId: string
+  ): string {
+    const texKey = `logo_activity_${activityId}`;
+    if (scene.textures.exists(texKey)) {
+      return texKey;
+    }
+
+    const size = ActivityLogoLibrary.ICON_SIZE;
+    const canvasTex = scene.textures.createCanvas(texKey, size, size);
+    const ctx = canvasTex?.getContext();
+
+    if (ctx && canvasTex) {
+      ctx.save();
+      this.drawMedallionBase(ctx, size, '#52b788', '#2d6a4f');
+      this.drawActivityArtwork(ctx, size, activityId);
+      ctx.restore();
+      canvasTex.refresh();
+    }
+
+    return texKey;
+  }
+
+  private static drawActivityArtwork(
+    ctx: CanvasRenderingContext2D,
+    size: number,
+    activityId: string
+  ): void {
+    const cx = size / 2;
+    const cy = size / 2;
+
+    switch (activityId) {
+      case 'geom_shapes':
+      case 'Acorn Scale': {
+        // Carved wooden board with geometric shapes (Circle, Triangle, Square) in glowing insets
+        ctx.fillStyle = '#1e3321';
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(cx - 70, cy - 50, 140, 100, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3 slots + shapes
+        // Circle (left)
+        ctx.fillStyle = '#ffbe0b';
+        ctx.beginPath();
+        ctx.arc(cx - 40, cy, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Triangle (center)
+        ctx.fillStyle = '#e63946';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 20);
+        ctx.lineTo(cx + 20, cy + 18);
+        ctx.lineTo(cx - 20, cy + 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Square (right)
+        ctx.fillStyle = '#4cc9f0';
+        ctx.beginPath();
+        ctx.rect(cx + 22, cy - 18, 36, 36);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+      case 'color_bloom': {
+        // Blooming enchanted blossom with red, yellow, blue, and green petals + dripping dew
+        const petals = [
+          '#e63946',
+          '#ffbe0b',
+          '#4cc9f0',
+          '#2a9d8f',
+          '#fb8500',
+          '#8338ec'
+        ];
+        petals.forEach((col, i) => {
+          const a = (i / petals.length) * Math.PI * 2;
+          const px = cx + Math.cos(a) * 36;
+          const py = cy + Math.sin(a) * 36;
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.ellipse(px, py, 22, 14, a, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+
+        // Golden center dewdrop
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+        break;
+      }
+      case 'fruit_harvest': {
+        // Woven basket brimming with bright apples and counting dots
+        ctx.fillStyle = '#8b5a2b';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 28, 56, 34, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#d4a373';
+        ctx.stroke();
+
+        // Basket handle
+        ctx.beginPath();
+        ctx.arc(cx, cy + 10, 48, Math.PI, 0, false);
+        ctx.stroke();
+
+        // 3 Red apples
+        const apples = [
+          { x: cx - 24, y: cy + 12 },
+          { x: cx, y: cy },
+          { x: cx + 24, y: cy + 12 }
+        ];
+        apples.forEach((ap, i) => {
+          ctx.fillStyle = '#e63946';
+          ctx.beginPath();
+          ctx.arc(ap.x, ap.y, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Green leaf
+          ctx.fillStyle = '#80ed99';
+          ctx.beginPath();
+          ctx.ellipse(ap.x + 4, ap.y - 18, 6, 4, 0.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Counting dots on apple
+          ctx.fillStyle = '#ffffff';
+          for (let d = 0; d <= i; d++) {
+            ctx.beginPath();
+            ctx.arc(ap.x - 4 + d * 7, ap.y + 2, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        break;
+      }
+      case 'forest_symphony':
+      case 'Rhythm in the Branches': {
+        // Enchanted golden chime bells and rhythmic sound waves
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
+
+        // Concentric acoustic ripples
+        [35, 52, 68].forEach((r) => {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, -0.8, 0.8);
+          ctx.stroke();
+        });
+
+        // 3 Hanging golden bells
+        [-32, 0, 32].forEach((bx, i) => {
+          const by = cy + (i === 1 ? -6 : 6);
+          ctx.beginPath();
+          ctx.moveTo(cx + bx, cy - 40);
+          ctx.lineTo(cx + bx, by - 12);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffd166';
+          ctx.beginPath();
+          ctx.arc(cx + bx, by, 14, Math.PI, 0);
+          ctx.lineTo(cx + bx + 16, by + 10);
+          ctx.lineTo(cx + bx - 16, by + 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+
+          // Clapper
+          ctx.fillStyle = '#f4a261';
+          ctx.beginPath();
+          ctx.arc(cx + bx, by + 14, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        break;
+      }
+      case 'phonics_pond': {
+        // Shimmering pond with open oyster shell sounding phonetic ripples
+        ctx.fillStyle = '#0f4c5c';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 22, 65, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#48cae4';
+        ctx.stroke();
+
+        // Pearl shell
+        ctx.fillStyle = '#e2eafc';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 10, 34, 18, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing pearl
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.arc(cx, cy + 8, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sound waves radiating upwards
+        ctx.strokeStyle = '#80ed99';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 14, 18, -Math.PI * 0.8, -Math.PI * 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy - 14, 30, -Math.PI * 0.8, -Math.PI * 0.2);
+        ctx.stroke();
+        break;
+      }
+      case 'creature_ladder': {
+        // 3 stepping stones ascending in size with small, medium, large mushrooms
+        const stones = [
+          { x: cx - 45, y: cy + 30, rx: 18, ry: 10, mh: 16 },
+          { x: cx, y: cy + 10, rx: 24, ry: 13, mh: 28 },
+          { x: cx + 45, y: cy - 12, rx: 30, ry: 16, mh: 42 }
+        ];
+
+        stones.forEach((st) => {
+          // Stone
+          ctx.fillStyle = '#5c677d';
+          ctx.beginPath();
+          ctx.ellipse(st.x, st.y, st.rx, st.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#a0aec0';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Mushroom stem & cap
+          ctx.fillStyle = '#f8f9fa';
+          ctx.fillRect(st.x - 3, st.y - st.mh, 6, st.mh - 4);
+
+          ctx.fillStyle = '#e63946';
+          ctx.beginPath();
+          ctx.arc(st.x, st.y - st.mh, st.rx * 0.55, Math.PI, 0);
+          ctx.fill();
+
+          // White dots
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(st.x, st.y - st.mh - 4, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        break;
+      }
+      case 'pattern_path': {
+        // S-curved river stepping trail with alternating Leaf -> Acorn -> Leaf -> Acorn
+        ctx.strokeStyle = '#52b788';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 55, cy + 40);
+        ctx.quadraticCurveTo(cx - 15, cy - 30, cx + 55, cy - 40);
+        ctx.stroke();
+
+        const items = [
+          { x: cx - 45, y: cy + 30, type: 'leaf' },
+          { x: cx - 18, y: cy + 8, type: 'acorn' },
+          { x: cx + 12, y: cy - 14, type: 'leaf' },
+          { x: cx + 42, y: cy - 34, type: 'acorn' }
+        ];
+
+        items.forEach((it) => {
+          if (it.type === 'leaf') {
+            ctx.fillStyle = '#80ed99';
+            ctx.beginPath();
+            ctx.ellipse(it.x, it.y, 14, 9, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = '#8b5a2b';
+            ctx.beginPath();
+            ctx.arc(it.x, it.y + 4, 9, 0, Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#d4a373';
+            ctx.fillRect(it.x - 9, it.y - 3, 18, 7);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        });
+        break;
+      }
+      case 'shadow_match':
+      case 'The Clockwork Tower': {
+        // Golden lantern casting sharp animal silhouette onto glowing parchment
+        ctx.fillStyle = '#fefae0';
+        ctx.beginPath();
+        ctx.roundRect(cx - 55, cy - 50, 110, 100, 12);
+        ctx.fill();
+        ctx.strokeStyle = '#d4a373';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Dark silhouette of a butterfly / bird
+        ctx.fillStyle = '#162418';
+        ctx.beginPath();
+        // Wings
+        ctx.ellipse(cx - 20, cy - 8, 22, 14, -0.4, 0, Math.PI * 2);
+        ctx.ellipse(cx + 20, cy - 8, 22, 14, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 6, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Magic lantern rays
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx - 45, cy - 35, 8, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+      case 'nature_sorting': {
+        // Twin hollow log bowls with sorted leaves & sparkling crystals
+        // Bowl 1 (Left - Leaves)
+        ctx.fillStyle = '#3d2614';
+        ctx.beginPath();
+        ctx.ellipse(cx - 36, cy + 15, 30, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#8b5a2b';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#80ed99';
+        ctx.beginPath();
+        ctx.ellipse(cx - 36, cy + 10, 15, 8, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bowl 2 (Right - Crystals)
+        ctx.fillStyle = '#14293d';
+        ctx.beginPath();
+        ctx.ellipse(cx + 36, cy + 15, 30, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#48cae4';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#90e0ef';
+        ctx.beginPath();
+        ctx.moveTo(cx + 36, cy - 4);
+        ctx.lineTo(cx + 46, cy + 12);
+        ctx.lineTo(cx + 36, cy + 22);
+        ctx.lineTo(cx + 26, cy + 12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        break;
+      }
+      case 'symmetry_wings': {
+        // Enchanted butterfly with mirrored bilateral gemstone wings
+        // Center spine
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 5, 28, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Left upper wing
+        ctx.fillStyle = '#ff99c8';
+        ctx.beginPath();
+        ctx.ellipse(cx - 32, cy - 14, 28, 18, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Right upper wing (mirror)
+        ctx.fillStyle = '#ff99c8';
+        ctx.beginPath();
+        ctx.ellipse(cx + 32, cy - 14, 28, 18, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Lower wings
+        ctx.fillStyle = '#80ed99';
+        ctx.beginPath();
+        ctx.ellipse(cx - 24, cy + 20, 20, 12, 0.3, 0, Math.PI * 2);
+        ctx.ellipse(cx + 24, cy + 20, 20, 12, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Mirrored gems
+        ctx.fillStyle = '#4cc9f0';
+        ctx.beginPath();
+        ctx.arc(cx - 32, cy - 14, 6, 0, Math.PI * 2);
+        ctx.arc(cx + 32, cy - 14, 6, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      default: {
+        // Fallback enchanted star
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
   /**
    * Returns (and lazily generates at 256x256 resolution) the Phaser texture key
    * for any of the 20 topics.

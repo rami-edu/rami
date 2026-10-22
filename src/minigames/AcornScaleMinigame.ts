@@ -1,9 +1,14 @@
 import type Phaser from 'phaser';
-import type {
-  ActivityActionEntry,
-  ActivityChildDetails,
-  MinigameDescriptor,
-  MinigameModule
+import {
+  DEFAULT_STAR_REQUIREMENTS,
+  evaluateStarProgress,
+  MAX_ACTIVITY_STARS,
+  type ActivityActionEntry,
+  type ActivityChildDetails,
+  type MinigameDescriptor,
+  type MinigameModule,
+  type StarLevelRequirement,
+  type StarProgressStatus
 } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
@@ -28,10 +33,10 @@ const UI_FONT =
 
 const LEVELS: AcornLevel[] = [
   { level: 1, targetWeight: 3, hint: 'Warm-up! Add 3 acorns to balance the pebble.' },
-  { level: 2, targetWeight: 5, hint: 'Level 2: Match the forest stone of weight 5!' },
-  { level: 3, targetWeight: 7, hint: 'Level 3: Balance the heavy river boulder of weight 7!' },
-  { level: 4, targetWeight: 9, hint: 'Level 4: Match the ancient root stone of weight 9!' },
-  { level: 5, targetWeight: 12, hint: 'Master Level 5: Balance the golden boulder of weight 12!' }
+  { level: 2, targetWeight: 5, hint: 'Match the forest stone of weight 5!' },
+  { level: 3, targetWeight: 7, hint: 'Balance the heavy river boulder of weight 7!' },
+  { level: 4, targetWeight: 9, hint: 'Match the ancient root stone of weight 9!' },
+  { level: 5, targetWeight: 12, hint: 'Balance the golden boulder of weight 12!' }
 ];
 
 export class AcornScaleActivity implements MinigameModule {
@@ -44,13 +49,42 @@ export class AcornScaleActivity implements MinigameModule {
     description:
       'Visual equations: Place the exact number of acorns on the scale to match the rock weight!',
     backgroundKey: 'bg_acorn_scale',
-    backgroundUrl: './minigame-background.jpg'
+    backgroundUrl: './minigame-background.jpg',
+    knowledgeTags: ['mathematics', 'motor_skills', 'science'],
+    parentGuide: {
+      pedagogicalGoals:
+        'Cultivates early intuitive equality, one-to-one counting, and mass conservation without requiring written numerals or equation signs.',
+      parentRecommendation:
+        'Encourage your preschooler to watch how the balance beam responds with every acorn added. Ask them: "Which side is heavier right now?" and celebrate when the beam settles horizontal.'
+    }
   };
+
+  /**
+   * Standard exponential star requirements (1, 10, 100, 1,000, 10,000 successful attempts).
+   * Can be redefined via `setStarRequirements()` or subclass override.
+   */
+  private starRequirements: readonly StarLevelRequirement[] =
+    DEFAULT_STAR_REQUIREMENTS;
 
   private recordsByProfile: Record<string, AcornProfileLog> = {};
 
-  constructor() {
+  constructor(customStarRequirements?: readonly StarLevelRequirement[]) {
+    if (customStarRequirements && customStarRequirements.length === MAX_ACTIVITY_STARS) {
+      this.starRequirements = customStarRequirements;
+    }
     this.loadFromStorage();
+  }
+
+  public getStarRequirements(): readonly StarLevelRequirement[] {
+    return this.starRequirements;
+  }
+
+  public setStarRequirements(
+    requirements: readonly StarLevelRequirement[]
+  ): void {
+    if (requirements.length === MAX_ACTIVITY_STARS) {
+      this.starRequirements = requirements;
+    }
   }
 
   private getStorage(): Storage | null {
@@ -91,14 +125,18 @@ export class AcornScaleActivity implements MinigameModule {
 
   private ensureRecord(profileId: string): AcornProfileLog {
     if (!this.recordsByProfile[profileId]) {
-      const fallbackHigh =
+      const fallbackCompleted =
         profileManager.getActiveProfile()?.id === profileId
           ? profileManager.getActiveProfile()?.progress['Acorn Scale']
-              ?.highestLevel ?? 0
+              ?.completedCount ?? 0
           : 0;
+      const initialStars = evaluateStarProgress(
+        fallbackCompleted,
+        this.starRequirements
+      ).starsEarned;
       this.recordsByProfile[profileId] = {
-        highestLevel: fallbackHigh,
-        levelsCompleted: fallbackHigh,
+        highestLevel: initialStars,
+        levelsCompleted: fallbackCompleted,
         acornsAddedCount: 0,
         acornsRemovedCount: 0,
         lastPlayedAt: null,
@@ -110,6 +148,19 @@ export class AcornScaleActivity implements MinigameModule {
 
   private resolveProfileId(profileId?: string): string {
     return profileId ?? profileManager.getActiveProfile()?.id ?? 'default';
+  }
+
+  public getStarProgress(profileId?: string): StarProgressStatus {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    const profileProgress = profileManager
+      .getAllProfiles()
+      .find((p) => p.id === pid)?.progress['Acorn Scale'];
+    const totalSolved = Math.max(
+      rec.levelsCompleted,
+      profileProgress?.completedCount ?? 0
+    );
+    return evaluateStarProgress(totalSolved, this.starRequirements);
   }
 
   public recordAcornAdded(
@@ -163,22 +214,27 @@ export class AcornScaleActivity implements MinigameModule {
     level: number,
     targetWeight: number,
     profileId?: string
-  ): void {
+  ): StarProgressStatus {
     const pid = this.resolveProfileId(profileId);
     const rec = this.ensureRecord(pid);
     rec.levelsCompleted += 1;
-    rec.highestLevel = Math.max(rec.highestLevel, level);
+    const starStatus = evaluateStarProgress(
+      rec.levelsCompleted,
+      this.starRequirements
+    );
+    rec.highestLevel = starStatus.starsEarned;
     rec.lastPlayedAt = Date.now();
     rec.actionHistory.unshift({
       timestamp: rec.lastPlayedAt,
-      level,
-      description: `Balanced rock of weight ${targetWeight} with ${targetWeight} acorns (Level ${level} solved)`,
+      level: starStatus.starsEarned,
+      description: `Balanced rock of weight ${targetWeight} with ${targetWeight} acorns (Tier ${level} • ${starStatus.starsVisual} • ${rec.levelsCompleted} solved)`,
       outcome: 'completed'
     });
     if (rec.actionHistory.length > 25) {
       rec.actionHistory.length = 25;
     }
     this.saveToStorage();
+    return starStatus;
   }
 
   public getActivityDetails(profileId?: string): ActivityChildDetails {
@@ -187,27 +243,28 @@ export class AcornScaleActivity implements MinigameModule {
     const profileProgress = profileManager
       .getAllProfiles()
       .find((p) => p.id === pid)?.progress['Acorn Scale'];
-    const highestLevel = Math.max(
-      rec.highestLevel,
-      profileProgress?.highestLevel ?? 0
-    );
-    const levelsCompleted = Math.max(
-      rec.levelsCompleted,
-      profileProgress?.completedCount ?? 0
-    );
+    const starProgress = this.getStarProgress(pid);
+    const levelsCompleted = starProgress.successfulAttempts;
+    const starsEarned = starProgress.starsEarned;
     const totalActions = rec.acornsAddedCount + rec.acornsRemovedCount;
 
     const summaryText =
       levelsCompleted > 0 || totalActions > 0
-        ? `Highest Level: ${highestLevel} • Equations Balanced: ${levelsCompleted} • Acorns Placed: ${rec.acornsAddedCount} • Scale Adjustments: ${rec.acornsRemovedCount}`
-        : 'No activity recorded yet — child has not balanced any rocks on the Acorn Scale.';
+        ? `Stars: ${starProgress.starsVisual} (${starsEarned}/${MAX_ACTIVITY_STARS}) • Equations Balanced: ${levelsCompleted} • ${starProgress.progressBarLabel} • Acorns Placed: ${rec.acornsAddedCount} • Adjustments: ${rec.acornsRemovedCount}`
+        : `Stars: ${starProgress.starsVisual} (0/${MAX_ACTIVITY_STARS}) • ${starProgress.progressBarLabel} — No equations solved yet.`;
 
     return {
       activityKey: 'Acorn Scale',
       activityTitle: this.descriptor.title,
       pillar: this.descriptor.pillar,
       description: this.descriptor.description,
-      highestLevel,
+      knowledgeTags: this.descriptor.knowledgeTags,
+      parentGuide: this.descriptor.parentGuide,
+      starsEarned,
+      maxStars: MAX_ACTIVITY_STARS,
+      starsVisual: starProgress.starsVisual,
+      starProgress,
+      highestLevel: starsEarned,
       levelsCompleted,
       totalActions,
       mistakesCount: rec.acornsRemovedCount,
@@ -233,7 +290,7 @@ export class AcornScaleActivity implements MinigameModule {
       .container(width / 2, height / 2)
       .setDepth(100)
       .setScale(
-        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 460)
+        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 500)
       );
 
     const onResize = (gameSize: Phaser.Structs.Size) => {
@@ -245,21 +302,17 @@ export class AcornScaleActivity implements MinigameModule {
             Math.min(
               curDpr,
               (gameSize.width - 24 * curDpr) / 760,
-              (gameSize.height - 40 * curDpr) / 460
+              (gameSize.height - 40 * curDpr) / 500
             )
           );
       }
     };
     scene.scale.on('resize', onResize);
 
-    const savedLevel =
-      profileManager.getActiveProfile()?.progress['Acorn Scale']
-        ?.highestLevel ?? 0;
-    let levelIndex = savedLevel;
     let currentAcorns = 0;
     let transitioning = false;
 
-    const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
+    const bg = scene.add.rectangle(0, 0, 760, 490, 0x162418, 0.9);
     bg.setStrokeStyle(4, 0x52b788);
 
     const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
@@ -272,56 +325,85 @@ export class AcornScaleActivity implements MinigameModule {
     );
 
     const headerTopicIcon = scene.add
-      .image(-215, -188, topicLogoKey)
-      .setDisplaySize(52, 52);
+      .image(-235, -198, topicLogoKey)
+      .setDisplaySize(50, 50);
 
     const headerPillarIcon = scene.add
-      .image(215, -188, pillarLogoKey)
+      .image(235, -198, pillarLogoKey)
       .setDisplaySize(44, 44);
 
     const title = scene.add
-      .text(0, -190, 'Acorn Scale — Level 1', {
+      .text(0, -206, 'Acorn Scale', {
         fontFamily: UI_FONT,
-        fontSize: '26px',
+        fontSize: '25px',
         color: '#95d5b2',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    const subtitle = scene.add
-      .text(0, -145, '', {
+    const starsRowText = scene.add
+      .text(0, -172, '', {
         fontFamily: UI_FONT,
-        fontSize: '18px',
-        color: '#d8f3dc'
-      })
-      .setOrigin(0.5);
-
-    const statusText = scene.add
-      .text(0, 20, '', {
-        fontFamily: UI_FONT,
-        fontSize: '28px',
+        fontSize: '24px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    const beam = scene.add.rectangle(0, -40, 380, 12, 0x74c69d);
-    const pivot = scene.add.triangle(0, -10, 0, -25, -20, 15, 20, 15, 0x52b788);
+    const BAR_WIDTH = 460;
+    const BAR_HEIGHT = 16;
+    const starBarBg = scene.add
+      .rectangle(0, -142, BAR_WIDTH, BAR_HEIGHT, 0x0f1c11, 0.95)
+      .setStrokeStyle(2, 0x52b788);
 
-    // Level Completion Notification Banner
+    const starBarFill = scene.add
+      .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
+      .setOrigin(0, 0.5);
+
+    const starBarLabel = scene.add
+      .text(0, -120, '', {
+        fontFamily: UI_FONT,
+        fontSize: '14px',
+        color: '#b7e4c7',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+
+    const subtitle = scene.add
+      .text(0, -92, '', {
+        fontFamily: UI_FONT,
+        fontSize: '17px',
+        color: '#d8f3dc'
+      })
+      .setOrigin(0.5);
+
+    const statusText = scene.add
+      .text(0, 42, '', {
+        fontFamily: UI_FONT,
+        fontSize: '27px',
+        color: '#ffd166',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+
+    const beam = scene.add.rectangle(0, -18, 380, 12, 0x74c69d);
+    const pivot = scene.add.triangle(0, 12, 0, -25, -20, 15, 20, 15, 0x52b788);
+
+    // Star / Instance Completion Notification Banner
     const toastContainer = scene.add
-      .container(0, -40)
+      .container(0, -20)
       .setDepth(120)
       .setVisible(false)
       .setScale(0.5);
 
     const toastBg = scene.add
-      .rectangle(0, 0, 520, 110, 0x1b4332, 0.98)
+      .rectangle(0, 0, 540, 118, 0x1b4332, 0.98)
       .setStrokeStyle(4, 0xffd166);
 
     const toastText = scene.add
-      .text(0, 0, '🎉 Level Complete! Moving to next level...', {
-        fontSize: '22px',
+      .text(0, 0, '', {
+        fontFamily: UI_FONT,
+        fontSize: '21px',
         color: '#fff3b0',
         fontStyle: 'bold',
         align: 'center'
@@ -330,37 +412,61 @@ export class AcornScaleActivity implements MinigameModule {
 
     toastContainer.add([toastBg, toastText]);
 
-    const getTargetWeightForIndex = (idx: number): number => {
-      const currentDef = LEVELS[idx % LEVELS.length];
-      return currentDef.targetWeight + Math.floor(idx / LEVELS.length) * 2;
+    const getTargetWeightForSolvedCount = (solvedCount: number): number => {
+      const currentDef = LEVELS[solvedCount % LEVELS.length];
+      return (
+        currentDef.targetWeight +
+        Math.floor((solvedCount % 15) / LEVELS.length) * 2
+      );
     };
 
-    const showLevelCompleteToast = (
-      completedLvl: number,
+    const syncStarHeaderUi = (status: StarProgressStatus) => {
+      const spacedStars = status.starsVisual.split('').join(' ');
+      starsRowText.setText(
+        `${spacedStars}   (${status.starsEarned} / ${status.maxStars} Stars)`
+      );
+      const targetFillW = Math.round(
+        (BAR_WIDTH - 4) * status.progressFraction
+      );
+      starBarFill.width = targetFillW;
+      starBarLabel.setText(status.progressBarLabel);
+    };
+
+    const showCompletionToast = (
       targetWeight: number,
-      nextLvl: number
+      prevStars: number,
+      newStatus: StarProgressStatus
     ) => {
       transitioning = true;
-      this.recordLevelBalanced(completedLvl, targetWeight);
       profileManager.recordMinigameCompletion(
         'Acorn Scale',
         undefined,
-        completedLvl
+        newStatus.starsEarned
       );
+      window.dispatchEvent(new CustomEvent('rami:profile-changed'));
+      syncStarHeaderUi(newStatus);
 
-      toastText.setText(
-        `🎉 Level ${completedLvl} Complete!\nAdvancing to Level ${nextLvl}...`
-      );
+      const earnedNewStar = newStatus.starsEarned > prevStars;
+      if (earnedNewStar) {
+        toastText.setText(
+          `🌟 Star ${newStatus.starsEarned} Earned! (${newStatus.starsVisual})\n${newStatus.progressBarLabel}`
+        );
+      } else {
+        toastText.setText(
+          `✨ Balanced ${targetWeight} = ${targetWeight}!\n${newStatus.progressBarLabel}`
+        );
+      }
+
       toastContainer.setVisible(true).setScale(0.5);
 
       scene.tweens.add({
         targets: toastContainer,
         scale: 1,
-        duration: 280,
+        duration: 260,
         ease: 'Back.easeOut'
       });
 
-      scene.time.delayedCall(1500, () => {
+      scene.time.delayedCall(earnedNewStar ? 1500 : 1050, () => {
         if (!container.active) return;
         toastContainer.setVisible(false);
         currentAcorns = 0;
@@ -370,10 +476,15 @@ export class AcornScaleActivity implements MinigameModule {
     };
 
     const updateScale = () => {
-      const displayLevel = levelIndex + 1;
-      const targetWeight = getTargetWeightForIndex(levelIndex);
+      const starStatus = this.getStarProgress();
+      syncStarHeaderUi(starStatus);
 
-      title.setText(`Acorn Scale — Level ${displayLevel}`);
+      const solvedCount = starStatus.successfulAttempts;
+      const targetWeight = getTargetWeightForSolvedCount(solvedCount);
+
+      title.setText(
+        `Acorn Scale — Star Level ${starStatus.starsEarned}/${starStatus.maxStars}`
+      );
       subtitle.setText(
         `Match the rock of weight [${targetWeight}] with acorns!`
       );
@@ -387,9 +498,12 @@ export class AcornScaleActivity implements MinigameModule {
       if (currentAcorns === targetWeight && !transitioning) {
         statusText.setText(`✨ Balanced! ${targetWeight} = ${currentAcorns} ✨`);
         statusText.setColor('#80ed99');
-        const finishedLevel = displayLevel;
-        levelIndex += 1;
-        showLevelCompleteToast(finishedLevel, targetWeight, levelIndex + 1);
+        const prevStars = starStatus.starsEarned;
+        const nextStatus = this.recordLevelBalanced(
+          starStatus.activeDifficultyTier,
+          targetWeight
+        );
+        showCompletionToast(targetWeight, prevStars, nextStatus);
       } else {
         statusText.setColor('#ffd166');
       }
@@ -398,7 +512,8 @@ export class AcornScaleActivity implements MinigameModule {
     updateScale();
 
     const addBtn = scene.add
-      .text(-95, 85, '➕ Add Acorn', {
+      .text(-95, 110, '➕ Add Acorn', {
+        fontFamily: UI_FONT,
         fontSize: '20px',
         backgroundColor: '#2d6a4f',
         color: '#ffffff',
@@ -410,15 +525,22 @@ export class AcornScaleActivity implements MinigameModule {
         if (transitioning) return;
         if (currentAcorns < 25) {
           currentAcorns++;
-          const displayLevel = levelIndex + 1;
-          const targetWeight = getTargetWeightForIndex(levelIndex);
-          this.recordAcornAdded(displayLevel, currentAcorns, targetWeight);
+          const starStatus = this.getStarProgress();
+          const targetWeight = getTargetWeightForSolvedCount(
+            starStatus.successfulAttempts
+          );
+          this.recordAcornAdded(
+            starStatus.activeDifficultyTier,
+            currentAcorns,
+            targetWeight
+          );
           updateScale();
         }
       });
 
     const removeBtn = scene.add
-      .text(95, 85, '➖ Remove', {
+      .text(95, 110, '➖ Remove', {
+        fontFamily: UI_FONT,
         fontSize: '20px',
         backgroundColor: '#3a5a40',
         color: '#ffffff',
@@ -430,9 +552,15 @@ export class AcornScaleActivity implements MinigameModule {
         if (transitioning) return;
         if (currentAcorns > 0) {
           currentAcorns--;
-          const displayLevel = levelIndex + 1;
-          const targetWeight = getTargetWeightForIndex(levelIndex);
-          this.recordAcornRemoved(displayLevel, currentAcorns, targetWeight);
+          const starStatus = this.getStarProgress();
+          const targetWeight = getTargetWeightForSolvedCount(
+            starStatus.successfulAttempts
+          );
+          this.recordAcornRemoved(
+            starStatus.activeDifficultyTier,
+            currentAcorns,
+            targetWeight
+          );
           updateScale();
         }
       });
@@ -442,6 +570,10 @@ export class AcornScaleActivity implements MinigameModule {
       headerTopicIcon,
       headerPillarIcon,
       title,
+      starsRowText,
+      starBarBg,
+      starBarFill,
+      starBarLabel,
       subtitle,
       beam,
       pivot,

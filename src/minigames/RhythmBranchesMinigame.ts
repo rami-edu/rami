@@ -1,9 +1,14 @@
 import type Phaser from 'phaser';
-import type {
-  ActivityActionEntry,
-  ActivityChildDetails,
-  MinigameDescriptor,
-  MinigameModule
+import {
+  DEFAULT_STAR_REQUIREMENTS,
+  evaluateStarProgress,
+  MAX_ACTIVITY_STARS,
+  type ActivityActionEntry,
+  type ActivityChildDetails,
+  type MinigameDescriptor,
+  type MinigameModule,
+  type StarLevelRequirement,
+  type StarProgressStatus
 } from '../managers/MinigameLoader';
 import { profileManager } from '../managers/ProfileManager';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
@@ -20,11 +25,11 @@ const LEAF_DEFS = [
 ];
 
 const MELODY_LEVELS: number[][] = [
-  [0, 1, 2],          // Level 1: Do -> Re -> Mi
-  [0, 2, 3, 4],       // Level 2: Do -> Mi -> Sol -> La
-  [4, 3, 2, 1, 0],    // Level 3: La -> Sol -> Mi -> Re -> Do
-  [0, 3, 1, 4, 2],    // Level 4: 5-note forest arpeggio
-  [2, 1, 0, 2, 3, 4]  // Level 5: 6-note canopy symphony
+  [0, 1, 2],          // Difficulty 1: Do -> Re -> Mi
+  [0, 2, 3, 4],       // Difficulty 2: Do -> Mi -> Sol -> La
+  [4, 3, 2, 1, 0],    // Difficulty 3: La -> Sol -> Mi -> Re -> Do
+  [0, 3, 1, 4, 2],    // Difficulty 4: 5-note forest arpeggio
+  [2, 1, 0, 2, 3, 4]  // Difficulty 5: 6-note canopy symphony
 ];
 
 interface RhythmProfileLog {
@@ -46,13 +51,42 @@ export class RhythmBranchesActivity implements MinigameModule {
     description:
       'Tap glowing leaves in sequence to compose a forest melody!',
     backgroundKey: 'bg_rhythm_branches',
-    backgroundUrl: './rhythm-background.jpg'
+    backgroundUrl: './rhythm-background.jpg',
+    knowledgeTags: ['music', 'logic', 'motor_skills'],
+    parentGuide: {
+      pedagogicalGoals:
+        'Sharpens auditory discrimination, working memory for short sound sequences, and rhythmic finger tapping.',
+      parentRecommendation:
+        'Hum or sing the notes along with your child. Let them listen to the glowing bell sequence first, then clap their hands as they tap each leaf.'
+    }
   };
+
+  /**
+   * Standard exponential star progression (1, 10, 100, 1,000, 10,000 successful melodies),
+   * or custom star requirements if overridden via `setStarRequirements()`.
+   */
+  private starRequirements: readonly StarLevelRequirement[] =
+    DEFAULT_STAR_REQUIREMENTS;
 
   private recordsByProfile: Record<string, RhythmProfileLog> = {};
 
-  constructor() {
+  constructor(customStarRequirements?: readonly StarLevelRequirement[]) {
+    if (customStarRequirements && customStarRequirements.length === MAX_ACTIVITY_STARS) {
+      this.starRequirements = customStarRequirements;
+    }
     this.loadFromStorage();
+  }
+
+  public getStarRequirements(): readonly StarLevelRequirement[] {
+    return this.starRequirements;
+  }
+
+  public setStarRequirements(
+    requirements: readonly StarLevelRequirement[]
+  ): void {
+    if (requirements.length === MAX_ACTIVITY_STARS) {
+      this.starRequirements = requirements;
+    }
   }
 
   private getStorage(): Storage | null {
@@ -93,14 +127,18 @@ export class RhythmBranchesActivity implements MinigameModule {
 
   private ensureRecord(profileId: string): RhythmProfileLog {
     if (!this.recordsByProfile[profileId]) {
-      const fallbackHigh =
+      const fallbackCompleted =
         profileManager.getActiveProfile()?.id === profileId
           ? profileManager.getActiveProfile()?.progress['Rhythm in the Branches']
-              ?.highestLevel ?? 0
+              ?.completedCount ?? 0
           : 0;
+      const initialStars = evaluateStarProgress(
+        fallbackCompleted,
+        this.starRequirements
+      ).starsEarned;
       this.recordsByProfile[profileId] = {
-        highestLevel: fallbackHigh,
-        levelsCompleted: fallbackHigh,
+        highestLevel: initialStars,
+        levelsCompleted: fallbackCompleted,
         notesTappedCorrect: 0,
         wrongNoteResets: 0,
         lastPlayedAt: null,
@@ -112,6 +150,19 @@ export class RhythmBranchesActivity implements MinigameModule {
 
   private resolveProfileId(profileId?: string): string {
     return profileId ?? profileManager.getActiveProfile()?.id ?? 'default';
+  }
+
+  public getStarProgress(profileId?: string): StarProgressStatus {
+    const pid = this.resolveProfileId(profileId);
+    const rec = this.ensureRecord(pid);
+    const profileProgress = profileManager
+      .getAllProfiles()
+      .find((p) => p.id === pid)?.progress['Rhythm in the Branches'];
+    const totalSolved = Math.max(
+      rec.levelsCompleted,
+      profileProgress?.completedCount ?? 0
+    );
+    return evaluateStarProgress(totalSolved, this.starRequirements);
   }
 
   public recordNotePlayed(
@@ -153,22 +204,27 @@ export class RhythmBranchesActivity implements MinigameModule {
     level: number,
     melodyNotes: string[],
     profileId?: string
-  ): void {
+  ): StarProgressStatus {
     const pid = this.resolveProfileId(profileId);
     const rec = this.ensureRecord(pid);
     rec.levelsCompleted += 1;
-    rec.highestLevel = Math.max(rec.highestLevel, level);
+    const starStatus = evaluateStarProgress(
+      rec.levelsCompleted,
+      this.starRequirements
+    );
+    rec.highestLevel = starStatus.starsEarned;
     rec.lastPlayedAt = Date.now();
     rec.actionHistory.unshift({
       timestamp: rec.lastPlayedAt,
-      level,
-      description: `Composed Level ${level} melody: ${melodyNotes.join(' → ')}`,
+      level: starStatus.starsEarned,
+      description: `Composed Level ${level} melody: ${melodyNotes.join(' → ')} (${starStatus.starsVisual} • ${rec.levelsCompleted} solved)`,
       outcome: 'completed'
     });
     if (rec.actionHistory.length > 25) {
       rec.actionHistory.length = 25;
     }
     this.saveToStorage();
+    return starStatus;
   }
 
   public getActivityDetails(profileId?: string): ActivityChildDetails {
@@ -177,27 +233,28 @@ export class RhythmBranchesActivity implements MinigameModule {
     const profileProgress = profileManager
       .getAllProfiles()
       .find((p) => p.id === pid)?.progress['Rhythm in the Branches'];
-    const highestLevel = Math.max(
-      rec.highestLevel,
-      profileProgress?.highestLevel ?? 0
-    );
-    const levelsCompleted = Math.max(
-      rec.levelsCompleted,
-      profileProgress?.completedCount ?? 0
-    );
+    const starProgress = this.getStarProgress(pid);
+    const levelsCompleted = starProgress.successfulAttempts;
+    const starsEarned = starProgress.starsEarned;
     const totalActions = rec.notesTappedCorrect + rec.wrongNoteResets;
 
     const summaryText =
       levelsCompleted > 0 || totalActions > 0
-        ? `Highest Level: ${highestLevel} • Melodies Composed: ${levelsCompleted} • Notes Played: ${rec.notesTappedCorrect} • Wrong-Note Resets: ${rec.wrongNoteResets}`
-        : 'No activity recorded yet — child has not composed any melodies in Rhythm in the Branches.';
+        ? `Stars: ${starProgress.starsVisual} (${starsEarned}/${MAX_ACTIVITY_STARS}) • Melodies Composed: ${levelsCompleted} • ${starProgress.progressBarLabel} • Notes Played: ${rec.notesTappedCorrect} • Resets: ${rec.wrongNoteResets}`
+        : `Stars: ${starProgress.starsVisual} (0/${MAX_ACTIVITY_STARS}) • ${starProgress.progressBarLabel} — No melodies composed yet.`;
 
     return {
       activityKey: 'Rhythm in the Branches',
       activityTitle: this.descriptor.title,
       pillar: this.descriptor.pillar,
       description: this.descriptor.description,
-      highestLevel,
+      knowledgeTags: this.descriptor.knowledgeTags,
+      parentGuide: this.descriptor.parentGuide,
+      starsEarned,
+      maxStars: MAX_ACTIVITY_STARS,
+      starsVisual: starProgress.starsVisual,
+      starProgress,
+      highestLevel: starsEarned,
       levelsCompleted,
       totalActions,
       mistakesCount: rec.wrongNoteResets,
@@ -223,7 +280,7 @@ export class RhythmBranchesActivity implements MinigameModule {
       .container(width / 2, height / 2)
       .setDepth(100)
       .setScale(
-        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 460)
+        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 500)
       );
 
     const onResize = (gameSize: Phaser.Structs.Size) => {
@@ -235,21 +292,17 @@ export class RhythmBranchesActivity implements MinigameModule {
             Math.min(
               curDpr,
               (gameSize.width - 24 * curDpr) / 760,
-              (gameSize.height - 40 * curDpr) / 460
+              (gameSize.height - 40 * curDpr) / 500
             )
           );
       }
     };
     scene.scale.on('resize', onResize);
 
-    const savedLevel =
-      profileManager.getActiveProfile()?.progress['Rhythm in the Branches']
-        ?.highestLevel ?? 0;
-    let levelIndex = savedLevel;
     let stepIndex = 0;
     let transitioning = false;
 
-    const bg = scene.add.rectangle(0, 0, 760, 460, 0x162418, 0.86);
+    const bg = scene.add.rectangle(0, 0, 760, 490, 0x162418, 0.9);
     bg.setStrokeStyle(4, 0x52b788);
 
     const topicLogoKey = ActivityLogoLibrary.getTopicLogoTexture(
@@ -262,15 +315,15 @@ export class RhythmBranchesActivity implements MinigameModule {
     );
 
     const headerTopicIcon = scene.add
-      .image(-255, -188, topicLogoKey)
-      .setDisplaySize(52, 52);
+      .image(-255, -198, topicLogoKey)
+      .setDisplaySize(50, 50);
 
     const headerPillarIcon = scene.add
-      .image(255, -188, pillarLogoKey)
+      .image(255, -198, pillarLogoKey)
       .setDisplaySize(44, 44);
 
     const title = scene.add
-      .text(0, -190, 'Rhythm in the Branches — Level 1', {
+      .text(0, -206, 'Rhythm in the Branches', {
         fontFamily: UI_FONT,
         fontSize: '24px',
         color: '#95d5b2',
@@ -278,8 +331,36 @@ export class RhythmBranchesActivity implements MinigameModule {
       })
       .setOrigin(0.5);
 
+    const starsRowText = scene.add
+      .text(0, -172, '', {
+        fontFamily: UI_FONT,
+        fontSize: '24px',
+        color: '#ffd166',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+
+    const BAR_WIDTH = 460;
+    const BAR_HEIGHT = 16;
+    const starBarBg = scene.add
+      .rectangle(0, -142, BAR_WIDTH, BAR_HEIGHT, 0x0f1c11, 0.95)
+      .setStrokeStyle(2, 0x52b788);
+
+    const starBarFill = scene.add
+      .rectangle(-BAR_WIDTH / 2 + 2, -142, 0, BAR_HEIGHT - 4, 0x80ed99, 1)
+      .setOrigin(0, 0.5);
+
+    const starBarLabel = scene.add
+      .text(0, -120, '', {
+        fontFamily: UI_FONT,
+        fontSize: '14px',
+        color: '#b7e4c7',
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5);
+
     const subtitle = scene.add
-      .text(0, -142, '', {
+      .text(0, -90, '', {
         fontFamily: UI_FONT,
         fontSize: '17px',
         color: '#d8f3dc',
@@ -288,28 +369,29 @@ export class RhythmBranchesActivity implements MinigameModule {
       .setOrigin(0.5);
 
     const scoreDisplay = scene.add
-      .text(0, 48, 'Tap the first note in the target melody!', {
+      .text(0, 92, 'Tap the first note in the target melody!', {
         fontFamily: UI_FONT,
-        fontSize: '21px',
+        fontSize: '20px',
         color: '#ffd166',
         fontStyle: 'bold'
       })
       .setOrigin(0.5);
 
-    // Level Completion Notification Banner
+    // Star / Instance Completion Notification Banner
     const toastContainer = scene.add
-      .container(0, -35)
+      .container(0, -15)
       .setDepth(120)
       .setVisible(false)
       .setScale(0.5);
 
     const toastBg = scene.add
-      .rectangle(0, 0, 520, 110, 0x1b4332, 0.98)
+      .rectangle(0, 0, 540, 118, 0x1b4332, 0.98)
       .setStrokeStyle(4, 0xffd166);
 
     const toastText = scene.add
       .text(0, 0, '', {
-        fontSize: '22px',
+        fontFamily: UI_FONT,
+        fontSize: '21px',
         color: '#fff3b0',
         fontStyle: 'bold',
         align: 'center'
@@ -319,14 +401,33 @@ export class RhythmBranchesActivity implements MinigameModule {
     toastContainer.add([toastBg, toastText]);
 
     const getCurrentPattern = (): number[] => {
-      return MELODY_LEVELS[levelIndex % MELODY_LEVELS.length];
+      const starStatus = this.getStarProgress();
+      const idx =
+        (starStatus.activeDifficultyTier - 1 + starStatus.successfulAttempts) %
+        MELODY_LEVELS.length;
+      return MELODY_LEVELS[idx];
+    };
+
+    const syncStarHeaderUi = (status: StarProgressStatus) => {
+      const spacedStars = status.starsVisual.split('').join(' ');
+      starsRowText.setText(
+        `${spacedStars}   (${status.starsEarned} / ${status.maxStars} Stars)`
+      );
+      const targetFillW = Math.round(
+        (BAR_WIDTH - 4) * status.progressFraction
+      );
+      starBarFill.width = targetFillW;
+      starBarLabel.setText(status.progressBarLabel);
     };
 
     const updateLevelHeader = () => {
-      const displayLevel = levelIndex + 1;
+      const starStatus = this.getStarProgress();
+      syncStarHeaderUi(starStatus);
       const pattern = getCurrentPattern();
       const targetNames = pattern.map((idx) => LEAF_DEFS[idx].label).join(' → ');
-      title.setText(`Rhythm in the Branches — Level ${displayLevel}`);
+      title.setText(
+        `Rhythm in the Branches — Star Level ${starStatus.starsEarned}/${starStatus.maxStars}`
+      );
       subtitle.setText(`Play this melody: ${targetNames}`);
       scoreDisplay
         .setText(`Progress: ${stepIndex} / ${pattern.length} notes`)
@@ -340,18 +441,23 @@ export class RhythmBranchesActivity implements MinigameModule {
       headerTopicIcon,
       headerPillarIcon,
       title,
+      starsRowText,
+      starBarBg,
+      starBarFill,
+      starBarLabel,
       subtitle,
       scoreDisplay
     ]);
 
     LEAF_DEFS.forEach((leaf, idx) => {
       const circle = scene.add
-        .circle(leaf.x, -35, 38, leaf.color)
+        .circle(leaf.x, -5, 38, leaf.color)
         .setStrokeStyle(3, 0xd8f3dc)
         .setInteractive({ useHandCursor: true });
 
       const label = scene.add
-        .text(leaf.x, -35, leaf.label, {
+        .text(leaf.x, -5, leaf.label, {
+          fontFamily: UI_FONT,
           fontSize: '16px',
           color: '#081c15',
           fontStyle: 'bold'
@@ -368,8 +474,9 @@ export class RhythmBranchesActivity implements MinigameModule {
           yoyo: true
         });
 
+        const starStatus = this.getStarProgress();
         const pattern = getCurrentPattern();
-        const displayLevel = levelIndex + 1;
+        const displayLevel = starStatus.activeDifficultyTier;
         const expectedLeaf = LEAF_DEFS[pattern[stepIndex]];
 
         if (idx === pattern[stepIndex]) {
@@ -385,31 +492,38 @@ export class RhythmBranchesActivity implements MinigameModule {
 
           if (stepIndex >= pattern.length) {
             transitioning = true;
-            const completedLvl = levelIndex + 1;
+            const prevStars = starStatus.starsEarned;
             const melodyNotes = pattern.map((i) => LEAF_DEFS[i].label);
-            this.recordMelodyCompleted(completedLvl, melodyNotes);
+            const newStatus = this.recordMelodyCompleted(
+              displayLevel,
+              melodyNotes
+            );
             profileManager.recordMinigameCompletion(
               'Rhythm in the Branches',
               undefined,
-              completedLvl
+              newStatus.starsEarned
             );
+            window.dispatchEvent(new CustomEvent('rami:profile-changed'));
+            syncStarHeaderUi(newStatus);
 
-            levelIndex += 1;
             stepIndex = 0;
+            const earnedNewStar = newStatus.starsEarned > prevStars;
 
             toastText.setText(
-              `🎉 Level ${completedLvl} Melody Complete!\nAdvancing to Level ${levelIndex + 1}...`
+              earnedNewStar
+                ? `🌟 Star ${newStatus.starsEarned} Earned! (${newStatus.starsVisual})\n${newStatus.progressBarLabel}`
+                : `🎶 Melody Complete!\n${newStatus.progressBarLabel}`
             );
             toastContainer.setVisible(true).setScale(0.5);
 
             scene.tweens.add({
               targets: toastContainer,
               scale: 1,
-              duration: 280,
+              duration: 260,
               ease: 'Back.easeOut'
             });
 
-            scene.time.delayedCall(1500, () => {
+            scene.time.delayedCall(earnedNewStar ? 1500 : 1050, () => {
               if (!container.active) return;
               toastContainer.setVisible(false);
               transitioning = false;

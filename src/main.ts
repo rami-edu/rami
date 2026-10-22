@@ -8,6 +8,7 @@ import {
   type AnimalAvatarId
 } from './managers/ProfileManager';
 import { minigameLoader } from './managers/MinigameLoader';
+import { KNOWLEDGE_TAGS } from './objects/ActivityKnowledgeTags';
 
 function setupHudAndGuardianModal(): void {
   const usernameEl = document.getElementById('hud-username');
@@ -57,7 +58,7 @@ function setupHudAndGuardianModal(): void {
         hudAvatarImg.src = desc.spritePath;
       }
       if (usernameEl) {
-        usernameEl.textContent = `${active.explorerName} (${active.nickname})`;
+        usernameEl.textContent = active.nickname || active.explorerName;
       }
     } else if (usernameEl) {
       usernameEl.textContent = userManager.getUsername();
@@ -104,6 +105,44 @@ function setupHudAndGuardianModal(): void {
       .map((activity) => {
         const details = activity.getActivityDetails(active?.id);
         const recentItems = details.actionHistory.slice(0, 8);
+
+        // Standardized Knowledge Area Badges
+        const tagsHtml = (details.knowledgeTags || [])
+          .map((tagId) => {
+            const def = KNOWLEDGE_TAGS[tagId];
+            if (!def) return '';
+            return `<span class="tag-badge-chip" style="background:${def.bgHex}; border-color:${def.borderHex}; color:${def.colorHex};">
+              <span>${def.iconSymbol}</span>
+              <span>${def.name}</span>
+            </span>`;
+          })
+          .join('');
+
+        // 5-Star Meter & Progress Bar to next star
+        const pct = Math.round(
+          (details.starProgress?.progressFraction ?? 0) * 100
+        );
+        const starMeterHtml = `
+          <div class="star-meter-box">
+            <div class="star-meter-header">
+              <span style="color:#ffd166; font-weight:700;">${details.starsVisual} (${details.starsEarned}/5 Stars)</span>
+              <span style="color:#b7e4c7; font-size:12px;">${details.starProgress?.progressBarLabel ?? ''}</span>
+            </div>
+            <div class="star-meter-track">
+              <div class="star-meter-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>`;
+
+        // Parent Pedagogical Guide Panel
+        const guideHtml = details.parentGuide
+          ? `<div class="parent-guide-panel">
+              <div class="parent-guide-title">🎯 Pedagogical Goals:</div>
+              <div>${details.parentGuide.pedagogicalGoals}</div>
+              <div class="parent-guide-title" style="margin-top: 6px;">💡 Parent Recommendation:</div>
+              <div>${details.parentGuide.parentRecommendation}</div>
+            </div>`
+          : '';
+
         const logHtml =
           recentItems.length > 0
             ? `<ul class="activity-action-log">
@@ -136,6 +175,9 @@ function setupHudAndGuardianModal(): void {
             <span class="activity-report-title">${details.activityTitle}</span>
             <span class="activity-report-pillar">${details.pillar}</span>
           </div>
+          <div class="knowledge-tags-row">${tagsHtml}</div>
+          ${starMeterHtml}
+          ${guideHtml}
           <div class="activity-report-summary">${details.summaryText}</div>
           ${logHtml}
         </div>`;

@@ -301,18 +301,18 @@ export class ProfileManager {
     const profile = this.state.profiles[targetId];
     const existing = profile.progress[minigameId] ?? {
       completedCount: 0,
-      highestLevel: 1,
+      highestLevel: 0,
       lastPlayedAt: 0
     };
 
     existing.completedCount += 1;
     if (levelCompleted !== undefined) {
       existing.highestLevel = Math.max(
-        existing.highestLevel ?? 1,
+        existing.highestLevel ?? 0,
         levelCompleted
       );
-    } else {
-      existing.highestLevel = (existing.highestLevel ?? 1) + 1;
+    } else if ((existing.highestLevel ?? 0) === 0) {
+      existing.highestLevel = 1;
     }
     existing.lastPlayedAt = Date.now();
     profile.progress[minigameId] = existing;
@@ -323,10 +323,10 @@ export class ProfileManager {
   public getMinigameLevel(minigameId: string, profileId?: string): number {
     const targetId = profileId ?? this.state.activeProfileId;
     if (!targetId || !this.state.profiles[targetId]) {
-      return 1;
+      return 0;
     }
     const stats = this.state.profiles[targetId].progress[minigameId];
-    return stats?.highestLevel ?? 1;
+    return stats?.highestLevel ?? 0;
   }
 }
 

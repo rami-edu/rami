@@ -31,22 +31,64 @@ export const TIER_ACTIVITIES: Array<{
   branchSide: 'left' | 'center' | 'right';
 }> = [
   {
-    id: 'portal_math',
-    minigame: 'Acorn Scale',
+    id: 'portal_geom_shapes',
+    minigame: 'Shape Nest (Geometry)',
     glowHex: '#ffd166',
     branchSide: 'left'
   },
   {
-    id: 'portal_hub',
-    minigame: 'The Clockwork Tower',
+    id: 'portal_color_bloom',
+    minigame: 'Color Bloom (Colors)',
+    glowHex: '#ff99c8',
+    branchSide: 'center'
+  },
+  {
+    id: 'portal_fruit_harvest',
+    minigame: 'Fruit Harvest (Numbers)',
+    glowHex: '#e63946',
+    branchSide: 'right'
+  },
+  {
+    id: 'portal_forest_symphony',
+    minigame: 'Forest Symphony (Music)',
+    glowHex: '#80ed99',
+    branchSide: 'left'
+  },
+  {
+    id: 'portal_phonics_pond',
+    minigame: 'Phonics Pond (Language)',
+    glowHex: '#48cae4',
+    branchSide: 'center'
+  },
+  {
+    id: 'portal_creature_ladder',
+    minigame: 'Creature Ladder (Sizes)',
+    glowHex: '#a7c957',
+    branchSide: 'right'
+  },
+  {
+    id: 'portal_pattern_path',
+    minigame: 'Pattern Path (Patterns)',
+    glowHex: '#f4a261',
+    branchSide: 'left'
+  },
+  {
+    id: 'portal_shadow_match',
+    minigame: 'Shadow Match (Observation)',
     glowHex: '#90e0ef',
     branchSide: 'center'
   },
   {
-    id: 'portal_music',
-    minigame: 'Rhythm in the Branches',
-    glowHex: '#80ed99',
+    id: 'portal_nature_sorting',
+    minigame: 'Nature Sorting (Science)',
+    glowHex: '#52b788',
     branchSide: 'right'
+  },
+  {
+    id: 'portal_symmetry_wings',
+    minigame: 'Symmetry Wings (Art)',
+    glowHex: '#c77dff',
+    branchSide: 'left'
   }
 ];
 

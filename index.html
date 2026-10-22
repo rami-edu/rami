@@ -207,6 +207,67 @@
         margin-bottom: 8px;
         line-height: 1.4;
       }
+      .knowledge-tags-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .tag-badge-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid;
+      }
+      .star-meter-box {
+        background: #09140b;
+        border: 1px solid #2d6a4f;
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+      }
+      .star-meter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      .star-meter-track {
+        width: 100%;
+        height: 8px;
+        background: #142217;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid #40916c;
+      }
+      .star-meter-fill {
+        height: 100%;
+        background: #80ed99;
+        transition: width 0.3s ease;
+      }
+      .parent-guide-panel {
+        background: #14291a;
+        border-left: 3px solid #ffd166;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #d8f3dc;
+      }
+      .parent-guide-title {
+        font-weight: 700;
+        color: #ffd166;
+        margin-bottom: 2px;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
       .activity-action-log {
         list-style: none;
         max-height: 120px;
@@ -308,7 +369,6 @@
 
       <div id="hud-overlay">
         <div class="hud-badge">
-          <img id="hud-avatar-img" src="./avatars/dino.png" alt="Avatar" style="width: 28px; height: 28px; object-fit: contain;" />
           <strong id="hud-username">Loading...</strong>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
