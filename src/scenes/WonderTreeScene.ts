@@ -532,9 +532,9 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.avatarSprite,
-      scaleY: 0.4,
-      scaleX: 0.37,
-      duration: 900,
+      scaleY: 0.386,
+      scaleX: 0.376,
+      duration: 1500,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'

@@ -379,35 +379,45 @@ export abstract class BasePreschoolActivity implements MinigameModule {
       instructorFeedbackBubble
     ]);
 
-    // Instructor gentle breathing animation
+    // Instructor calm, subtle breathing animation (barely perceptible scale, slow cycle)
     scene.tweens.add({
       targets: instructorImg,
-      scaleY: 1.06,
-      scaleX: 0.96,
-      duration: 1100,
+      scaleY: 1.015,
+      scaleX: 0.99,
+      duration: 2200,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
 
     const triggerInstructorCheer = (isBigCelebration = false) => {
+      // Gentle, subtle nod (only 3-4px gentle lift, no large scaling or harsh bounces)
       scene.tweens.add({
         targets: instructorContainer,
-        y: -10,
-        scale: isBigCelebration ? 1.25 : 1.12,
-        duration: 180,
+        y: 16,
+        scale: isBigCelebration ? 1.03 : 1.015,
+        duration: 280,
         yoyo: true,
-        repeat: isBigCelebration ? 2 : 1,
-        ease: 'Back.easeOut'
+        repeat: 0,
+        ease: 'Sine.easeInOut'
       });
-      instructorFeedbackBubble.setText(isBigCelebration ? '🌟 🎉' : '❤️ ✨');
-      instructorFeedbackBubble.setAlpha(1).setScale(0.5);
+
+      scene.tweens.add({
+        targets: instructorGlow,
+        alpha: 0.45,
+        duration: 280,
+        yoyo: true,
+        ease: 'Sine.easeInOut'
+      });
+
+      instructorFeedbackBubble.setText(isBigCelebration ? '🌟' : '✨');
+      instructorFeedbackBubble.setPosition(0, 50).setAlpha(0.85).setScale(0.9);
       scene.tweens.add({
         targets: instructorFeedbackBubble,
-        scale: 1.2,
+        y: 44,
         alpha: 0,
-        duration: 1200,
-        ease: 'Cubic.easeOut'
+        duration: 1100,
+        ease: 'Sine.easeOut'
       });
     };
 
@@ -500,10 +510,11 @@ export abstract class BasePreschoolActivity implements MinigameModule {
         this.recordAction(desc, 'mistake');
         scene.tweens.add({
           targets: instructorImg,
-          rotation: 0.15,
-          duration: 100,
+          rotation: 0.04,
+          duration: 160,
           yoyo: true,
-          repeat: 1
+          repeat: 0,
+          ease: 'Sine.easeInOut'
         });
       }
     });
