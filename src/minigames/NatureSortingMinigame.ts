@@ -42,7 +42,7 @@ export class NatureSortingActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'bear',
       backgroundKey: 'bg_nature_sorting',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-nature-sorting.jpg'
     });
   }
 

@@ -41,7 +41,7 @@ export class ShadowMatchActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'owl',
       backgroundKey: 'bg_shadow_match',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-shadow-match.jpg'
     });
   }
 

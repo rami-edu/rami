@@ -18,6 +18,7 @@ export default defineConfig({
         'minigame-background.jpg',
         'rhythm-background.jpg',
         'cave-echoes-background.jpg',
+        'bg-*.jpg',
         'avatars/*.png',
         'audio/*.{mp3,ogg}',
         'world.json'

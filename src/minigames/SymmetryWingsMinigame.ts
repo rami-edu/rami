@@ -34,7 +34,7 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'otter',
       backgroundKey: 'bg_symmetry_wings',
-      backgroundUrl: './rhythm-background.jpg'
+      backgroundUrl: './bg-symmetry-wings.jpg'
     });
   }
 

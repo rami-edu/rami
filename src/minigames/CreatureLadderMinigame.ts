@@ -32,7 +32,7 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'dino',
       backgroundKey: 'bg_creature_ladder',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-creature-ladder.jpg'
     });
   }
 

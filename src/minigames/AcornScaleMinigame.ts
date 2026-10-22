@@ -49,7 +49,7 @@ export class AcornScaleActivity implements MinigameModule {
     description:
       'Visual equations: Place the exact number of acorns on the scale to match the rock weight!',
     backgroundKey: 'bg_acorn_scale',
-    backgroundUrl: './minigame-background.jpg',
+    backgroundUrl: './bg-acorn-scale.jpg',
     knowledgeTags: ['mathematics', 'motor_skills', 'science'],
     parentGuide: {
       pedagogicalGoals:

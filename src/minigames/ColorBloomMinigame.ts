@@ -83,7 +83,7 @@ export class ColorBloomActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'fox',
       backgroundKey: 'bg_color_bloom',
-      backgroundUrl: './rhythm-background.jpg'
+      backgroundUrl: './bg-color-bloom.jpg'
     });
   }
 

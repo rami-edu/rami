@@ -964,7 +964,7 @@ export class PhonicsPondActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'raccoon',
       backgroundKey: 'bg_phonics_pond',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-phonics-pond.jpg'
     });
   }
 

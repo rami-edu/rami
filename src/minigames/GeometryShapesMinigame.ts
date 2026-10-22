@@ -32,7 +32,7 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'owl',
       backgroundKey: 'bg_geom_shapes',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-shape-nest.jpg'
     });
   }
 

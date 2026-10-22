@@ -41,7 +41,7 @@ export class PatternPathActivity extends BasePreschoolActivity {
       },
       animalInstructor: 'fox',
       backgroundKey: 'bg_pattern_path',
-      backgroundUrl: './minigame-background.jpg'
+      backgroundUrl: './bg-pattern-path.jpg'
     });
   }
 
