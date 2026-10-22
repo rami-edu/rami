@@ -144,6 +144,11 @@ export class WonderTreeScene extends Phaser.Scene {
       }
     );
 
+    // Ensure all stage sockets have their interactive portals created & registered
+    for (const anchor of this.wonderTree.getAnchors()) {
+      this.createDynamicPortalForAnchor(anchor);
+    }
+
     this.createPlayer();
     this.setupControls();
     this.layoutScene(this.scale.width, this.scale.height);
@@ -560,8 +565,9 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const hitZone = this.add
-      .circle(0, 0, 44, 0x000000, 0.001)
+    // Full rectangular hit area covering the portal cavity, sign, and titles
+    const fullHitZone = this.add
+      .rectangle(0, -36, 110, 164, 0x000000, 0.0001)
       .setInteractive({ useHandCursor: true });
 
     // Animations:
@@ -616,7 +622,7 @@ export class WonderTreeScene extends Phaser.Scene {
     });
 
     // Interactive hover feedback on portal:
-    hitZone.on('pointerover', () => {
+    const onHover = () => {
       this.tweens.add({
         targets: [staticLogoImg, lightVortex, runeRing, lightSheen],
         scaleX: 1.08,
@@ -629,9 +635,9 @@ export class WonderTreeScene extends Phaser.Scene {
         alpha: 0.65,
         duration: 200
       });
-    });
+    };
 
-    hitZone.on('pointerout', () => {
+    const onOut = () => {
       this.tweens.add({
         targets: [staticLogoImg, lightVortex, runeRing, lightSheen],
         scaleX: 1.0,
@@ -644,7 +650,10 @@ export class WonderTreeScene extends Phaser.Scene {
         alpha: 0.3,
         duration: 200
       });
-    });
+    };
+
+    fullHitZone.on('pointerover', onHover);
+    fullHitZone.on('pointerout', onOut);
 
     container.add([
       backGlow,
@@ -653,13 +662,13 @@ export class WonderTreeScene extends Phaser.Scene {
       lightVortex,
       runeRing,
       lightSheen,
-      hitZone,
       signHangers,
       signBoard,
       signInner,
       logoImg,
       titleLabel,
-      subLabel
+      subLabel,
+      fullHitZone
     ]);
 
     const instance: PortalInstance = {
@@ -667,7 +676,7 @@ export class WonderTreeScene extends Phaser.Scene {
       worldX: 0,
       worldY: 0,
       container,
-      hitZone,
+      hitZone: fullHitZone as any,
       subLabel
     };
 
@@ -677,7 +686,7 @@ export class WonderTreeScene extends Phaser.Scene {
       }
     };
 
-    hitZone.on('pointerdown', onPortalClick);
+    fullHitZone.on('pointerdown', onPortalClick);
     staticLogoImg.setInteractive({ useHandCursor: true }).on('pointerdown', onPortalClick);
     signBoard.on('pointerdown', onPortalClick);
     logoImg.on('pointerdown', onPortalClick);

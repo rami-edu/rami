@@ -379,7 +379,7 @@ export class DynamicWonderTree {
     this.masteryAccentsContainer = scene.add.container(0, 0).setDepth(6);
     this.rootContainer.add(this.masteryAccentsContainer);
 
-    this.syncSocketsForStage(this.currentStage, false);
+    this.syncSocketsForStage(this.currentStage, true);
     this.updateMasteryAccents();
   }
 
@@ -453,7 +453,7 @@ export class DynamicWonderTree {
         DynamicWonderTree.LOGICAL_WIDTH,
         DynamicWonderTree.LOGICAL_HEIGHT
       );
-      this.syncSocketsForStage(newStage, false);
+      this.syncSocketsForStage(newStage, true);
       this.updateMasteryAccents();
       return true;
     }
