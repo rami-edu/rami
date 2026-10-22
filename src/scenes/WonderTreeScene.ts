@@ -722,10 +722,10 @@ export class WonderTreeScene extends Phaser.Scene {
     treeScale: number;
   } {
     const dpr = this.getDpr();
-    // Tree logical dimensions: 1400w x 1200h
-    const fitScaleX = (width * 0.94) / 1400;
-    const fitScaleY = (height * 0.94) / 1200;
-    const treeScale = Math.max(0.48 * dpr, Math.min(fitScaleX, fitScaleY));
+    // Tree logical dimensions: 1400w x 1600h
+    const fitScaleX = (width * 0.94) / DynamicWonderTree.LOGICAL_WIDTH;
+    const fitScaleY = (height * 0.94) / DynamicWonderTree.LOGICAL_HEIGHT;
+    const treeScale = Math.max(0.48 * dpr, Math.min(fitScaleX * 1.35, fitScaleY));
     const treeBaseX = width / 2;
     const treeBaseY = height - 20 * dpr;
     return { treeBaseX, treeBaseY, treeScale };
@@ -960,7 +960,7 @@ export class WonderTreeScene extends Phaser.Scene {
     const { treeBaseY, treeScale } = this.getTreeTransform(width, height);
     const treeTopY =
       treeBaseY - this.wonderTree.getTotalLogicalHeight() * treeScale;
-    return Math.min(0, treeTopY);
+    return Math.min(0, treeTopY - 45 * this.getDpr());
   }
 
   public showEmoji(emoji: string): void {
