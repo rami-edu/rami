@@ -370,11 +370,16 @@ export class WonderTreeScene extends Phaser.Scene {
       .circle(0, 0, 52, 0x000000, 0.01)
       .setInteractive({ useHandCursor: true });
 
-    // High-resolution 256x256 vector-rendered activity logo inside the tree hollow
+    // High-resolution 256x256 vector-rendered activity emblem positioned ABOVE the portal (2x bigger: 116x116)
+    const logoGlow = this.add
+      .circle(0, -86, 64, theme.glowColor, 0.28)
+      .setStrokeStyle(3, theme.ringColor, 0.85);
+
     const logoImg = this.add
-      .image(0, -2, activityLogoKey)
-      .setDisplaySize(58, 58)
-      .setOrigin(0.5);
+      .image(0, -86, activityLogoKey)
+      .setDisplaySize(116, 116)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
 
     // Main-UI-matched badge beneath the tree hole
     const bannerBg = this.add
@@ -430,10 +435,21 @@ export class WonderTreeScene extends Phaser.Scene {
       repeat: -1
     });
 
+    // Gentle floating animation for the enlarged emblem above the portal
+    this.tweens.add({
+      targets: [logoImg, logoGlow],
+      y: -92,
+      duration: 1800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
     container.add([
       innerHollowGlow,
       vortexWisps,
       hitZone,
+      logoGlow,
       logoImg,
       bannerBg,
       pillarBadgeImg,
@@ -456,6 +472,7 @@ export class WonderTreeScene extends Phaser.Scene {
     };
 
     hitZone.on('pointerdown', onPortalClick);
+    logoImg.on('pointerdown', onPortalClick);
     bannerBg.on('pointerdown', onPortalClick);
 
     this.portals.push(instance);
@@ -599,16 +616,23 @@ export class WonderTreeScene extends Phaser.Scene {
           return;
         }
 
-        // Also check if the tap/click landed inside any portal's tree hollow radius
+        // Also check if the tap/click landed inside any portal's tree hollow or emblem radius
         const dpr = this.getDpr();
         for (const p of this.portals) {
-          const distToPortal = Phaser.Math.Distance.Between(
+          const distToCenter = Phaser.Math.Distance.Between(
             pointer.worldX,
             pointer.worldY,
             p.worldX,
             p.worldY
           );
-          if (distToPortal <= 75 * dpr) {
+          const iconWorldY = p.worldY - 86 * (p.container.scaleY || dpr);
+          const distToIcon = Phaser.Math.Distance.Between(
+            pointer.worldX,
+            pointer.worldY,
+            p.worldX,
+            iconWorldY
+          );
+          if (distToCenter <= 80 * dpr || distToIcon <= 80 * dpr) {
             this.pendingClickedPortal = p;
             this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
             return;
