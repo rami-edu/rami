@@ -20,6 +20,8 @@ interface PortalInstance {
   worldX: number;
   worldY: number;
   container: Phaser.GameObjects.Container;
+  diskContainer?: Phaser.GameObjects.Container;
+  staticLogoImg?: Phaser.GameObjects.Image;
   hitZone: Phaser.GameObjects.Arc;
   subLabel?: Phaser.GameObjects.Text;
 }
@@ -401,6 +403,7 @@ export class WonderTreeScene extends Phaser.Scene {
     );
 
     const container = this.add.container(0, 0).setDepth(15);
+    const diskContainer = this.add.container(0, 0);
 
     // 1. Ambient tree-hollow background aura / back glow
     const backGlow = this.add
@@ -623,45 +626,51 @@ export class WonderTreeScene extends Phaser.Scene {
 
     // Interactive hover feedback on portal:
     const onHover = () => {
+      this.tweens.killTweensOf(diskContainer);
       this.tweens.add({
-        targets: [staticLogoImg, lightVortex, runeRing, lightSheen],
+        targets: diskContainer,
         scaleX: 1.08,
         scaleY: 1.08,
-        duration: 200,
+        duration: 180,
         ease: 'Back.easeOut'
       });
       this.tweens.add({
         targets: lightSheen,
         alpha: 0.65,
-        duration: 200
+        duration: 180
       });
     };
 
     const onOut = () => {
+      this.tweens.killTweensOf(diskContainer);
       this.tweens.add({
-        targets: [staticLogoImg, lightVortex, runeRing, lightSheen],
+        targets: diskContainer,
         scaleX: 1.0,
         scaleY: 1.0,
-        duration: 200,
+        duration: 180,
         ease: 'Quad.easeOut'
       });
       this.tweens.add({
         targets: lightSheen,
         alpha: 0.3,
-        duration: 200
+        duration: 180
       });
     };
 
     fullHitZone.on('pointerover', onHover);
     fullHitZone.on('pointerout', onOut);
 
-    container.add([
+    diskContainer.add([
       backGlow,
       cavityRim,
       staticLogoImg,
       lightVortex,
       runeRing,
-      lightSheen,
+      lightSheen
+    ]);
+
+    container.add([
+      diskContainer,
       signHangers,
       signBoard,
       signInner,
@@ -676,12 +685,15 @@ export class WonderTreeScene extends Phaser.Scene {
       worldX: 0,
       worldY: 0,
       container,
+      diskContainer,
+      staticLogoImg,
       hitZone: fullHitZone as any,
       subLabel
     };
 
     const onPortalClick = () => {
       audioManager.unlockAudio();
+      onOut();
       if (!this.activeMinigame) {
         void this.enterPortal(instance);
       }
@@ -745,9 +757,17 @@ export class WonderTreeScene extends Phaser.Scene {
     const py = treeBaseY + p.anchor.localY * treeScale;
     p.worldX = px;
     p.worldY = py;
-    // Keep portal badges & titles comfortably readable at native UI scale
-    const portalUiScale = Math.max(treeScale, dpr * 1.05);
+    // Keep portal badges & hollows scaled proportionally with the tree
+    const portalUiScale = Math.min(treeScale * 1.15, Math.max(treeScale * 0.95, dpr * 0.75));
     p.container.setPosition(px, py).setScale(portalUiScale);
+
+    if (p.diskContainer) {
+      this.tweens.killTweensOf(p.diskContainer);
+      p.diskContainer.setScale(1.0);
+    }
+    if (p.staticLogoImg && p.staticLogoImg.active) {
+      p.staticLogoImg.setDisplaySize(72, 72);
+    }
   }
 
   private createPlayer(): void {
@@ -850,20 +870,21 @@ export class WonderTreeScene extends Phaser.Scene {
         // Also check if the tap/click landed inside any portal's tree hollow or emblem radius
         const dpr = this.getDpr();
         for (const p of this.portals) {
+          const pScale = p.container.scaleY || dpr;
           const distToCenter = Phaser.Math.Distance.Between(
             pointer.worldX,
             pointer.worldY,
             p.worldX,
             p.worldY
           );
-          const signWorldY = p.worldY - 48 * (p.container.scaleY || dpr);
+          const signWorldY = p.worldY - 48 * pScale;
           const distToSign = Phaser.Math.Distance.Between(
             pointer.worldX,
             pointer.worldY,
             p.worldX,
             signWorldY
           );
-          if (distToCenter <= 65 * dpr || distToSign <= 65 * dpr) {
+          if (distToCenter <= 52 * pScale || distToSign <= 52 * pScale) {
             this.pendingClickedPortal = p;
             this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
             return;
@@ -1197,6 +1218,16 @@ export class WonderTreeScene extends Phaser.Scene {
         const pStats = updatedProfile?.progress[portal.anchor.minigame];
         const pStars = pStats?.highestLevel ?? 0;
         portal.subLabel?.setText(formatStarsVisual(pStars));
+
+        for (const p of this.portals) {
+          if (p.diskContainer) {
+            this.tweens.killTweensOf(p.diskContainer);
+            p.diskContainer.setScale(1.0);
+          }
+          if (p.staticLogoImg && p.staticLogoImg.active) {
+            p.staticLogoImg.setDisplaySize(72, 72);
+          }
+        }
 
         this.scene.wake('WonderTreeScene');
 
