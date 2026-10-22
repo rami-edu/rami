@@ -19,6 +19,7 @@ interface PortalInstance {
   worldY: number;
   container: Phaser.GameObjects.Container;
   hitZone: Phaser.GameObjects.Arc;
+  subLabel?: Phaser.GameObjects.Text;
 }
 
 interface Firefly {
@@ -130,6 +131,11 @@ export class WonderTreeScene extends Phaser.Scene {
         const desc = ProfileManager.getAvatarDescriptor(current.avatarId);
         this.avatarSprite.setTexture(desc.textureKey);
       }
+      for (const p of this.portals) {
+        const stats = current?.progress[p.anchor.minigame];
+        const starsEarned = stats?.highestLevel ?? 0;
+        p.subLabel?.setText(formatStarsVisual(starsEarned));
+      }
       if (this.wonderTree) {
         this.wonderTree.syncUnlockedTiers(this.getUnlockedActivityCount(), true);
       }
@@ -234,93 +240,81 @@ export class WonderTreeScene extends Phaser.Scene {
     icon: string;
     ringColor: number;
     glowColor: number;
-    subtitle: string;
   } {
     if (minigame.includes('Shape') || minigame.includes('Acorn')) {
       return {
         icon: '📐',
         ringColor: 0xffd166,
-        glowColor: 0xf4a261,
-        subtitle: 'Geometry Hollow'
+        glowColor: 0xf4a261
       };
     }
     if (minigame.includes('Color')) {
       return {
         icon: '🎨',
         ringColor: 0xff99c8,
-        glowColor: 0xec4899,
-        subtitle: 'Color Hollow'
+        glowColor: 0xec4899
       };
     }
     if (minigame.includes('Fruit') || minigame.includes('Harvest')) {
       return {
         icon: '🍎',
         ringColor: 0xe63946,
-        glowColor: 0xf4a261,
-        subtitle: 'Counting Hollow'
+        glowColor: 0xf4a261
       };
     }
     if (minigame.includes('Symphony') || minigame.includes('Rhythm')) {
       return {
         icon: '🎵',
         ringColor: 0x80ed99,
-        glowColor: 0x52b788,
-        subtitle: 'Music Hollow'
+        glowColor: 0x52b788
       };
     }
     if (minigame.includes('Phonics') || minigame.includes('Pond')) {
       return {
         icon: '🗣️',
         ringColor: 0x48cae4,
-        glowColor: 0x0ea5e9,
-        subtitle: 'Phonics Hollow'
+        glowColor: 0x0ea5e9
       };
     }
     if (minigame.includes('Ladder') || minigame.includes('Size')) {
       return {
         icon: '🪜',
         ringColor: 0xa7c957,
-        glowColor: 0x84cc16,
-        subtitle: 'Sizes Hollow'
+        glowColor: 0x84cc16
       };
     }
     if (minigame.includes('Pattern')) {
       return {
         icon: '🐾',
         ringColor: 0xf4a261,
-        glowColor: 0xe76f51,
-        subtitle: 'Patterns Hollow'
+        glowColor: 0xe76f51
       };
     }
     if (minigame.includes('Shadow') || minigame.includes('Clockwork')) {
       return {
         icon: '🔦',
         ringColor: 0x90e0ef,
-        glowColor: 0x48cae4,
-        subtitle: 'Shadow Hollow'
+        glowColor: 0x48cae4
       };
     }
     if (minigame.includes('Nature') || minigame.includes('Sorting')) {
       return {
         icon: '🧺',
         ringColor: 0x52b788,
-        glowColor: 0x2a9d8f,
-        subtitle: 'Sorting Hollow'
+        glowColor: 0x2a9d8f
       };
     }
     if (minigame.includes('Symmetry')) {
       return {
         icon: '🦋',
         ringColor: 0xc77dff,
-        glowColor: 0x8b5cf6,
-        subtitle: 'Symmetry Hollow'
+        glowColor: 0x8b5cf6
       };
     }
     return {
       icon: '✨',
       ringColor: 0x90e0ef,
-      glowColor: 0x48cae4,
-      subtitle: 'Enchanted Hollow'
+      glowColor: 0x48cae4
     };
   }
 
@@ -400,9 +394,9 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subLabel = this.add
-      .text(0, 73, `${starsVisual} • ${theme.subtitle}`, {
+      .text(0, 73, starsVisual, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: '13px',
+        fontSize: '15px',
         color: '#ffd166',
         fontStyle: 'bold',
         resolution: 2
@@ -453,7 +447,8 @@ export class WonderTreeScene extends Phaser.Scene {
       worldX: 0,
       worldY: 0,
       container,
-      hitZone
+      hitZone,
+      subLabel
     };
 
     const onPortalClick = () => {
@@ -931,6 +926,11 @@ export class WonderTreeScene extends Phaser.Scene {
           playerBadge.style.display = 'flex';
         }
         profileManager.recordMinigameCompletion(portal.anchor.minigame);
+
+        const updatedProfile = profileManager.getActiveProfile();
+        const pStats = updatedProfile?.progress[portal.anchor.minigame];
+        const pStars = pStats?.highestLevel ?? 0;
+        portal.subLabel?.setText(formatStarsVisual(pStars));
 
         this.scene.wake('WonderTreeScene');
         this.scene.remove(dynamicSceneKey);
