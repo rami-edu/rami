@@ -48,6 +48,24 @@ describe('ProfileManager & UserManager (Client-Only / Local-First)', () => {
     expect(profiles.getActiveProfile()?.avatarId).toBe('owl');
   });
 
+  it('updates profile nickname locally and rejects invalid names', () => {
+    const p1 = profiles.createProfile('Alice', '🦕', 'Quartz Dinosaur');
+    expect(p1.nickname).toBe('Alice');
+
+    const updated = profiles.updateProfileName(p1.id, 'Alicia');
+    expect(updated).not.toBeNull();
+    expect(updated?.nickname).toBe('Alicia');
+    expect(profiles.getActiveProfile()?.nickname).toBe('Alicia');
+
+    // Reject empty/whitespace names
+    const rejected = profiles.updateProfileName(p1.id, '   ');
+    expect(rejected).toBeNull();
+    expect(profiles.getActiveProfile()?.nickname).toBe('Alicia');
+
+    // Non-existent profile
+    expect(profiles.updateProfileName('invalid_id', 'Bob')).toBeNull();
+  });
+
   it('tracks minigame completion locally per profile', () => {
     const p1 = profiles.createProfile('Alice');
     const stats1 = profiles.recordMinigameCompletion('Acorn Scale', p1.id);

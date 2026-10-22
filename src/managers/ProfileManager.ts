@@ -254,6 +254,24 @@ export class ProfileManager {
     return profile;
   }
 
+  public updateProfileName(
+    profileId: string,
+    newNickname: string
+  ): PlayerProfile | null {
+    const targetId = profileId || this.state.activeProfileId;
+    if (!targetId || !this.state.profiles[targetId]) {
+      return null;
+    }
+    const trimmed = newNickname.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const profile = this.state.profiles[targetId];
+    profile.nickname = trimmed;
+    this.save();
+    return profile;
+  }
+
   public deleteProfile(profileId: string): boolean {
     if (!this.state.profiles[profileId]) {
       return false;

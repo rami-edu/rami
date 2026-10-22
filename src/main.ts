@@ -36,6 +36,7 @@ function setupHudAndGuardianModal(): void {
   ) as HTMLInputElement | null;
   const profilesList = document.getElementById('profiles-list');
   const activitiesListEl = document.getElementById('guardian-activities-list');
+  let editingProfileId: string | null = null;
 
   // Ensure at least one default local profile exists on-device
   if (profileManager.getAllProfiles().length === 0) {
@@ -216,16 +217,37 @@ function setupHudAndGuardianModal(): void {
     profilesList.innerHTML = profiles
       .map((p) => {
         const isCurrent = active?.id === p.id;
+        const isEditing = editingProfileId === p.id;
         const desc = ProfileManager.getAvatarDescriptor(p.avatarId);
         const completedTotal = Object.values(p.progress).reduce(
           (acc, item) => acc + item.completedCount,
           0
         );
+
+        const nameBlockHtml = isEditing
+          ? `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <input
+                type="text"
+                class="profile-rename-input"
+                data-rename-id="${p.id}"
+                value="${p.nickname}"
+                maxlength="24"
+                style="padding: 3px 8px; border-radius: 6px; border: 1.5px solid #52b788; background: #0f1c11; color: #ffffff; font-size: 13px; font-weight: 600; width: 120px;"
+              />
+              <button data-save-profile-name="${p.id}" class="hud-btn" style="padding: 3px 8px; font-size: 11px; background: #2d6a4f;">Save</button>
+              <button data-cancel-profile-name="${p.id}" class="hud-btn" style="padding: 3px 8px; font-size: 11px; background: #1b4332;">Cancel</button>
+            </div>`
+          : `<div style="display: flex; align-items: center; gap: 6px;">
+              <strong>${p.nickname}</strong>
+              <button data-edit-profile-name="${p.id}" class="hud-btn" title="Rename explorer" style="padding: 2px 7px; font-size: 11px; background: rgba(45, 106, 79, 0.7); border-color: #52b788; line-height: 1.2;">✏️ Rename</button>
+              <span style="opacity: 0.85;">— ${p.explorerName}</span>
+            </div>`;
+
         return `<div style="padding: 8px 0; border-bottom: 1px solid #2d6a4f; display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <img src="${desc.spritePath}" alt="${desc.name}" style="width: 38px; height: 38px; object-fit: contain;" />
             <div>
-              <strong>${p.nickname}</strong> — <span>${p.explorerName}</span>
+              ${nameBlockHtml}
               <div style="font-size: 12px; color: #95d5b2;">Avatar: ${desc.name} • Minigames played: ${completedTotal}</div>
             </div>
           </div>
@@ -235,6 +257,73 @@ function setupHudAndGuardianModal(): void {
         </div>`;
       })
       .join('');
+
+    const saveRename = (profileId: string) => {
+      const input = profilesList.querySelector<HTMLInputElement>(
+        `.profile-rename-input[data-rename-id="${profileId}"]`
+      );
+      const newName = input?.value.trim();
+      if (newName) {
+        profileManager.updateProfileName(profileId, newName);
+        syncHud();
+      }
+      editingProfileId = null;
+      renderProfiles();
+    };
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-edit-profile-name]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-edit-profile-name');
+          if (id) {
+            editingProfileId = id;
+            renderProfiles();
+          }
+        });
+      });
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-save-profile-name]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-save-profile-name');
+          if (id) {
+            saveRename(id);
+          }
+        });
+      });
+
+    profilesList
+      .querySelectorAll<HTMLButtonElement>('[data-cancel-profile-name]')
+      .forEach((btn) => {
+        btn.addEventListener('click', () => {
+          editingProfileId = null;
+          renderProfiles();
+        });
+      });
+
+    if (editingProfileId) {
+      const currentInput = profilesList.querySelector<HTMLInputElement>(
+        `.profile-rename-input[data-rename-id="${editingProfileId}"]`
+      );
+      if (currentInput) {
+        currentInput.focus();
+        currentInput.select();
+        currentInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (editingProfileId) {
+              saveRename(editingProfileId);
+            }
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            editingProfileId = null;
+            renderProfiles();
+          }
+        });
+      }
+    }
 
     profilesList
       .querySelectorAll<HTMLButtonElement>('[data-select-profile]')
