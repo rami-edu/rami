@@ -119,11 +119,23 @@ export class GeometryShapesActivity extends BasePreschoolActivity {
     const slotY = -35;
     const pieceY = 110;
 
-    // Background shelf for pieces
+    // Background geometric workbench shelf for pieces
     const shelf = scene.add
-      .rectangle(0, pieceY, 560, 80, 0x0f1c11, 0.8)
-      .setStrokeStyle(2, 0x2d6a4f);
-    playArea.add(shelf);
+      .rectangle(0, pieceY, 560, 80, 0x0f1c11, 0.85)
+      .setStrokeStyle(2, 0x52b788);
+    const shelfTrim = scene.add.graphics();
+    shelfTrim.lineStyle(1.5, 0xffd166, 0.45);
+    for (let bx = -260; bx < 260; bx += 32) {
+      shelfTrim.strokeTriangle(
+        bx,
+        pieceY + 34,
+        bx + 16,
+        pieceY + 14,
+        bx + 32,
+        pieceY + 34
+      );
+    }
+    playArea.add([shelf, shelfTrim]);
 
     shapeDefs.forEach((def, i) => {
       const sx = startX + i * spacing;

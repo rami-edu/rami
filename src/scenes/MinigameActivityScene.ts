@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MinigameModule } from '../managers/MinigameLoader';
+import { ActivityThemedBackgroundBuilder } from '../objects/ActivityThemedBackgroundBuilder';
 
 export interface MinigameActivityConfig {
   sceneKey: string;
@@ -32,7 +33,12 @@ export class MinigameActivityScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    const { backgroundKey, backgroundUrl } = this.activityModule.descriptor;
+    const { id, backgroundKey, backgroundUrl } = this.activityModule.descriptor;
+    ActivityThemedBackgroundBuilder.ensureBackgroundTexture(
+      this,
+      id,
+      backgroundKey
+    );
     if (!this.textures.exists(backgroundKey)) {
       this.load.image(backgroundKey, backgroundUrl);
     }
@@ -40,7 +46,12 @@ export class MinigameActivityScene extends Phaser.Scene {
 
   public create(): void {
     const { width, height } = this.scale;
-    const { backgroundKey } = this.activityModule.descriptor;
+    const { id, backgroundKey } = this.activityModule.descriptor;
+    ActivityThemedBackgroundBuilder.ensureBackgroundTexture(
+      this,
+      id,
+      backgroundKey
+    );
 
     // Full-screen activity-specific storybook background
     this.bgImage = this.add

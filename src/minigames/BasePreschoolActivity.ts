@@ -14,6 +14,7 @@ import {
 import { profileManager, type AnimalAvatarId } from '../managers/ProfileManager';
 import { ActivityBadgeLibrary, type KnowledgeTagId } from '../objects/ActivityKnowledgeTags';
 import { ActivityLogoLibrary } from '../objects/ActivityLogoLibrary';
+import { ActivityThemedBackgroundBuilder } from '../objects/ActivityThemedBackgroundBuilder';
 
 export interface PreschoolActivityConfig {
   id: string;
@@ -458,8 +459,17 @@ export abstract class BasePreschoolActivity implements MinigameModule {
 
     syncStarHeaderUi(this.getStarProgress());
 
+    container.add(bg);
+
+    // Build dedicated themed house design & interior decorations (e.g. geometric trusses,
+    // honeycomb tiles, diamond windows, mandala carvings for Geometry Nest)
+    ActivityThemedBackgroundBuilder.buildActivityHouseDecorations(
+      scene,
+      container,
+      this.config.id
+    );
+
     container.add([
-      bg,
       logoImg,
       titleText,
       badgesContainer,
