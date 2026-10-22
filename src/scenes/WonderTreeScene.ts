@@ -504,8 +504,10 @@ export class WonderTreeScene extends Phaser.Scene {
     const starsEarned = stats?.highestLevel ?? 0;
     const starsVisual = formatStarsVisual(starsEarned);
 
+    const displayTitle = anchor.minigame.replace(/\s*\(.*?\)/g, '').trim();
+
     const titleLabel = this.add
-      .text(0, -96, anchor.minigame, {
+      .text(0, -96, displayTitle, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: '15px',
         color: '#f0fdf4',
