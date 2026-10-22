@@ -91,8 +91,8 @@ export class SplashScreenScene extends Phaser.Scene {
 
   private getBaseLogoScale(width: number, height: number): number {
     const dpr = this.getDpr();
-    const targetLogoWidth = Math.min(width * 0.72, 480 * dpr);
-    const maxLogoHeight = height * 0.45;
+    const targetLogoWidth = Math.min(width * 0.78, 680 * dpr);
+    const maxLogoHeight = height * 0.52;
     return Math.min(
       targetLogoWidth / this.logoImage.width,
       maxLogoHeight / this.logoImage.height

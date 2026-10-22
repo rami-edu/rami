@@ -93,9 +93,10 @@ export class MinigameActivityScene extends Phaser.Scene {
    */
   private createStandardReturnButton(): void {
     const dpr = this.getDpr();
-    const margin = Math.max(38, 28 * dpr);
+    const margin = Math.max(40, 32 * dpr);
     this.returnPortalBtn = this.add
       .container(margin, margin)
+      .setScale(dpr * 1.05)
       .setDepth(160);
 
     // Glowing outer portal aura
@@ -321,8 +322,8 @@ export class MinigameActivityScene extends Phaser.Scene {
       .setScale(Math.max(scaleX, scaleY));
 
     if (this.returnPortalBtn) {
-      const margin = Math.max(38, 28 * dpr);
-      this.returnPortalBtn.setPosition(margin, margin).setScale(1);
+      const margin = Math.max(40, 32 * dpr);
+      this.returnPortalBtn.setPosition(margin, margin).setScale(dpr * 1.05);
     }
   }
 }

@@ -474,10 +474,12 @@ export class WonderTreeScene extends Phaser.Scene {
     treeScale: number;
   } {
     const dpr = this.getDpr();
-    const maxFitScale = (width * 0.96) / 1320;
-    const treeScale = Math.max(0.45 * dpr, Math.min(dpr * 0.92, maxFitScale));
+    // Allow the tree to scale up generously to fill 92-95% of screen height and width
+    const fitScaleX = (width * 0.95) / 1320;
+    const fitScaleY = (height * 0.94) / 780;
+    const treeScale = Math.max(0.6 * dpr, Math.min(fitScaleX, fitScaleY));
     const treeBaseX = width / 2;
-    const treeBaseY = height - 36 * dpr;
+    const treeBaseY = height - 28 * dpr;
     return { treeBaseX, treeBaseY, treeScale };
   }
 
@@ -508,7 +510,7 @@ export class WonderTreeScene extends Phaser.Scene {
     p.worldX = px;
     p.worldY = py;
     // Keep portal badges & titles comfortably readable at native UI scale
-    const portalUiScale = Math.max(treeScale, dpr * 0.88);
+    const portalUiScale = Math.max(treeScale, dpr * 1.05);
     p.container.setPosition(px, py).setScale(portalUiScale);
   }
 
@@ -522,18 +524,18 @@ export class WonderTreeScene extends Phaser.Scene {
       .container(width * 0.5, height * 0.82)
       .setDepth(25);
 
-    const shadow = this.add.ellipse(0, 38, 62, 20, 0x000000, 0.42);
-    const outerGlow = this.add.circle(0, -4, 42, 0xffd166, 0.16);
+    const shadow = this.add.ellipse(0, 48, 80, 26, 0x000000, 0.42);
+    const outerGlow = this.add.circle(0, -6, 56, 0xffd166, 0.18);
 
     this.avatarSprite = this.add
       .image(0, -6, avatarDesc.textureKey)
-      .setScale(0.38)
+      .setScale(0.52)
       .setOrigin(0.5, 0.5);
 
     this.tweens.add({
       targets: this.avatarSprite,
-      scaleY: 0.386,
-      scaleX: 0.376,
+      scaleY: 0.53,
+      scaleX: 0.51,
       duration: 1500,
       yoyo: true,
       repeat: -1,
@@ -541,20 +543,20 @@ export class WonderTreeScene extends Phaser.Scene {
     });
 
     this.nameLabel = this.add
-      .text(0, 54, activeProfile?.nickname || activeProfile?.explorerName || userManager.getUsername(), {
+      .text(0, 64, activeProfile?.nickname || activeProfile?.explorerName || userManager.getUsername(), {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: '14px',
+        fontSize: '15px',
         color: '#d8f3dc',
         fontStyle: '600',
         backgroundColor: '#162418dd',
-        padding: { x: 10, y: 4 },
+        padding: { x: 12, y: 5 },
         resolution: 2
       })
       .setOrigin(0.5);
 
     this.emojiLabel = this.add
-      .text(0, -64, '', {
-        fontSize: '28px'
+      .text(0, -78, '', {
+        fontSize: '34px'
       })
       .setOrigin(0.5);
 

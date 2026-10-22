@@ -286,25 +286,24 @@ export class AcornScaleActivity implements MinigameModule {
   public launch(scene: Phaser.Scene, _onComplete: () => void): void {
     const { width, height } = scene.scale;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
+
+    const computeScale = (w: number, h: number, curDpr: number): number => {
+      const fitScaleW = (w - 56 * curDpr) / 760;
+      const fitScaleH = (h - 36 * curDpr) / 490;
+      return Math.min(fitScaleW, fitScaleH);
+    };
+
     const container = scene.add
       .container(width / 2, height / 2)
       .setDepth(100)
-      .setScale(
-        Math.min(dpr, (width - 24 * dpr) / 760, (height - 40 * dpr) / 500)
-      );
+      .setScale(computeScale(width, height, dpr));
 
     const onResize = (gameSize: Phaser.Structs.Size) => {
       if (container.active) {
         const curDpr = Math.min(window.devicePixelRatio || 1, 3);
         container
           .setPosition(gameSize.width / 2, gameSize.height / 2)
-          .setScale(
-            Math.min(
-              curDpr,
-              (gameSize.width - 24 * curDpr) / 760,
-              (gameSize.height - 40 * curDpr) / 500
-            )
-          );
+          .setScale(computeScale(gameSize.width, gameSize.height, curDpr));
       }
     };
     scene.scale.on('resize', onResize);
