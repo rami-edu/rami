@@ -23,7 +23,7 @@ export default defineConfig({
       ],
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,json}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024
       },
       manifest: {
         name: 'Rami — The Tree of Knowledge',
