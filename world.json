@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "root_01",
+      "type": "BigRoot",
+      "x": 640,
+      "y": 600
+    },
+    {
+      "id": "branch_left",
+      "type": "Branch",
+      "x": 408,
+      "y": 586
+    },
+    {
+      "id": "branch_right",
+      "type": "Branch",
+      "x": 876,
+      "y": 166
+    }
+  ],
+  "portals": [
+    {
+      "id": "portal_math",
+      "minigame": "Acorn Scale",
+      "x": 408,
+      "y": 586
+    },
+    {
+      "id": "portal_hub",
+      "minigame": "The Clockwork Tower",
+      "x": 655,
+      "y": 308
+    },
+    {
+      "id": "portal_music",
+      "minigame": "Rhythm in the Branches",
+      "x": 876,
+      "y": 166
+    }
+  ]
+}
