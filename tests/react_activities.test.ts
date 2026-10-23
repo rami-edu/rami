@@ -10,6 +10,7 @@ import { GeometryShapesActivityComponent } from '../src/react/activities/Geometr
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
 import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
+import { SymmetryWingsActivityComponent } from '../src/react/activities/SymmetryWingsActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -190,6 +191,30 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('Leaves');
     expect(html).toContain('Stones');
     expect(html).toContain('Berries');
+  });
+
+  it('renders SymmetryWingsActivityComponent with butterfly stage, reference wing, mirrored drop sockets, and drag palette', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(SymmetryWingsActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('symmetry-wings-container');
+    expect(html).toContain('butterfly-stage-box');
+    expect(html).toContain('butterfly-svg');
+    expect(html).toContain('left-wing-group');
+    expect(html).toContain('right-wing-group');
+    expect(html).toContain('right-wing-sockets-overlay');
+    expect(html).toContain('wing-socket socket-upper');
+    expect(html).toContain('wing-socket socket-lower');
+    expect(html).toContain('symmetry-palette-shelf');
+    expect(html).toContain('symmetry-palette-tray');
+    expect(html).toContain('symmetry-color-piece');
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {
