@@ -8,6 +8,7 @@ import {
 } from '../src/react/ActivityShell';
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
+import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -130,6 +131,35 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('creature-choices-col');
     expect(html).toContain('ladder-rung');
     expect(html).toContain('ladder-rung-size-label');
+  });
+
+  it('renders ColorBloomActivityComponent with the entire flower: pot, stem, leaves, and full 8 petals', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(ColorBloomActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('color-bloom-container');
+    expect(html).toContain('bloom-flower-center');
+    expect(html).toContain('flower-pot');
+    expect(html).toContain('flower-stem');
+    expect(html).toContain('flower-leaves');
+    expect(html).toContain('flower-blossom');
+    expect(html).toContain('flower-petal');
+    expect(html).toContain('flower-center-core');
+    expect(html).toContain('color-pots-row');
+    expect(html).toContain('color-pot');
+
+    // Verify all 8 petal rotations are present
+    const expectedAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+    for (const deg of expectedAngles) {
+      expect(html).toContain(`rotate(${deg}, 160, 130)`);
+    }
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {
