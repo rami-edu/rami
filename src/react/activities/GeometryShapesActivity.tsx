@@ -99,6 +99,7 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoveredSocketId, setHoveredSocketId] = useState<string | null>(null);
   const [justSnappedId, setJustSnappedId] = useState<string | null>(null);
+  const [nudgeShapeId, setNudgeShapeId] = useState<string | null>(null);
 
   const socketRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const suppressClickUntilRef = useRef<number>(0);
@@ -112,6 +113,7 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
     setDragState(null);
     setHoveredSocketId(null);
     setJustSnappedId(null);
+    setNudgeShapeId(null);
   };
 
   const placePieceInSocket = (shapeId: string) => {
@@ -129,15 +131,6 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
       window.setTimeout(() => {
         setupRound();
       }, 1100);
-    }
-  };
-
-  const handleSelectPiece = (piece: ShapeDef) => {
-    // Check if there is an unfilled socket for this shape
-    if (targetShapes.some((s) => s.id === piece.id) && !filledSocketIds.has(piece.id)) {
-      placePieceInSocket(piece.id);
-    } else {
-      onMistake();
     }
   };
 
@@ -203,8 +196,12 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
       suppressClickUntilRef.current = Date.now() + 350;
 
       if (!wasDragging) {
-        // Tap/click interaction
-        handleSelectPiece(dragState.shape);
+        // Tap/click: ONLY drag-and-drop allowed!
+        // Show gentle hint nudge so the child knows to drag
+        setNudgeShapeId(dragState.shape.id);
+        window.setTimeout(() => {
+          setNudgeShapeId((curr) => (curr === dragState.shape.id ? null : curr));
+        }, 600);
       } else {
         // Drag release interaction
         const droppedSocketId = getSocketAtPoint(e.clientX, e.clientY);
@@ -278,24 +275,26 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
         })}
       </div>
 
-      {/* Available choices to tap or drag */}
+      {/* Available choices to drag */}
       <div className="shape-choices-row">
         {availableChoices.map((shape) => {
           const isBeingDragged = dragState?.shape.id === shape.id && dragState.isDragging;
+          const isNudged = nudgeShapeId === shape.id;
 
           return (
             <button
               key={shape.id}
               type="button"
-              className={`shape-piece ${isBeingDragged ? 'is-dragged' : ''}`}
+              className={`shape-piece ${isBeingDragged ? 'is-dragged' : ''} ${isNudged ? 'drag-hint-nudge' : ''}`}
               onPointerDown={(e) => handlePointerDown(shape, e)}
               onClick={() => {
-                // Ensure keyboard Enter / Space triggers selection
-                if (Date.now() > suppressClickUntilRef.current) {
-                  handleSelectPiece(shape);
-                }
+                // Tapping/clicking is disabled - hint to drag
+                setNudgeShapeId(shape.id);
+                window.setTimeout(() => {
+                  setNudgeShapeId((curr) => (curr === shape.id ? null : curr));
+                }, 600);
               }}
-              aria-label={`Select or drag ${shape.name}`}
+              aria-label={`Drag ${shape.name} to its matching nest`}
             >
               {shape.renderSvg(82, shape.color)}
             </button>

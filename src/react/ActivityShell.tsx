@@ -57,7 +57,7 @@ export const getActivityGuidePrompt = (module: MinigameModule): string => {
   const title = (module.descriptor?.title ?? '').toLowerCase();
   const id = (module.descriptor?.id ?? '').toLowerCase();
   if (title.includes('shape') || id.includes('geom')) {
-    return 'Drag or tap each shape into its matching nest!';
+    return 'Drag each shape into its matching nest!';
   }
   if (title.includes('color') || id.includes('bloom')) {
     return 'Bloom the flowers by choosing the matching colors!';
@@ -66,7 +66,7 @@ export const getActivityGuidePrompt = (module: MinigameModule): string => {
     return 'Listen to the pond sounds and find the creature!';
   }
   if (title.includes('ladder') || id.includes('size')) {
-    return 'Arrange our animal friends on the ladder by size!';
+    return 'Drag our animal friends onto the ladder by size!';
   }
   if (title.includes('pattern') || id.includes('path')) {
     return 'Follow the stepping stone pattern across the stream!';

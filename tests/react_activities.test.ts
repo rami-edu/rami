@@ -8,6 +8,7 @@ import {
   getActivityGuidePrompt
 } from '../src/react/ActivityShell';
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
+import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -112,6 +113,24 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('shape-choices-row');
     expect(html).toContain('shape-piece');
     expect(html).toContain('shape-socket');
+  });
+
+  it('renders CreatureLadderActivityComponent with draggable animal cards and ladder rungs', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(CreatureLadderActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('creature-ladder-container');
+    expect(html).toContain('ladder-stand');
+    expect(html).toContain('creature-choices-col');
+    expect(html).toContain('ladder-rung');
+    expect(html).toContain('ladder-rung-size-label');
   });
 
   it('guarantees every minigame has an animal instructor explicitly assigned', () => {
