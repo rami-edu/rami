@@ -9,7 +9,11 @@ import {
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
 import { PhonicsPondActivityComponent } from '../src/react/activities/PhonicsPondActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
-import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
+import {
+  ColorBloomActivityComponent,
+  pickNextTargetColor,
+  getFlowerGrowthScale
+} from '../src/react/activities/ColorBloomActivity';
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
 import { SymmetryWingsActivityComponent } from '../src/react/activities/SymmetryWingsActivity';
 import { PatternPathActivityComponent } from '../src/react/activities/PatternPathActivity';
@@ -170,6 +174,43 @@ describe('React Activity Rendering', () => {
     for (const deg of expectedAngles) {
       expect(html).toContain(`rotate(${deg}, 160, 130)`);
     }
+
+    // Verify growth stage and scaling are rendered on the flower element
+    expect(html).toContain('data-growth-stage="1"');
+    expect(html).toContain('scale(0.85)');
+  });
+
+  it('guarantees ColorBloom does not present the same color consecutively', () => {
+    let lastColorId: string | null = null;
+    for (let round = 0; round < 300; round++) {
+      const nextColor = pickNextTargetColor(lastColorId);
+      expect(nextColor).toBeDefined();
+      expect(nextColor.id).toBeTruthy();
+      if (lastColorId !== null) {
+        expect(nextColor.id).not.toBe(lastColorId);
+      }
+      lastColorId = nextColor.id;
+    }
+  });
+
+  it('makes the ColorBloom flower grow progressively when choosing correctly', () => {
+    const scale1 = getFlowerGrowthScale(1, false);
+    const scale2 = getFlowerGrowthScale(2, false);
+    const scale3 = getFlowerGrowthScale(3, false);
+    const scale4 = getFlowerGrowthScale(4, false);
+    const scale5 = getFlowerGrowthScale(5, false);
+
+    expect(scale1).toBe(0.85);
+    expect(scale2).toBeGreaterThan(scale1);
+    expect(scale3).toBeGreaterThan(scale2);
+    expect(scale4).toBeGreaterThan(scale3);
+    expect(scale5).toBeGreaterThan(scale4);
+
+    // Celebratory bloom surge expands flower even larger during celebration
+    const bloomedScale1 = getFlowerGrowthScale(1, true);
+    expect(bloomedScale1).toBeGreaterThan(scale1);
+    const bloomedScale5 = getFlowerGrowthScale(5, true);
+    expect(bloomedScale5).toBeGreaterThan(scale5);
   });
 
   it('renders NatureSortingActivityComponent with selectable baskets, class logos, open interiors, and items tray', () => {

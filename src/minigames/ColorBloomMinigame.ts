@@ -65,6 +65,7 @@ export class ColorBloomActivity extends BasePreschoolActivity {
     onWrongAttempt: (desc: string) => void;
   };
   private lastTargetColor?: number;
+  private flowerGrowthStage = 1;
 
   constructor() {
     super({
@@ -240,7 +241,8 @@ export class ColorBloomActivity extends BasePreschoolActivity {
 
     // Flower pot in center
     const flowerY = -25;
-    const flowerContainer = scene.add.container(0, flowerY);
+    const flowerBaseScale = Math.min(1.30, 0.85 + (this.flowerGrowthStage - 1) * 0.08);
+    const flowerContainer = scene.add.container(0, flowerY).setScale(flowerBaseScale);
 
     // Glowing target halo showing desired blooming hue
     const targetHalo = scene.add
@@ -493,11 +495,13 @@ export class ColorBloomActivity extends BasePreschoolActivity {
           if (hasAll) {
             centerBud.setFillStyle(targetHex);
             petals.forEach((p) => p.setFillStyle(targetHex));
+            this.flowerGrowthStage++;
+            const newScale = Math.min(1.30, 0.85 + (this.flowerGrowthStage - 1) * 0.08);
 
             scene.tweens.add({
               targets: flowerContainer,
-              scale: 1.22,
-              duration: 320,
+              scale: newScale * 1.15,
+              duration: 350,
               yoyo: true,
               ease: 'Back.easeOut'
             });

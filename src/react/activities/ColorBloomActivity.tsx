@@ -22,6 +22,25 @@ const PETAL_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 // Sparkle angles around blooming flower
 const SPARKLE_ANGLES = [22, 67, 112, 157, 202, 247, 292, 337];
 
+/**
+ * Guarantees that the same color is NEVER presented consecutively.
+ */
+export function pickNextTargetColor(lastColorId: string | null): ColorDef {
+  const available = lastColorId
+    ? BLOOM_COLORS.filter((c) => c.id !== lastColorId)
+    : BLOOM_COLORS;
+  return available[Math.floor(Math.random() * available.length)] ?? BLOOM_COLORS[0];
+}
+
+/**
+ * Calculates progressive flower scale: anchors the pot firmly to the ground
+ * while stem & blossom shoot upward upon each correct selection!
+ */
+export function getFlowerGrowthScale(growthStage: number, isBloomed = false): number {
+  const currentBaseScale = Math.min(1.30, 0.85 + (growthStage - 1) * 0.08);
+  return isBloomed ? Number((currentBaseScale * 1.12).toFixed(3)) : Number(currentBaseScale.toFixed(3));
+}
+
 interface Props {
   onSolved: () => void;
   onMistake: () => void;
@@ -32,6 +51,10 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
   const [choices, setChoices] = useState<ColorDef[]>([]);
   const [isBloomed, setIsBloomed] = useState(false);
   const [isWiggling, setIsWiggling] = useState(false);
+
+  // Progressive flower growth level: starts at 1, increases on each correct answer
+  const [growthStage, setGrowthStage] = useState(1);
+  const lastColorIdRef = useRef<string | null>(null);
 
   // Drag-and-drop state
   const [draggedColor, setDraggedColor] = useState<ColorDef | null>(null);
@@ -48,13 +71,15 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
     setDragPos(null);
     setIsDragging(false);
 
-    // 1. Pick a random target color
-    const shuffled = [...BLOOM_COLORS].sort(() => 0.5 - Math.random());
-    const target = shuffled[0];
+    // 1. Pick target color ensuring the SAME color is NEVER presented consecutively!
+    const target = pickNextTargetColor(lastColorIdRef.current);
+    lastColorIdRef.current = target.id;
     setTargetColor(target);
 
-    // 2. Pick 3 choices (target + 2 random distractors), shuffled
-    const distractors = shuffled.slice(1, 3);
+    // 2. Pick 2 random distractors from remaining colors, shuffled
+    const remainingColors = BLOOM_COLORS.filter((c) => c.id !== target.id);
+    const shuffledDistractors = [...remainingColors].sort(() => 0.5 - Math.random());
+    const distractors = shuffledDistractors.slice(0, 2);
     const roundChoices = [target, ...distractors].sort(() => 0.5 - Math.random());
     setChoices(roundChoices);
   };
@@ -68,6 +93,8 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
 
     if (choice.id === targetColor.id) {
       setIsBloomed(true);
+      // Flower visibly grows on every correct answer!
+      setGrowthStage((prev) => prev + 1);
       onSolved();
       window.setTimeout(() => {
         setupRound();
@@ -136,12 +163,22 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
     setIsDragging(false);
   };
 
+  // Progressive growth scale: base starts at 0.85 and grows by 0.08 per correct answer up to 1.30
+  // Pot stays firmly anchored at the bottom while the stem and blossom shoot upward!
+  const currentScale = getFlowerGrowthScale(growthStage, isBloomed);
+
   return (
     <div className="color-bloom-container">
       {/* Complete Flower: Flowerpot, soil, stem, leaves, and full 8-petal blooming blossom */}
       <div
         ref={flowerRef}
         className={`bloom-flower-center ${isWiggling ? 'wiggle' : ''} ${isBloomed ? 'bloomed' : ''}`}
+        style={{
+          transform: `scale(${currentScale})`,
+          transformOrigin: 'center bottom',
+          transition: 'transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}
+        data-growth-stage={growthStage}
       >
         <svg
           className="bloom-flower-svg"
@@ -228,7 +265,10 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
           {/* 3. Lush Green Leaves on the stem with veins */}
           <g id="flower-leaves">
             {/* Left Leaf */}
-            <g transform="translate(157, 220) rotate(-35)">
+            <g
+              transform={`translate(157, 220) rotate(-35) scale(${Math.min(1.3, 1 + (growthStage - 1) * 0.06)})`}
+              style={{ transition: 'transform 0.5s ease-out' }}
+            >
               <path
                 d="M 0,0 C -30,-15 -55,-5 -60,15 C -45,30 -15,20 0,0 Z"
                 fill="#40916c"
@@ -246,7 +286,10 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
             </g>
 
             {/* Right Leaf */}
-            <g transform="translate(161, 248) rotate(32)">
+            <g
+              transform={`translate(161, 248) rotate(32) scale(${Math.min(1.3, 1 + (growthStage - 1) * 0.06)})`}
+              style={{ transition: 'transform 0.5s ease-out' }}
+            >
               <path
                 d="M 0,0 C 30,-15 55,-5 60,15 C 45,30 15,20 0,0 Z"
                 fill="#52b788"
@@ -265,7 +308,14 @@ export const ColorBloomActivityComponent: React.FC<Props> = ({ onSolved, onMista
           </g>
 
           {/* 4. Complete 8-Petal Blossom centered at (160, 130) */}
-          <g id="flower-blossom">
+          <g
+            id="flower-blossom"
+            style={{
+              transform: isBloomed ? 'scale(1.15)' : `scale(${Math.min(1.24, 1 + (growthStage - 1) * 0.04)})`,
+              transformOrigin: '160px 130px',
+              transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
             {/* Target Color Aura Ring */}
             <circle
               cx="160"
