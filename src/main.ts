@@ -546,7 +546,7 @@ function setupHudAndGuardianModal(): void {
     if (mathErrorEl) {
       mathErrorEl.textContent = '';
     }
-    if (gateStep) gateStep.style.display = 'block';
+    if (gateStep) gateStep.style.display = 'flex';
     if (dashboardStep) dashboardStep.style.display = 'none';
     guardianModal?.classList.add('open');
     const modalCard = guardianModal?.querySelector('.modal-card');
@@ -618,7 +618,7 @@ function setupHudAndGuardianModal(): void {
     const raw = mathAnswerInput?.value ?? '';
     if (profileManager.verifyGuardianChallenge(raw)) {
       if (gateStep) gateStep.style.display = 'none';
-      if (dashboardStep) dashboardStep.style.display = 'block';
+      if (dashboardStep) dashboardStep.style.display = 'flex';
       const modalCard = guardianModal?.querySelector('.modal-card');
       if (modalCard) modalCard.scrollTop = 0;
       renderProfiles();

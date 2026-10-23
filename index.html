@@ -208,17 +208,18 @@
         overflow: hidden;
       }
       .modal-header-sticky {
-        position: relative;
+        position: sticky;
+        top: 0;
         flex-shrink: 0;
-        background: rgba(14, 28, 17, 0.96);
+        background: rgba(14, 28, 17, 0.98);
         border-bottom: 2px solid #2d6a4f;
         padding: 14px 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 16px;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
-        z-index: 20;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+        z-index: 50;
       }
       .modal-card-content {
         flex: 1;
@@ -266,25 +267,31 @@
       }
       .modal-close-btn {
         background: #2d6a4f;
-        border: 1.5px solid #74c69d;
-        color: #f0f7f4;
+        border: 2px solid #74c69d;
+        color: #ffffff;
         border-radius: 999px;
-        padding: 7px 14px;
-        font-size: 13px;
+        padding: 9px 18px;
+        font-size: 14px;
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         transition: all 0.18s ease;
         flex-shrink: 0;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        touch-action: manipulation;
+        user-select: none;
       }
       .modal-close-btn:hover {
         background: #40916c;
-        border-color: #95d5b2;
-        transform: translateY(-1px);
+        border-color: #ffd166;
         color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(255, 209, 102, 0.3);
+      }
+      .modal-close-btn:active {
+        transform: scale(0.97);
       }
       .activity-report-card {
         background: #0f1c11;
@@ -580,8 +587,8 @@
                 </h2>
                 <div style="font-size: 11.5px; opacity: 0.85; color: #d8f3dc;">Parent Security Gate • Access Dashboard</div>
               </div>
-              <button id="btn-top-cancel-gate" class="modal-close-btn" title="Return to Wonder Tree" aria-label="Return to Wonder Tree">
-                ✕ Back to Tree
+              <button id="btn-top-cancel-gate" class="modal-close-btn" title="Close Parent Dashboard" aria-label="Close Parent Dashboard">
+                ✕ Close Dashboard
               </button>
             </div>
             <div class="modal-card-content gate-card-wrapper">
@@ -598,7 +605,7 @@
                 </div>
                 <div id="math-gate-error" style="color: #ffadad; font-size: 13px; min-height: 20px; margin-top: 4px;"></div>
                 <div style="display: flex; justify-content: center; margin-top: 18px;">
-                  <button id="btn-cancel-gate" class="modal-close-btn" style="background: rgba(45, 106, 79, 0.4); border-color: #52b788; padding: 8px 20px;">✕ Return to Wonder Tree</button>
+                  <button id="btn-cancel-gate" class="modal-close-btn" style="background: rgba(45, 106, 79, 0.4); border-color: #52b788; padding: 10px 22px; font-size: 14px;">✕ Close Dashboard</button>
                 </div>
               </div>
             </div>
@@ -613,8 +620,8 @@
                 </h2>
                 <div style="font-size: 11.5px; opacity: 0.85; color: #95d5b2;">COPPA Safe • Local-First • Zero Tracking • On-Device</div>
               </div>
-              <button id="btn-top-close-guardian" class="modal-close-btn" title="Leave Parent Dashboard and return to tree" aria-label="Leave Parent Dashboard and return to tree">
-                ✕ Back to Tree
+              <button id="btn-top-close-guardian" class="modal-close-btn" title="Close Parent Dashboard" aria-label="Close Parent Dashboard">
+                ✕ Close Dashboard
               </button>
             </div>
             <div class="modal-card-content">
@@ -658,12 +665,12 @@
                 <div>
                   <button id="btn-install-pwa" class="hud-btn" style="display: none;">📲 Install App on Device</button>
                 </div>
-                <button id="btn-close-guardian" class="modal-close-btn" style="padding: 10px 24px; font-size: 14px; font-weight: 800;">✕ Back to Wonder Tree</button>
+                <button id="btn-close-guardian" class="modal-close-btn" style="padding: 10px 24px; font-size: 14px; font-weight: 800;">
+                  ✕ Close Dashboard
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
         </div>
       </div>
     </div>
