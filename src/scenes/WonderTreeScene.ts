@@ -1165,8 +1165,9 @@ export class WonderTreeScene extends Phaser.Scene {
 
   /**
    * Smoothly fades the screen out or in using both DOM curtain and Phaser camera fade.
+   * Uses native setTimeout to ensure resolution even if the scene is sleeping or cameras are idle.
    */
-  private fadeTransition(direction: 'in' | 'out', duration = 320): Promise<void> {
+  private fadeTransition(direction: 'in' | 'out', duration = 280): Promise<void> {
     return new Promise((resolve) => {
       const curtain = document.getElementById('transition-curtain');
       if (curtain) {
@@ -1177,14 +1178,19 @@ export class WonderTreeScene extends Phaser.Scene {
           curtain.classList.remove('active');
         }
       }
-      if (direction === 'out') {
-        this.cameras.main.fadeOut(duration, 8, 18, 10);
-      } else {
-        this.cameras.main.fadeIn(duration, 8, 18, 10);
-      }
-      this.time.delayedCall(duration, () => {
+      try {
+        if (this.cameras && this.cameras.main && this.scene && this.scene.isActive()) {
+          if (direction === 'out') {
+            this.cameras.main.fadeOut(duration, 8, 18, 10);
+          } else {
+            this.cameras.main.fadeIn(duration, 8, 18, 10);
+          }
+        }
+      } catch {}
+
+      window.setTimeout(() => {
         resolve();
-      });
+      }, duration);
     });
   }
 
@@ -1198,7 +1204,7 @@ export class WonderTreeScene extends Phaser.Scene {
     // 1. Fade out to black/dark forest background while preloading minigame chunk
     const [mod] = await Promise.all([
       minigameLoader.loadMinigame(portal.anchor.minigame),
-      this.fadeTransition('out', 320)
+      this.fadeTransition('out', 260)
     ]);
 
     const dpr = this.getDpr();
@@ -1216,52 +1222,70 @@ export class WonderTreeScene extends Phaser.Scene {
     activityOverlayManager.launch({
       module: mod,
       onExit: async () => {
-        // Fade out from the activity
-        await this.fadeTransition('out', 280);
+        try {
+          // Immediately wake the Wonder Tree scene so it renders and receives events
+          this.scene.wake('WonderTreeScene');
+          this.activeMinigame = false;
+          this.isMovingToPortal = false;
 
-        this.activeMinigame = false;
-        this.isMovingToPortal = false;
-        const currentHud = document.getElementById('hud-overlay');
-        if (currentHud) {
-          currentHud.style.display = 'flex';
-        }
-        profileManager.recordMinigameCompletion(portal.anchor.minigame);
+          // Fade out the transition curtain
+          await this.fadeTransition('out', 200);
 
-        const updatedProfile = profileManager.getActiveProfile();
-        const pStats = updatedProfile?.progress[portal.anchor.minigame];
-        const pStars = pStats?.highestLevel ?? 0;
-        portal.subLabel?.setText(formatStarsVisual(pStars));
-
-        for (const p of this.portals) {
-          if (p.diskContainer) {
-            this.tweens.killTweensOf(p.diskContainer);
-            p.diskContainer.setScale(1.0);
+          const currentHud = document.getElementById('hud-overlay');
+          if (currentHud) {
+            currentHud.style.display = 'flex';
           }
-          if (p.staticLogoImg && p.staticLogoImg.active) {
-            p.staticLogoImg.setDisplaySize(144, 144);
+          profileManager.recordMinigameCompletion(portal.anchor.minigame);
+
+          const updatedProfile = profileManager.getActiveProfile();
+          const pStats = updatedProfile?.progress[portal.anchor.minigame];
+          const pStars = pStats?.highestLevel ?? 0;
+          portal.subLabel?.setText(formatStarsVisual(pStars));
+
+          for (const p of this.portals) {
+            if (p.diskContainer) {
+              this.tweens.killTweensOf(p.diskContainer);
+              p.diskContainer.setScale(1.0);
+            }
+            if (p.staticLogoImg && p.staticLogoImg.active) {
+              p.staticLogoImg.setDisplaySize(144, 144);
+            }
+          }
+
+          // Automatically grow the tree upwards if a new activity was unlocked
+          const unlockedCount = this.getUnlockedActivityCount();
+          this.wonderTree.syncUnlockedTiers(unlockedCount, true);
+
+          this.layoutScene(this.scale.width, this.scale.height);
+          this.playerContainer
+            .setPosition(portal.worldX, portal.worldY)
+            .setScale(dpr)
+            .setRotation(0);
+
+          audioManager.playPortalReturn();
+
+          // 3. Fade back in smoothly to the Wonder Tree
+          await this.fadeTransition('in', 280);
+        } catch (err) {
+          console.error('Error during portal exit:', err);
+          this.activeMinigame = false;
+          this.isMovingToPortal = false;
+          try {
+            this.scene.wake('WonderTreeScene');
+          } catch {}
+          const curtain = document.getElementById('transition-curtain');
+          if (curtain) {
+            curtain.classList.remove('active');
+          }
+          const currentHud = document.getElementById('hud-overlay');
+          if (currentHud) {
+            currentHud.style.display = 'flex';
           }
         }
-
-        this.scene.wake('WonderTreeScene');
-
-        // Automatically grow the tree upwards if a new activity was unlocked
-        const unlockedCount = this.getUnlockedActivityCount();
-        this.wonderTree.syncUnlockedTiers(unlockedCount, true);
-
-        this.layoutScene(this.scale.width, this.scale.height);
-        this.playerContainer
-          .setPosition(portal.worldX, portal.worldY)
-          .setScale(dpr)
-          .setRotation(0);
-
-        audioManager.playPortalReturn();
-
-        // 3. Fade back in smoothly to the Wonder Tree
-        await this.fadeTransition('in', 320);
       }
     });
 
-    // 3. Fade in to the launched activity
-    await this.fadeTransition('in', 320);
+    // 3. Fade in to the launched activity (remove curtain)
+    await this.fadeTransition('in', 280);
   }
 }

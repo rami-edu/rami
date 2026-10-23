@@ -116,6 +116,10 @@
   user-select: none;
 }
 
+.portal-exit-container * {
+  pointer-events: none;
+}
+
 .portal-exit-container:hover {
   transform: scale(1.04);
   border-color: var(--rami-gold-primary);

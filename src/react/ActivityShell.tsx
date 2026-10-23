@@ -129,7 +129,10 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
 
     window.setTimeout(() => {
       onExit();
-    }, 450);
+      window.setTimeout(() => {
+        setIsLeaping(false);
+      }, 1000);
+    }, 350);
   }, [isLeaping, onExit]);
 
   const handleSolved = useCallback(
@@ -291,7 +294,8 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
       {/* Header */}
       <header className="activity-header">
         {/* Left: Return Portal + Child's Avatar Icon standing beside it */}
-        <div
+        <button
+          type="button"
           className="portal-exit-container"
           onClick={handlePortalExit}
           title="Return to Wonder Tree"
@@ -346,7 +350,7 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
             alt={avatarDesc.name}
             className={`portal-avatar-icon ${isLeaping ? 'leaping' : ''}`}
           />
-        </div>
+        </button>
 
         {/* Center: Stars and Progress Bar (Clean, no text!) */}
         <div className="activity-stars-center">

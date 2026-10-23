@@ -53,4 +53,34 @@ describe('ActivityOverlayManager', () => {
 
     unsub();
   });
+
+  it('invokes onExit callback and unregisters active activity on close', () => {
+    const manager = ActivityOverlayManager.getInstance();
+    let exited = false;
+    manager.launch({
+      module: {
+        descriptor: {
+          id: 'test_exit',
+          title: 'Exit Test',
+          shortTitle: 'Exit',
+          pillar: 'solving',
+          description: '',
+          backgroundKey: 'bg_test',
+          backgroundUrl: ''
+        },
+        launch: vi.fn(),
+        getStarRequirements: vi.fn().mockReturnValue([]),
+        getStarProgress: vi.fn().mockReturnValue({} as any),
+        getActivityDetails: vi.fn().mockReturnValue({} as any)
+      },
+      onExit: () => {
+        exited = true;
+      }
+    });
+
+    expect(manager.getCurrent()).not.toBeNull();
+    manager.close();
+    expect(exited).toBe(true);
+    expect(manager.getCurrent()).toBeNull();
+  });
 });
