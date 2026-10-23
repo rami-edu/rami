@@ -143,6 +143,28 @@
   animation: portalArrowPulse 2s ease-in-out infinite;
 }
 
+.portal-door-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--rami-gold-primary, #ffd166);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65));
+  animation: portalDoorPulse 2.5s ease-in-out infinite;
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+  z-index: 2;
+}
+
+.portal-exit-container:hover .portal-door-icon {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 8px rgba(255, 209, 102, 0.8));
+}
+
+@keyframes portalDoorPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
 .portal-avatar-icon {
   width: 44px;
   height: 44px;
@@ -944,6 +966,11 @@
 
   .portal-exit-icon {
     font-size: 16px;
+  }
+
+  .portal-door-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .star-icon {

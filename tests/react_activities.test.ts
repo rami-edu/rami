@@ -80,6 +80,7 @@ describe('React Activity Rendering', () => {
       expect(html).toContain('activity-backdrop');
       expect(html).toContain('activity-header');
       expect(html).toContain('portal-exit-container');
+      expect(html).toContain('portal-door-icon');
       expect(html).toContain('scholar-hat');
       expect(html).toContain('activity-music-toggle');
       expect(html).toContain('activity-stage-card');

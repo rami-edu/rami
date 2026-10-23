@@ -337,7 +337,47 @@ export const ActivityShell: React.FC<ActivityShellProps> = ({ module, onExit }) 
         >
           <div className="portal-aperture">
             <div className="portal-rune-ring" />
-            <span className="portal-exit-icon">➔</span>
+            <svg
+              className="portal-door-icon"
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              {/* Door Frame & Threshold */}
+              <path
+                d="M13 3H19C19.5523 3 20 3.44772 20 4V20C20 20.5523 19.5523 21 19 21H13"
+                stroke="#ffd166"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M2 21H22"
+                stroke="#ffd166"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+              {/* Open Door Panel in Perspective */}
+              <path
+                d="M13 3.5L4 6.5V18.5L13 20.5V3.5Z"
+                fill="rgba(255, 209, 102, 0.28)"
+                stroke="#ffd166"
+                strokeWidth="2.2"
+                strokeLinejoin="round"
+              />
+              {/* Door Knob */}
+              <circle cx="6.5" cy="12.5" r="1.3" fill="#ffe66d" />
+              {/* Exit Arrow */}
+              <path
+                d="M18 12H9M12 9L9 12L12 15"
+                stroke="#ffe66d"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <img
             src={avatarDesc.spritePath}
