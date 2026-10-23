@@ -242,6 +242,18 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('Berries');
   });
 
+  it('verifies NatureSorting round balance and flying item animation stylesheet rules', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const cssContent = fs.readFileSync(path.resolve(__dirname, '../src/react/activity.css'), 'utf-8');
+
+    expect(cssContent).toContain('.nature-flying-item');
+    expect(cssContent).toContain('flyIntoBasket');
+    expect(cssContent).toContain('.nature-basket.catching');
+    expect(cssContent).toContain('.basket-catch-burst');
+    expect(cssContent).toContain('basketCatch');
+  });
+
   it('renders SymmetryWingsActivityComponent with butterfly stage, reference wing, mirrored drop sockets, and drag palette', () => {
     const onSolved = vi.fn();
     const onMistake = vi.fn();

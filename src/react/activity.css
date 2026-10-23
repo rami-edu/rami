@@ -1929,6 +1929,34 @@
   100% { transform: translateY(-8px) scale(1.06); }
 }
 
+.nature-basket.catching {
+  animation: basketCatch 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes basketCatch {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.12, 0.92); }
+  70% { transform: scale(0.96, 1.05); }
+  100% { transform: scale(1); }
+}
+
+.basket-catch-burst {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: catchBurst 0.5s ease-out forwards;
+  font-size: 28px;
+}
+
+@keyframes catchBurst {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1.4); opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
 .basket-handle {
   position: absolute;
   top: -12px;
@@ -2184,6 +2212,65 @@
   align-items: center;
   justify-content: center;
   will-change: left, top;
+}
+
+/* Animated Flying Item Arcing into Basket */
+.nature-flying-item {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 9999;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2d6a4f 0%, #163625 100%);
+  border: 3.5px solid #ffffff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 209, 102, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: flyIntoBasket 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.flying-item-emoji {
+  font-size: 34px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+}
+
+.flying-item-sparkle-trail {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 20px;
+  animation: trailTwinkle 0.25s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes trailTwinkle {
+  0% { transform: scale(0.8) rotate(0deg); opacity: 0.7; }
+  100% { transform: scale(1.2) rotate(20deg); opacity: 1; }
+}
+
+@keyframes flyIntoBasket {
+  0% {
+    transform: translate(var(--start-x), var(--start-y)) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(var(--mid-x), var(--mid-y)) scale(1.15) rotate(14deg);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(var(--target-x), var(--target-y)) scale(0.85) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--target-x), calc(var(--target-y) + 12px)) scale(0.6) rotate(0deg);
+    opacity: 0.15;
+  }
 }
 
 /* 8. Symmetry Wings */

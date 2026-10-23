@@ -78,6 +78,18 @@ export const createRoundItems = (): NatureItem[] => {
   return [randomLeaf, randomStone, randomFruit].sort(() => 0.5 - Math.random());
 };
 
+export interface FlyingItem {
+  id: string;
+  item: NatureItem;
+  category: NatureCategory;
+  startX: number;
+  startY: number;
+  midX: number;
+  midY: number;
+  targetX: number;
+  targetY: number;
+}
+
 interface Props {
   onSolved: () => void;
   onMistake: () => void;
@@ -96,6 +108,9 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
   });
 
   const [wobbleBasket, setWobbleBasket] = useState<NatureCategory | null>(null);
+  const [catchingBasket, setCatchingBasket] = useState<NatureCategory | null>(null);
+  const [catchBurstBasket, setCatchBurstBasket] = useState<NatureCategory | null>(null);
+  const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
   const [isRoundComplete, setIsRoundComplete] = useState(false);
 
   // Drag-and-drop state
@@ -110,10 +125,15 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
     fruit: null
   });
 
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
   // Pick one random item from each class to ensure a balanced, rewarding 3-item round
   const setupRound = () => {
     setIsRoundComplete(false);
     setWobbleBasket(null);
+    setCatchingBasket(null);
+    setCatchBurstBasket(null);
+    setFlyingItems([]);
     setDraggedItem(null);
     setDragPos(null);
     setIsDragging(false);
@@ -131,31 +151,96 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
   };
 
   // Handle selecting a basket as the destination for the active/dragged item
-  const handleSelectBasket = (category: NatureCategory, itemToSort?: NatureItem) => {
+  const handleSelectBasket = (
+    category: NatureCategory,
+    itemToSort?: NatureItem,
+    dropCoords?: { x: number; y: number } | null
+  ) => {
     const targetItem = itemToSort || activeItem;
     if (!targetItem || isRoundComplete) return;
 
     if (targetItem.category === category) {
-      // Correct class! Put the item inside the basket
+      // Correct class! Play sound cue
       audioManager.playPortalReturn();
 
-      setBasketContents((prev) => ({
-        ...prev,
-        [category]: [...prev[category], targetItem]
-      }));
-
+      // Immediately remove item from tray so it cannot be double-triggered
       const nextRemaining = remainingItems.filter((i) => i.id !== targetItem.id);
       setRemainingItems(nextRemaining);
       setActiveItem(nextRemaining[0] || null);
 
-      // Check if all items in the round have been sorted into their baskets
-      if (nextRemaining.length === 0) {
-        setIsRoundComplete(true);
-        onSolved();
-        window.setTimeout(() => {
-          setupRound();
-        }, 1500);
+      // Determine flight origin (drop coordinates or center of tray button)
+      let startX = typeof window !== 'undefined' ? window.innerWidth / 2 : 300;
+      let startY = typeof window !== 'undefined' ? window.innerHeight * 0.75 : 450;
+
+      if (dropCoords) {
+        startX = dropCoords.x;
+        startY = dropCoords.y;
+      } else if (itemRefs.current[targetItem.id]) {
+        const iRect = itemRefs.current[targetItem.id]!.getBoundingClientRect();
+        if (iRect.width > 0) {
+          startX = iRect.left + iRect.width / 2;
+          startY = iRect.top + iRect.height / 2;
+        }
       }
+
+      // Determine flight destination (center of target basket interior slot)
+      let targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : 300;
+      let targetY = typeof window !== 'undefined' ? window.innerHeight * 0.35 : 200;
+
+      if (basketRefs.current[category]) {
+        const bRect = basketRefs.current[category]!.getBoundingClientRect();
+        if (bRect.width > 0) {
+          targetX = bRect.left + bRect.width / 2;
+          // Target the open basket interior mouth
+          targetY = bRect.top + bRect.height * 0.32;
+        }
+      }
+
+      const midX = (startX + targetX) / 2;
+      const arcHeight = Math.max(45, Math.abs(startX - targetX) * 0.28);
+      const midY = Math.min(startY, targetY) - arcHeight;
+
+      const flyingId = `${targetItem.id}-${Date.now()}`;
+      const newFlyingItem: FlyingItem = {
+        id: flyingId,
+        item: targetItem,
+        category,
+        startX,
+        startY,
+        midX,
+        midY,
+        targetX,
+        targetY
+      };
+
+      setFlyingItems((prev) => [...prev, newFlyingItem]);
+
+      // Flight animation duration is 480ms
+      window.setTimeout(() => {
+        // Remove flying item
+        setFlyingItems((prev) => prev.filter((f) => f.id !== flyingId));
+
+        // Put the item visibly inside the basket interior
+        setBasketContents((prev) => ({
+          ...prev,
+          [category]: [...prev[category], targetItem]
+        }));
+
+        // Trigger basket catch reaction and sparkle burst
+        setCatchingBasket(category);
+        setCatchBurstBasket(category);
+        window.setTimeout(() => setCatchingBasket(null), 380);
+        window.setTimeout(() => setCatchBurstBasket(null), 500);
+
+        // Check if all items in the round have been sorted into their baskets
+        if (nextRemaining.length === 0) {
+          setIsRoundComplete(true);
+          onSolved();
+          window.setTimeout(() => {
+            setupRound();
+          }, 1500);
+        }
+      }, 480);
     } else {
       // Wrong basket: soft wobble animation and gentle pedagogical retry
       setWobbleBasket(category);
@@ -215,7 +300,7 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
       }
 
       if (matchedCategory) {
-        handleSelectBasket(matchedCategory, draggedItem);
+        handleSelectBasket(matchedCategory, draggedItem, { x: e.clientX, y: e.clientY });
       }
     } else {
       // Simple tap selects the item
@@ -243,6 +328,8 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
           const contained = basketContents[basket.category];
           const isTargetCategory = activeItem?.category === basket.category;
           const isWobbling = wobbleBasket === basket.category;
+          const isCatching = catchingBasket === basket.category;
+          const isBursting = catchBurstBasket === basket.category;
 
           return (
             <div
@@ -250,13 +337,20 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
               ref={(el) => {
                 basketRefs.current[basket.category] = el;
               }}
-              className={`nature-basket ${isWobbling ? 'wobble' : ''} ${isRoundComplete ? 'celebrating' : ''} ${isTargetCategory ? 'hint-glow' : ''}`}
+              className={`nature-basket ${isWobbling ? 'wobble' : ''} ${isCatching ? 'catching' : ''} ${isRoundComplete ? 'celebrating' : ''} ${isTargetCategory ? 'hint-glow' : ''}`}
               onClick={() => handleSelectBasket(basket.category)}
               role="button"
               tabIndex={0}
               aria-label={`${basket.label} Basket (select to sort item here)`}
               data-category={basket.category}
             >
+              {/* Basket Catch Burst Sparkles when an item lands inside */}
+              {isBursting && (
+                <div className="basket-catch-burst">
+                  <span>✨</span>
+                </div>
+              )}
+
               {/* Basket Overhead Arch Handle */}
               <div
                 className="basket-handle"
@@ -326,6 +420,9 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
                 return (
                   <button
                     key={item.id}
+                    ref={(el) => {
+                      itemRefs.current[item.id] = el;
+                    }}
                     type="button"
                     className={`nature-item-piece ${isSelected ? 'is-selected' : ''} ${isBeingDragged ? 'is-dragged-origin' : ''}`}
                     onPointerDown={(e) => handlePointerDown(item, e)}
@@ -361,6 +458,27 @@ export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMi
           <span style={{ fontSize: '46px' }}>{draggedItem.emoji}</span>
         </div>
       )}
+
+      {/* Animated Items Flying into Basket */}
+      {flyingItems.map((fItem) => (
+        <div
+          key={fItem.id}
+          className="nature-flying-item"
+          style={
+            {
+              '--start-x': `${fItem.startX - 32}px`,
+              '--start-y': `${fItem.startY - 32}px`,
+              '--mid-x': `${fItem.midX - 32}px`,
+              '--mid-y': `${fItem.midY - 32}px`,
+              '--target-x': `${fItem.targetX - 32}px`,
+              '--target-y': `${fItem.targetY - 32}px`
+            } as React.CSSProperties
+          }
+        >
+          <span className="flying-item-emoji">{fItem.item.emoji}</span>
+          <div className="flying-item-sparkle-trail">✨</div>
+        </div>
+      ))}
     </div>
   );
 };
