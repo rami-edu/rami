@@ -185,6 +185,34 @@ describe('NavigationManager URL Hash Anchors', () => {
         activityQuery: null
       });
     });
+
+    it('parses standalone and query dashboard anchors', () => {
+      expect(parseHash('#dashboard')).toEqual({
+        profileQuery: null,
+        activityQuery: null,
+        isDashboard: true
+      });
+      expect(parseHash('#guardian')).toEqual({
+        profileQuery: null,
+        activityQuery: null,
+        isDashboard: true
+      });
+      expect(parseHash('#parent')).toEqual({
+        profileQuery: null,
+        activityQuery: null,
+        isDashboard: true
+      });
+      expect(parseHash('#profile=Leo&view=dashboard')).toEqual({
+        profileQuery: 'Leo',
+        activityQuery: null,
+        isDashboard: true
+      });
+      expect(parseHash('#/profile/Leo/dashboard')).toEqual({
+        profileQuery: 'Leo',
+        activityQuery: null,
+        isDashboard: true
+      });
+    });
   });
 
   describe('buildHash', () => {
@@ -193,6 +221,12 @@ describe('NavigationManager URL Hash Anchors', () => {
       expect(buildHash('Leo', null)).toBe('#profile=Leo');
       expect(buildHash(null, 'shape-nest')).toBe('#activity=shape-nest');
       expect(buildHash(null, null)).toBe('');
+    });
+
+    it('builds canonical hash with dashboard view parameter', () => {
+      expect(buildHash('Leo', null, true)).toBe('#profile=Leo&view=dashboard');
+      expect(buildHash('Leo', 'shape-nest', true)).toBe('#profile=Leo&activity=shape-nest&view=dashboard');
+      expect(buildHash(null, null, true)).toBe('#view=dashboard');
     });
 
     it('encodes special characters in slugs and names', () => {
@@ -280,6 +314,16 @@ describe('NavigationManager URL Hash Anchors', () => {
 
       // Hash should revert back to profile anchor
       expect(mockLocation.hash).toBe('#profile=Leo');
+
+      // Open the Guardian Dashboard view
+      navigationManager.setDashboardOpen(true);
+      expect(mockLocation.hash).toBe('#profile=Leo&view=dashboard');
+      expect(navigationManager.isDashboard()).toBe(true);
+
+      // Close the Guardian Dashboard view and return to tree
+      navigationManager.setDashboardOpen(false);
+      expect(mockLocation.hash).toBe('#profile=Leo');
+      expect(navigationManager.isDashboard()).toBe(false);
 
       delete (globalThis as any).window;
     });

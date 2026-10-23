@@ -60,6 +60,7 @@ export class WonderTreeScene extends Phaser.Scene {
   private portals: PortalInstance[] = [];
   private fireflies: Firefly[] = [];
   private activeMinigame = false;
+  private isDashboardOpen = false;
   private pendingClickedPortal: PortalInstance | null = null;
   private readonly baseSpeed = 250;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
@@ -216,6 +217,28 @@ export class WonderTreeScene extends Phaser.Scene {
         });
       }
     }) as EventListener);
+
+    // Completely isolate tree interactions when Parent/Guardian Dashboard is open
+    window.addEventListener('rami:dashboard-opened', () => {
+      this.isDashboardOpen = true;
+      this.targetPos = null;
+      this.pendingClickedPortal = null;
+      if (this.input) {
+        this.input.enabled = false;
+      }
+      this.scene.sleep('WonderTreeScene');
+    });
+
+    window.addEventListener('rami:dashboard-closed', () => {
+      this.isDashboardOpen = false;
+      this.scene.wake('WonderTreeScene');
+      if (this.input) {
+        this.input.enabled = true;
+      }
+      const unlockedCount = this.getUnlockedActivityCount();
+      this.wonderTree.syncUnlockedTiers(unlockedCount, true);
+      this.layoutScene(this.scale.width, this.scale.height);
+    });
 
     navigationManager.markSceneReady();
   }
@@ -859,7 +882,7 @@ export class WonderTreeScene extends Phaser.Scene {
         currentlyOver: Phaser.GameObjects.GameObject[]
       ) => {
         audioManager.unlockAudio();
-        if (this.activeMinigame) return;
+        if (this.activeMinigame || this.isDashboardOpen) return;
 
         // If the pointer clicked on an interactive object (e.g. a portal or sprout bud),
         // let that object's handler keep `pendingClickedPortal`.
@@ -991,7 +1014,7 @@ export class WonderTreeScene extends Phaser.Scene {
       f.glow.setPosition(fx, fy).setAlpha(pulse * 0.28);
     }
 
-    if (this.activeMinigame) return;
+    if (this.activeMinigame || this.isDashboardOpen) return;
 
     const speed = this.baseSpeed * dpr;
     let vx = 0;

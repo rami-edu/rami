@@ -315,7 +315,7 @@ function setupHudAndGuardianModal(): void {
         btn.addEventListener('click', () => {
           const title = btn.getAttribute('data-play-title');
           if (title) {
-            guardianModal?.classList.remove('open');
+            closeGuardianModal();
             window.dispatchEvent(
               new CustomEvent('rami:launch-activity', {
                 detail: { activityTitle: title }
@@ -552,7 +552,67 @@ function setupHudAndGuardianModal(): void {
     const modalCard = guardianModal?.querySelector('.modal-card');
     if (modalCard) modalCard.scrollTop = 0;
     window.setTimeout(() => mathAnswerInput?.focus(), 50);
+
+    // Completely isolate dashboard UI from tree scene & HUD
+    const gameContainer = document.getElementById('game-container');
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (gameContainer) gameContainer.style.display = 'none';
+    if (hudOverlay) hudOverlay.style.display = 'none';
+    window.dispatchEvent(new CustomEvent('rami:dashboard-opened'));
+    navigationManager.setDashboardOpen(true);
   };
+
+  function closeGuardianModal(): void {
+    guardianModal?.classList.remove('open');
+    const gameContainer = document.getElementById('game-container');
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (gameContainer) gameContainer.style.display = 'block';
+    if (hudOverlay) hudOverlay.style.display = 'flex';
+    window.dispatchEvent(new CustomEvent('rami:dashboard-closed'));
+    navigationManager.setDashboardOpen(false);
+    syncHud();
+  }
+
+  // Intercept all pointer, mouse, touch, and wheel events on the dashboard UI
+  // so no clicks or gestures pass through to the Phaser tree scene
+  if (guardianModal) {
+    const stopAll = (e: Event) => {
+      e.stopPropagation();
+    };
+    const ISOLATED_EVENTS = [
+      'pointerdown',
+      'pointerup',
+      'pointermove',
+      'pointercancel',
+      'mousedown',
+      'mouseup',
+      'mousemove',
+      'click',
+      'dblclick',
+      'touchstart',
+      'touchend',
+      'touchmove',
+      'touchcancel',
+      'wheel',
+      'contextmenu'
+    ];
+    for (const ev of ISOLATED_EVENTS) {
+      guardianModal.addEventListener(ev, stopAll, { capture: true });
+      guardianModal.addEventListener(ev, stopAll, { capture: false });
+    }
+  }
+
+  window.addEventListener('rami:open-dashboard', () => {
+    if (!guardianModal?.classList.contains('open')) {
+      openMathGate();
+    }
+  });
+
+  window.addEventListener('rami:close-dashboard', () => {
+    if (guardianModal?.classList.contains('open')) {
+      closeGuardianModal();
+    }
+  });
 
   const tryUnlockDashboard = () => {
     const raw = mathAnswerInput?.value ?? '';
@@ -660,9 +720,6 @@ function setupHudAndGuardianModal(): void {
     }
   });
 
-  const closeGuardianModal = () => {
-    guardianModal?.classList.remove('open');
-  };
 
   cancelGateBtn?.addEventListener('click', closeGuardianModal);
   topCancelGateBtn?.addEventListener('click', closeGuardianModal);

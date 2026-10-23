@@ -151,11 +151,12 @@ export function resolveProfile(
 export interface ParsedHashState {
   profileQuery: string | null;
   activityQuery: string | null;
+  isDashboard?: boolean;
 }
 
 /**
  * Parses URL hash strings supporting query format (#profile=Leo&activity=shapes),
- * path format (#/profile/Leo/activity/shapes), or direct shorthand (#shapes).
+ * path format (#/profile/Leo/activity/shapes), or direct shorthand (#shapes, #dashboard).
  */
 export function parseHash(hashStr: string): ParsedHashState {
   const hash = (hashStr || '').replace(/^#\/?/, '').trim();
@@ -165,6 +166,12 @@ export function parseHash(hashStr: string): ParsedHashState {
 
   let profileQuery: string | null = null;
   let activityQuery: string | null = null;
+  let isDashboard: boolean | undefined = undefined;
+
+  const isDashboardSlug = (s: string) => {
+    const clean = s.trim().toLowerCase();
+    return clean === 'dashboard' || clean === 'guardian' || clean === 'parent' || clean === 'settings';
+  };
 
   if (hash.includes('=')) {
     // Standard query parameter style
@@ -177,6 +184,15 @@ export function parseHash(hashStr: string): ParsedHashState {
       searchParams.get('a') ||
       searchParams.get('act') ||
       null;
+
+    const viewParam = searchParams.get('view') || searchParams.get('v') || '';
+    if (
+      isDashboardSlug(viewParam) ||
+      searchParams.has('dashboard') ||
+      searchParams.get('dashboard') === 'true'
+    ) {
+      isDashboard = true;
+    }
   } else if (hash.includes('/')) {
     // Path-based style: e.g. profile/Leo/activity/shape-nest
     const parts = hash
@@ -186,7 +202,9 @@ export function parseHash(hashStr: string): ParsedHashState {
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i].toLowerCase();
-      if (
+      if (isDashboardSlug(part)) {
+        isDashboard = true;
+      } else if (
         (part === 'profile' || part === 'p' || part === 'profiles') &&
         i + 1 < parts.length
       ) {
@@ -208,17 +226,25 @@ export function parseHash(hashStr: string): ParsedHashState {
       }
     }
   } else {
-    // Single standalone token: e.g. #shape-nest or #Leo
+    // Single standalone token: e.g. #shape-nest, #Leo, or #dashboard
     const decoded = decodeURIComponent(hash);
-    const matchedAct = resolveActivityTitle(decoded);
-    if (matchedAct) {
-      activityQuery = decoded;
+    if (isDashboardSlug(decoded)) {
+      isDashboard = true;
     } else {
-      profileQuery = decoded;
+      const matchedAct = resolveActivityTitle(decoded);
+      if (matchedAct) {
+        activityQuery = decoded;
+      } else {
+        profileQuery = decoded;
+      }
     }
   }
 
-  return { profileQuery, activityQuery };
+  const result: ParsedHashState = { profileQuery, activityQuery };
+  if (isDashboard) {
+    result.isDashboard = true;
+  }
+  return result;
 }
 
 /**
@@ -226,7 +252,8 @@ export function parseHash(hashStr: string): ParsedHashState {
  */
 export function buildHash(
   profileSlug?: string | null,
-  activitySlug?: string | null
+  activitySlug?: string | null,
+  isDashboard = false
 ): string {
   const parts: string[] = [];
   if (profileSlug) {
@@ -234,6 +261,9 @@ export function buildHash(
   }
   if (activitySlug) {
     parts.push(`activity=${encodeURIComponent(activitySlug)}`);
+  }
+  if (isDashboard) {
+    parts.push('view=dashboard');
   }
   return parts.length > 0 ? `#${parts.join('&')}` : '';
 }
@@ -249,6 +279,7 @@ export class NavigationManager {
   private isInternalHashUpdate = false;
   private pendingActivityTitle: string | null = null;
   private isSceneReady = false;
+  private isDashboardOpen = false;
 
   public static getInstance(): NavigationManager {
     if (!NavigationManager.instance) {
@@ -273,6 +304,27 @@ export class NavigationManager {
     activityOverlayManager.subscribe((active) => {
       this.onActivityOverlayChanged(active);
     });
+
+    // 5. Subscribe to Guardian Dashboard lifecycle events
+    window.addEventListener('rami:dashboard-opened', () => {
+      this.isDashboardOpen = true;
+      this.syncHash(false);
+    });
+
+    window.addEventListener('rami:dashboard-closed', () => {
+      this.isDashboardOpen = false;
+      this.syncHash(false);
+    });
+  }
+
+  public setDashboardOpen(open: boolean): void {
+    if (this.isDashboardOpen === open) return;
+    this.isDashboardOpen = open;
+    this.syncHash(false);
+  }
+
+  public isDashboard(): boolean {
+    return this.isDashboardOpen;
   }
 
   public hasPendingActivity(): boolean {
@@ -313,12 +365,12 @@ export class NavigationManager {
       ? getActivitySlug(this.pendingActivityTitle)
       : null;
 
-    this.updateHash(profileSlug, activitySlug, replace);
+    this.updateHash(profileSlug, activitySlug, this.isDashboardOpen, replace);
   }
 
   private handleInitialHash(): void {
     if (typeof window === 'undefined') return;
-    const { profileQuery, activityQuery } = parseHash(window.location.hash);
+    const { profileQuery, activityQuery, isDashboard } = parseHash(window.location.hash);
 
     // Resolve or create profile from URL anchor
     if (profileQuery) {
@@ -347,6 +399,12 @@ export class NavigationManager {
       }
     }
 
+    // Resolve dashboard from URL anchor
+    if (isDashboard) {
+      this.isDashboardOpen = true;
+      window.dispatchEvent(new CustomEvent('rami:open-dashboard'));
+    }
+
     // Write initial canonical hash without creating extra history back-step
     this.syncHash(true);
   }
@@ -354,11 +412,12 @@ export class NavigationManager {
   private updateHash(
     profileSlug: string | null,
     activitySlug: string | null,
+    isDashboard = false,
     replace = false
   ): void {
     if (typeof window === 'undefined') return;
 
-    const targetHash = buildHash(profileSlug, activitySlug);
+    const targetHash = buildHash(profileSlug, activitySlug, isDashboard);
     const currentHash = window.location.hash;
 
     if (currentHash === targetHash) return;
@@ -388,7 +447,7 @@ export class NavigationManager {
       ? getActivitySlug(active.module.descriptor.title)
       : null;
 
-    this.updateHash(profileSlug, activitySlug, false);
+    this.updateHash(profileSlug, activitySlug, this.isDashboardOpen, false);
   };
 
   private onHashChange = (): void => {
@@ -397,7 +456,7 @@ export class NavigationManager {
       return;
     }
 
-    const { profileQuery, activityQuery } = parseHash(window.location.hash);
+    const { profileQuery, activityQuery, isDashboard } = parseHash(window.location.hash);
 
     // 1. Synchronize Profile
     if (profileQuery) {
@@ -432,6 +491,15 @@ export class NavigationManager {
       } else {
         this.triggerLaunchActivity(targetTitle);
       }
+    }
+
+    // 3. Synchronize Dashboard View
+    if (isDashboard && !this.isDashboardOpen) {
+      this.isDashboardOpen = true;
+      window.dispatchEvent(new CustomEvent('rami:open-dashboard'));
+    } else if (!isDashboard && this.isDashboardOpen) {
+      this.isDashboardOpen = false;
+      window.dispatchEvent(new CustomEvent('rami:close-dashboard'));
     }
   };
 
