@@ -9,6 +9,7 @@ import {
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
 import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
+import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -160,6 +161,35 @@ describe('React Activity Rendering', () => {
     for (const deg of expectedAngles) {
       expect(html).toContain(`rotate(${deg}, 160, 130)`);
     }
+  });
+
+  it('renders NatureSortingActivityComponent with selectable baskets, class logos, open interiors, and items tray', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(NatureSortingActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('nature-sorting-container');
+    expect(html).toContain('nature-baskets-row');
+    expect(html).toContain('nature-basket');
+    expect(html).toContain('basket-handle');
+    expect(html).toContain('basket-interior');
+    expect(html).toContain('basket-class-badge');
+    expect(html).toContain('basket-class-logo-emoji');
+    expect(html).toContain('basket-class-logo-label');
+    expect(html).toContain('nature-tray-section');
+    expect(html).toContain('nature-items-tray');
+    expect(html).toContain('nature-item-piece');
+
+    // Verify all three category class logo labels are present on the baskets
+    expect(html).toContain('Leaves');
+    expect(html).toContain('Stones');
+    expect(html).toContain('Berries');
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {

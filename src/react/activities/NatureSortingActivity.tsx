@@ -1,25 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+import { audioManager } from '../../managers/AudioManager';
 
-type NatureCategory = 'leaf' | 'stone' | 'fruit';
+export type NatureCategory = 'leaf' | 'stone' | 'fruit';
 
-interface NatureItem {
+export interface NatureItem {
   id: string;
   name: string;
   emoji: string;
   category: NatureCategory;
 }
 
-const NATURE_ITEMS: NatureItem[] = [
-  { id: 'leaf_green', name: 'Oak Leaf', emoji: '🍃', category: 'leaf' },
+export const NATURE_ITEMS: NatureItem[] = [
+  // Leaves Class
+  { id: 'leaf_oak', name: 'Oak Leaf', emoji: '🍃', category: 'leaf' },
   { id: 'fern', name: 'Fern Frond', emoji: '🌿', category: 'leaf' },
   { id: 'clover', name: 'Four Clover', emoji: '🍀', category: 'leaf' },
+  { id: 'maple', name: 'Maple Leaf', emoji: '🍁', category: 'leaf' },
+
+  // Stones Class
   { id: 'pebble', name: 'River Pebble', emoji: '🪨', category: 'stone' },
   { id: 'crystal', name: 'Quartz Gem', emoji: '💎', category: 'stone' },
-  { id: 'wood', name: 'Pine Branch', emoji: '🪵', category: 'stone' },
+  { id: 'rock', name: 'Mountain Rock', emoji: '⛰️', category: 'stone' },
+  { id: 'amber', name: 'Amber Stone', emoji: '🔶', category: 'stone' },
+
+  // Fruits Class
   { id: 'strawberry', name: 'Wild Strawberry', emoji: '🍓', category: 'fruit' },
   { id: 'blueberry', name: 'Woodland Berries', emoji: '🫐', category: 'fruit' },
-  { id: 'cherry', name: 'Tree Cherries', emoji: '🍒', category: 'fruit' }
+  { id: 'cherry', name: 'Tree Cherries', emoji: '🍒', category: 'fruit' },
+  { id: 'apple', name: 'Forest Apple', emoji: '🍎', category: 'fruit' }
 ];
+
+export interface BasketDef {
+  category: NatureCategory;
+  name: string;
+  logoEmoji: string;
+  color: string;
+  accentColor: string;
+  label: string;
+}
+
+export const BASKETS: BasketDef[] = [
+  {
+    category: 'leaf',
+    name: 'Leaves Basket',
+    logoEmoji: '🍃',
+    color: '#2d6a4f',
+    accentColor: '#52b788',
+    label: 'Leaves'
+  },
+  {
+    category: 'stone',
+    name: 'Stones Basket',
+    logoEmoji: '🪨',
+    color: '#495057',
+    accentColor: '#adb5bd',
+    label: 'Stones'
+  },
+  {
+    category: 'fruit',
+    name: 'Berries Basket',
+    logoEmoji: '🍓',
+    color: '#9d0208',
+    accentColor: '#ff70a6',
+    label: 'Berries'
+  }
+];
+
+export const createRoundItems = (): NatureItem[] => {
+  const leafCandidates = NATURE_ITEMS.filter((i) => i.category === 'leaf');
+  const stoneCandidates = NATURE_ITEMS.filter((i) => i.category === 'stone');
+  const fruitCandidates = NATURE_ITEMS.filter((i) => i.category === 'fruit');
+
+  const randomLeaf = leafCandidates[Math.floor(Math.random() * leafCandidates.length)] || leafCandidates[0];
+  const randomStone = stoneCandidates[Math.floor(Math.random() * stoneCandidates.length)] || stoneCandidates[0];
+  const randomFruit = fruitCandidates[Math.floor(Math.random() * fruitCandidates.length)] || fruitCandidates[0];
+
+  return [randomLeaf, randomStone, randomFruit].sort(() => 0.5 - Math.random());
+};
 
 interface Props {
   onSolved: () => void;
@@ -27,69 +84,283 @@ interface Props {
 }
 
 export const NatureSortingActivityComponent: React.FC<Props> = ({ onSolved, onMistake }) => {
-  const [currentItem, setCurrentItem] = useState<NatureItem>(NATURE_ITEMS[0]);
-  const [solvedCount, setSolvedCount] = useState(0);
+  // Items currently waiting to be sorted on the woodland tray
+  const [remainingItems, setRemainingItems] = useState<NatureItem[]>(() => createRoundItems());
+  // Currently active/spotlighted item
+  const [activeItem, setActiveItem] = useState<NatureItem | null>(() => remainingItems[0] || null);
+  // Items visibly contained inside each basket: { leaf: [...], stone: [...], fruit: [...] }
+  const [basketContents, setBasketContents] = useState<Record<NatureCategory, NatureItem[]>>({
+    leaf: [],
+    stone: [],
+    fruit: []
+  });
 
-  const setupItem = () => {
-    const random = NATURE_ITEMS[Math.floor(Math.random() * NATURE_ITEMS.length)];
-    setCurrentItem(random);
+  const [wobbleBasket, setWobbleBasket] = useState<NatureCategory | null>(null);
+  const [isRoundComplete, setIsRoundComplete] = useState(false);
+
+  // Drag-and-drop state
+  const [draggedItem, setDraggedItem] = useState<NatureItem | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const basketRefs = useRef<Record<NatureCategory, HTMLDivElement | null>>({
+    leaf: null,
+    stone: null,
+    fruit: null
+  });
+
+  // Pick one random item from each class to ensure a balanced, rewarding 3-item round
+  const setupRound = () => {
+    setIsRoundComplete(false);
+    setWobbleBasket(null);
+    setDraggedItem(null);
+    setDragPos(null);
+    setIsDragging(false);
+
+    // Empty the baskets for the new round
+    setBasketContents({
+      leaf: [],
+      stone: [],
+      fruit: []
+    });
+
+    const roundItems = createRoundItems();
+    setRemainingItems(roundItems);
+    setActiveItem(roundItems[0] || null);
   };
 
-  useEffect(() => {
-    setupItem();
-  }, []);
+  // Handle selecting a basket as the destination for the active/dragged item
+  const handleSelectBasket = (category: NatureCategory, itemToSort?: NatureItem) => {
+    const targetItem = itemToSort || activeItem;
+    if (!targetItem || isRoundComplete) return;
 
-  const handleSelectBasket = (category: NatureCategory) => {
-    if (currentItem.category === category) {
-      const nextCount = solvedCount + 1;
-      setSolvedCount(nextCount);
+    if (targetItem.category === category) {
+      // Correct class! Put the item inside the basket
+      audioManager.playPortalReturn();
 
-      if (nextCount >= 2) {
+      setBasketContents((prev) => ({
+        ...prev,
+        [category]: [...prev[category], targetItem]
+      }));
+
+      const nextRemaining = remainingItems.filter((i) => i.id !== targetItem.id);
+      setRemainingItems(nextRemaining);
+      setActiveItem(nextRemaining[0] || null);
+
+      // Check if all items in the round have been sorted into their baskets
+      if (nextRemaining.length === 0) {
+        setIsRoundComplete(true);
         onSolved();
-        setSolvedCount(0);
+        window.setTimeout(() => {
+          setupRound();
+        }, 1500);
       }
-      setupItem();
     } else {
+      // Wrong basket: soft wobble animation and gentle pedagogical retry
+      setWobbleBasket(category);
       onMistake();
+      window.setTimeout(() => {
+        setWobbleBasket(null);
+      }, 500);
     }
+  };
+
+  // Drag handling
+  const handlePointerDown = (item: NatureItem, e: React.PointerEvent) => {
+    if (isRoundComplete) return;
+    setActiveItem(item);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    setDraggedItem(item);
+    setDragPos({ x: e.clientX, y: e.clientY });
+    setIsDragging(false);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragStartRef.current || !draggedItem) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    if (Math.hypot(dx, dy) > 8) {
+      setIsDragging(true);
+    }
+    setDragPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePointerUp = (item: NatureItem, e: React.PointerEvent) => {
+    if (!dragStartRef.current || !draggedItem) return;
+
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    const wasDragged = Math.hypot(dx, dy) > 12;
+
+    if (wasDragged) {
+      // Check which basket the item was dropped onto
+      let matchedCategory: NatureCategory | null = null;
+
+      for (const b of BASKETS) {
+        const el = basketRefs.current[b.category];
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom
+          ) {
+            matchedCategory = b.category;
+            break;
+          }
+        }
+      }
+
+      if (matchedCategory) {
+        handleSelectBasket(matchedCategory, draggedItem);
+      }
+    } else {
+      // Simple tap selects the item
+      setActiveItem(item);
+    }
+
+    dragStartRef.current = null;
+    setDraggedItem(null);
+    setDragPos(null);
+    setIsDragging(false);
+  };
+
+  const handlePointerCancel = () => {
+    dragStartRef.current = null;
+    setDraggedItem(null);
+    setDragPos(null);
+    setIsDragging(false);
   };
 
   return (
     <div className="nature-sorting-container">
-      {/* Central Nature Item to sort */}
-      <div className="shape-socket" style={{ width: '130px', height: '130px' }}>
-        <span style={{ fontSize: '72px' }}>{currentItem.emoji}</span>
-      </div>
-
-      {/* 3 Woven Nature Baskets */}
+      {/* 3 Selectable Nature Baskets with visible class logos & visible contained items */}
       <div className="nature-baskets-row">
-        <button
-          type="button"
-          className="nature-basket"
-          onClick={() => handleSelectBasket('leaf')}
-          aria-label="Leaves basket"
-        >
-          <span style={{ fontSize: '48px' }}>🍃</span>
-        </button>
+        {BASKETS.map((basket) => {
+          const contained = basketContents[basket.category];
+          const isTargetCategory = activeItem?.category === basket.category;
+          const isWobbling = wobbleBasket === basket.category;
 
-        <button
-          type="button"
-          className="nature-basket"
-          onClick={() => handleSelectBasket('stone')}
-          aria-label="Stones basket"
-        >
-          <span style={{ fontSize: '48px' }}>🪨</span>
-        </button>
+          return (
+            <div
+              key={basket.category}
+              ref={(el) => {
+                basketRefs.current[basket.category] = el;
+              }}
+              className={`nature-basket ${isWobbling ? 'wobble' : ''} ${isRoundComplete ? 'celebrating' : ''} ${isTargetCategory ? 'hint-glow' : ''}`}
+              onClick={() => handleSelectBasket(basket.category)}
+              role="button"
+              tabIndex={0}
+              aria-label={`${basket.label} Basket (select to sort item here)`}
+              data-category={basket.category}
+            >
+              {/* Basket Overhead Arch Handle */}
+              <div
+                className="basket-handle"
+                style={{ borderColor: basket.color }}
+              />
 
-        <button
-          type="button"
-          className="nature-basket"
-          onClick={() => handleSelectBasket('fruit')}
-          aria-label="Berries basket"
-        >
-          <span style={{ fontSize: '48px' }}>🍓</span>
-        </button>
+              {/* Basket Open Interior: Items put inside are clearly visible! */}
+              <div className="basket-interior">
+                {contained.length === 0 ? (
+                  <div className="basket-empty-slot" title="Ready for items">
+                    <span className="basket-empty-icon" style={{ opacity: 0.35 }}>
+                      {basket.logoEmoji}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="basket-items-nest">
+                    {contained.map((cItem, idx) => (
+                      <div
+                        key={`${cItem.id}-${idx}`}
+                        className="basket-contained-item"
+                        title={cItem.name}
+                      >
+                        <span className="contained-item-emoji">{cItem.emoji}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Front Wicker Hamper Body */}
+              <div className="basket-body" style={{ borderColor: basket.accentColor }}>
+                <div className="basket-weave-texture" />
+
+                {/* Class Logo Emblem Badge on Front of Basket */}
+                <div
+                  className="basket-class-badge"
+                  style={{
+                    borderColor: basket.accentColor,
+                    boxShadow: `0 4px 14px ${basket.color}99`
+                  }}
+                >
+                  <span className="basket-class-logo-emoji">{basket.logoEmoji}</span>
+                  <span className="basket-class-logo-label">{basket.label}</span>
+                </div>
+              </div>
+
+              {/* Celebration Sparkles when Round is Solved */}
+              {isRoundComplete && (
+                <div className="basket-celebration-sparkles">
+                  <span>✨</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* Unsorted Woodland Treasures Tray */}
+      <div className="nature-tray-section">
+        <div className="nature-tray-pedestal">
+          {remainingItems.length > 0 ? (
+            <div className="nature-items-tray">
+              {remainingItems.map((item) => {
+                const isSelected = activeItem?.id === item.id;
+                const isBeingDragged = draggedItem?.id === item.id && isDragging;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`nature-item-piece ${isSelected ? 'is-selected' : ''} ${isBeingDragged ? 'is-dragged-origin' : ''}`}
+                    onPointerDown={(e) => handlePointerDown(item, e)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={(e) => handlePointerUp(item, e)}
+                    onPointerCancel={handlePointerCancel}
+                    onClick={() => setActiveItem(item)}
+                    aria-label={`Select ${item.name}`}
+                  >
+                    <span className="item-piece-emoji">{item.emoji}</span>
+                    {isSelected && <div className="item-piece-selection-aura" />}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="nature-tray-complete">
+              <span style={{ fontSize: '36px' }}>🌟</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floating Drag Clone following pointer when dragging an item */}
+      {isDragging && draggedItem && dragPos && (
+        <div
+          className="nature-item-drag-clone"
+          style={{
+            left: `${dragPos.x}px`,
+            top: `${dragPos.y}px`
+          }}
+        >
+          <span style={{ fontSize: '46px' }}>{draggedItem.emoji}</span>
+        </div>
+      )}
     </div>
   );
 };
