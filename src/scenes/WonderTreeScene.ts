@@ -104,15 +104,10 @@ export class WonderTreeScene extends Phaser.Scene {
         this.load.image(pt.key, pt.file);
       }
     }
-    const treeStages = [
-      { key: 'tree_stage_1', file: './tree-stage-1.png' },
-      { key: 'tree_stage_2', file: './tree-stage-2.png' },
-      { key: 'tree_stage_3', file: './tree-stage-3.png' },
-      { key: 'tree_stage_4', file: './tree-stage-4.png' }
-    ];
-    for (const ts of treeStages) {
-      if (!this.textures.exists(ts.key)) {
-        this.load.image(ts.key, ts.file);
+    for (let i = 1; i <= 10; i++) {
+      const key = `tree_stage_${i}`;
+      if (!this.textures.exists(key)) {
+        this.load.image(key, `./tree-stage-${i}.png`);
       }
     }
   }
@@ -722,6 +717,20 @@ export class WonderTreeScene extends Phaser.Scene {
     width: number,
     height: number
   ): void {
+    const activeAnchor = this.wonderTree?.getAnchors().find((a) => a.minigame === p.anchor.minigame);
+    if (!activeAnchor) {
+      p.container.setVisible(false);
+      if (p.hitZone && (p.hitZone as any).input) {
+        (p.hitZone as any).input.enabled = false;
+      }
+      return;
+    }
+    p.anchor = activeAnchor;
+    p.container.setVisible(true);
+    if (p.hitZone && (p.hitZone as any).input) {
+      (p.hitZone as any).input.enabled = true;
+    }
+
     const dpr = this.getDpr();
     const { treeBaseX, treeBaseY, treeScale } = this.getTreeTransform(
       width,

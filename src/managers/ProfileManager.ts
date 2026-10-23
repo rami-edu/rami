@@ -452,12 +452,18 @@ export class ProfileManager {
     return total;
   }
 
-  public getTreeGrowthStage(profileId?: string): 1 | 2 | 3 | 4 {
+  public getTreeGrowthStage(profileId?: string): 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 {
     const stars = this.getTotalStarsEarned(profileId);
-    if (stars <= 5) return 1;
-    if (stars <= 15) return 2;
-    if (stars <= 30) return 3;
-    return 4;
+    if (stars <= 2) return 1;
+    if (stars <= 5) return 2;
+    if (stars <= 9) return 3;
+    if (stars <= 13) return 4;
+    if (stars <= 17) return 5;
+    if (stars <= 21) return 6;
+    if (stars <= 25) return 7;
+    if (stars <= 29) return 8;
+    if (stars <= 34) return 9;
+    return 10;
   }
 }
 
