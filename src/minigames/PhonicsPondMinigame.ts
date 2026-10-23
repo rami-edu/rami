@@ -946,6 +946,7 @@ export class PhonicsPondActivity extends BasePreschoolActivity {
     onWrongAttempt: (desc: string) => void;
   };
   public readonly audioSynth = new PhonicsAudioSynthesizer();
+  private lastTargetCreatureId: string | null = null;
 
   constructor() {
     super({
@@ -1009,9 +1010,17 @@ export class PhonicsPondActivity extends BasePreschoolActivity {
     const shuffledPool = [...CREATURES].sort(() => Math.random() - 0.5);
     const activeCreatures = shuffledPool.slice(0, choiceCount);
 
-    // Pick 1 target creature whose sound is singing from the pond
+    // Pick 1 target creature whose sound is singing from the pond (never same animal twice in a row)
+    let candidateCreatures = activeCreatures;
+    if (this.lastTargetCreatureId && activeCreatures.length > 1) {
+      const filtered = activeCreatures.filter((c) => c.id !== this.lastTargetCreatureId);
+      if (filtered.length > 0) {
+        candidateCreatures = filtered;
+      }
+    }
     const targetCreature =
-      activeCreatures[Math.floor(Math.random() * activeCreatures.length)];
+      candidateCreatures[Math.floor(Math.random() * candidateCreatures.length)];
+    this.lastTargetCreatureId = targetCreature.id;
 
     // Play target sound when instance begins
     this.audioSynth.playCreatureSound(targetCreature.id);

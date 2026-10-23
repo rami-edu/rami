@@ -7,7 +7,10 @@ import {
   getInstructorTitle
 } from '../src/react/ActivityShell';
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
-import { PhonicsPondActivityComponent } from '../src/react/activities/PhonicsPondActivity';
+import {
+  PhonicsPondActivityComponent,
+  pickNextTargetCreature
+} from '../src/react/activities/PhonicsPondActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
 import {
   ColorBloomActivityComponent,
@@ -355,6 +358,19 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('creature-cards-row');
     expect(html).toContain('creature-card');
     expect(html).toContain('creature-card-emoji');
+  });
+
+  it('guarantees PhonicsPond does not present the same animal consecutively', () => {
+    let lastCreatureId: string | null = null;
+    for (let round = 0; round < 300; round++) {
+      const nextCreature = pickNextTargetCreature(lastCreatureId);
+      expect(nextCreature).toBeDefined();
+      expect(nextCreature.id).toBeTruthy();
+      if (lastCreatureId !== null) {
+        expect(nextCreature.id).not.toBe(lastCreatureId);
+      }
+      lastCreatureId = nextCreature.id;
+    }
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {

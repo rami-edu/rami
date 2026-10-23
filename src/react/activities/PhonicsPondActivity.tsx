@@ -22,10 +22,22 @@ export interface PhonicsRoundData {
   choices: PhonicsCreature[];
 }
 
-export const generatePhonicsRound = (): PhonicsRoundData => {
-  const shuffled = [...PHONICS_CREATURES].sort(() => 0.5 - Math.random());
-  const target = shuffled[0];
-  const choices = [target, shuffled[1], shuffled[2]].sort(() => 0.5 - Math.random());
+/**
+ * Guarantees that the same animal creature is NEVER selected consecutively.
+ */
+export function pickNextTargetCreature(lastCreatureId: string | null): PhonicsCreature {
+  const available = lastCreatureId
+    ? PHONICS_CREATURES.filter((c) => c.id !== lastCreatureId)
+    : PHONICS_CREATURES;
+  return available[Math.floor(Math.random() * available.length)] ?? PHONICS_CREATURES[0];
+}
+
+export const generatePhonicsRound = (lastCreatureId?: string | null): PhonicsRoundData => {
+  const target = pickNextTargetCreature(lastCreatureId ?? null);
+  const otherCreatures = PHONICS_CREATURES.filter((c) => c.id !== target.id).sort(
+    () => 0.5 - Math.random()
+  );
+  const choices = [target, otherCreatures[0], otherCreatures[1]].sort(() => 0.5 - Math.random());
   return { targetCreature: target, choices };
 };
 
@@ -36,7 +48,12 @@ interface Props {
 
 export const PhonicsPondActivityComponent: React.FC<Props> = ({ onSolved, onMistake }) => {
   const [synth] = useState(() => new PhonicsAudioSynthesizer());
-  const [roundData, setRoundData] = useState<PhonicsRoundData>(() => generatePhonicsRound());
+  const lastCreatureIdRef = useRef<string | null>(null);
+  const [roundData, setRoundData] = useState<PhonicsRoundData>(() => {
+    const initialRound = generatePhonicsRound(null);
+    lastCreatureIdRef.current = initialRound.targetCreature.id;
+    return initialRound;
+  });
   const [isPlayingSound, setIsPlayingSound] = useState(false);
   const [loopIteration, setLoopIteration] = useState(0);
   const [isSolved, setIsSolved] = useState(false);
@@ -75,7 +92,8 @@ export const PhonicsPondActivityComponent: React.FC<Props> = ({ onSolved, onMist
   const setupRound = () => {
     setIsSolved(false);
     setWobbleCardId(null);
-    const newRound = generatePhonicsRound();
+    const newRound = generatePhonicsRound(lastCreatureIdRef.current);
+    lastCreatureIdRef.current = newRound.targetCreature.id;
     setRoundData(newRound);
     startLoop(newRound.targetCreature.id);
   };
