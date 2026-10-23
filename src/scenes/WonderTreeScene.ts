@@ -420,10 +420,6 @@ export class WonderTreeScene extends Phaser.Scene {
     }
     const theme = this.getPortalTheme(anchor.minigame);
     const portalTexKey = this.getPortalTextureKey(anchor.id, anchor.minigame);
-    const activityLogoKey = ActivityLogoLibrary.getActivityLogoTexture(
-      this,
-      anchor.id.replace('portal_', '')
-    );
 
     const container = this.add.container(0, 0).setDepth(15);
     const diskContainer = this.add.container(0, 0);
@@ -506,37 +502,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .ellipse(0, 0, 140, 140, theme.ringColor, 0.08)
       .setBlendMode(Phaser.BlendModes.ADD);
 
-    // 5. Rectangular wooden sign on top of the portal (hanging above the rim)
-    const SIGN_Y = -126;
-    const SIGN_W = 112;
-    const SIGN_H = 82;
-
-    const signHangers = this.add.graphics();
-    signHangers.lineStyle(2.5, 0x8b5a2b, 0.85);
-    signHangers.beginPath();
-    signHangers.moveTo(-30, SIGN_Y + SIGN_H / 2);
-    signHangers.lineTo(-24, -68);
-    signHangers.moveTo(30, SIGN_Y + SIGN_H / 2);
-    signHangers.lineTo(24, -68);
-    signHangers.strokePath();
-
-    const signBoard = this.add
-      .rectangle(0, SIGN_Y, SIGN_W, SIGN_H, 0x1f2e22, 0.95)
-      .setStrokeStyle(2.5, theme.ringColor, 0.9)
-      .setInteractive({ useHandCursor: true });
-
-    const signInner = this.add
-      .rectangle(0, SIGN_Y, SIGN_W - 8, SIGN_H - 8)
-      .setStrokeStyle(1.2, 0xd4a373, 0.4);
-
-    // Activity logo on sign (Twice as big: 88x68)
-    const logoImg = this.add
-      .image(0, SIGN_Y, activityLogoKey)
-      .setDisplaySize(88, 68)
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    // Text placed ABOVE the sign: NO box, NO background color
+    // Text placed cleanly above the round cavity rim: NO wooden box, NO background color
     // 4X super-sampled high-density typography with pristine anti-aliasing
     const TEXT_SUPERSAMPLE = 4;
     const activeProfile = profileManager.getActiveProfile();
@@ -547,7 +513,7 @@ export class WonderTreeScene extends Phaser.Scene {
     const displayTitle = anchor.minigame.replace(/\s*\(.*?\)/g, '').trim();
 
     const titleLabel = this.add
-      .text(0, SIGN_Y - SIGN_H / 2 - 28, displayTitle, {
+      .text(0, -106, displayTitle, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: `${16 * TEXT_SUPERSAMPLE}px`,
         color: '#f0fdf4',
@@ -570,7 +536,7 @@ export class WonderTreeScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     const subLabel = this.add
-      .text(0, SIGN_Y - SIGN_H / 2 - 10, starsVisual, {
+      .text(0, -88, starsVisual, {
         fontFamily: UI_FONT_FAMILY,
         fontSize: `${14 * TEXT_SUPERSAMPLE}px`,
         color: '#ffd166',
@@ -592,9 +558,9 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    // Full rectangular hit area covering the enlarged portal cavity, sign, and titles
+    // Full interactive hit area covering the round portal cavity and title
     const fullHitZone = this.add
-      .rectangle(0, -50, 170, 270, 0x000000, 0.0001)
+      .rectangle(0, -15, 170, 200, 0x000000, 0.0001)
       .setInteractive({ useHandCursor: true });
 
     // Animations:
@@ -633,16 +599,6 @@ export class WonderTreeScene extends Phaser.Scene {
       scaleY: 1.08,
       alpha: 0.15,
       duration: 1800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
-    // Gentle sign sway
-    this.tweens.add({
-      targets: [signBoard, signInner, logoImg],
-      y: SIGN_Y - 3,
-      duration: 2200,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -695,10 +651,6 @@ export class WonderTreeScene extends Phaser.Scene {
 
     container.add([
       diskContainer,
-      signHangers,
-      signBoard,
-      signInner,
-      logoImg,
       titleLabel,
       subLabel,
       fullHitZone
@@ -725,8 +677,6 @@ export class WonderTreeScene extends Phaser.Scene {
 
     fullHitZone.on('pointerdown', onPortalClick);
     staticLogoImg.setInteractive({ useHandCursor: true }).on('pointerdown', onPortalClick);
-    signBoard.on('pointerdown', onPortalClick);
-    logoImg.on('pointerdown', onPortalClick);
     titleLabel.on('pointerdown', onPortalClick);
     subLabel.on('pointerdown', onPortalClick);
 
@@ -901,14 +851,7 @@ export class WonderTreeScene extends Phaser.Scene {
             p.worldX,
             p.worldY
           );
-          const signWorldY = p.worldY - 126 * pScale;
-          const distToSign = Phaser.Math.Distance.Between(
-            pointer.worldX,
-            pointer.worldY,
-            p.worldX,
-            signWorldY
-          );
-          if (distToCenter <= 95 * pScale || distToSign <= 95 * pScale) {
+          if (distToCenter <= 95 * pScale) {
             this.pendingClickedPortal = p;
             this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
             return;
