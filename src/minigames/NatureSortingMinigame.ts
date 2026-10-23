@@ -40,7 +40,7 @@ export class NatureSortingActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Sort laundry socks by color or organize toys into baskets (soft plushies vs hard building blocks) to practice real-world categorization!'
       },
-      animalInstructor: 'bear',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_nature_sorting',
       backgroundUrl: './bg-nature-sorting.jpg'
     });

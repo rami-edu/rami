@@ -962,7 +962,7 @@ export class PhonicsPondActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Make playful sounds together! Ask your child "Who says ribbit?" or "Can you make a sound like a quiet bee?" to reinforce auditory imitation.'
       },
-      animalInstructor: 'raccoon',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_phonics_pond',
       backgroundUrl: './bg-phonics-pond.jpg'
     });

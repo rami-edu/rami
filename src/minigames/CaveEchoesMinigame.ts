@@ -95,7 +95,7 @@ export class CaveEchoesActivity implements MinigameModule {
       parentRecommendation:
         'Watch the glowing lights together with your child. Whisper the color or point to each crystal as it lights up to scaffold their memory.'
     },
-    animalInstructor: 'otter'
+    animalInstructor: 'owl'
   };
 
   private starRequirements: readonly StarLevelRequirement[] =

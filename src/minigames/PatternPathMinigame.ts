@@ -39,7 +39,7 @@ export class PatternPathActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Create physical patterns using colored crayons or building blocks (e.g. red block, blue block, red block...). Pause and ask your child "Which block comes next?"'
       },
-      animalInstructor: 'fox',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_pattern_path',
       backgroundUrl: './bg-pattern-path.jpg'
     });

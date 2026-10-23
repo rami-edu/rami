@@ -30,7 +30,7 @@ export class CreatureLadderActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Line up spoons or toy cars from smallest to biggest on the floor or kitchen table. Ask your child "Which one is the baby spoon? Which one is the giant spoon?"'
       },
-      animalInstructor: 'dino',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_creature_ladder',
       backgroundUrl: './bg-creature-ladder.jpg'
     });

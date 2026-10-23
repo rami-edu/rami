@@ -4,8 +4,7 @@ import { renderToString } from 'react-dom/server';
 import {
   ActivityShell,
   getActivityInstructorId,
-  getInstructorTitle,
-  getActivityGuidePrompt
+  getInstructorTitle
 } from '../src/react/ActivityShell';
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
@@ -85,19 +84,17 @@ describe('React Activity Rendering', () => {
       expect(html).toContain('scholar-hat');
       expect(html).toContain('activity-music-toggle');
       expect(html).toContain('activity-stage-card');
-      expect(html).toContain('activity-instructor-bar');
-      expect(html).toContain('instructor-companion-badge');
-      expect(html).toContain('companion-scholar-hat');
-      expect(html).toContain('instructor-companion-bubble');
-      expect(html).toContain('instructor-companion-title');
-      expect(html).toContain('instructor-companion-prompt');
+      expect(html).toContain('activity-instructor');
       expect(html).toContain(act.expectedSnippet);
-      // Verify no parent dashboard in activity header
+      // Verify instructor does NOT show any text prompts or speech bubbles
+      expect(html).not.toContain('instructor-companion-bubble');
+      expect(html).not.toContain('instructor-companion-title');
+      expect(html).not.toContain('instructor-companion-prompt');
       expect(html).not.toContain('guardian-modal');
     });
   }
 
-  it('renders GeometryShapesActivityComponent with draggable shape pieces and nest sockets', () => {
+  it('renders GeometryShapesActivityComponent with draggable shape pieces, nest sockets, and Owl instructor', () => {
     const onSolved = vi.fn();
     const onMistake = vi.fn();
 
@@ -113,6 +110,8 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('shape-choices-row');
     expect(html).toContain('shape-piece');
     expect(html).toContain('shape-socket');
+    expect(html).toContain('stage-owl-instructor');
+    expect(html).toContain('owl-sprite');
   });
 
   it('renders CreatureLadderActivityComponent with draggable animal cards and ladder rungs', () => {
@@ -133,34 +132,72 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('ladder-rung-size-label');
   });
 
-  it('guarantees every minigame has an animal instructor explicitly assigned', () => {
-    expect(acornScaleActivity.descriptor.animalInstructor).toBe('bear');
-    expect(caveEchoesActivity.descriptor.animalInstructor).toBe('otter');
-    expect(rhythmBranchesActivity.descriptor.animalInstructor).toBe('raccoon');
+  it('guarantees every minigame has the owl as its single instructor', () => {
+    expect(acornScaleActivity.descriptor.animalInstructor).toBe('owl');
+    expect(caveEchoesActivity.descriptor.animalInstructor).toBe('owl');
+    expect(rhythmBranchesActivity.descriptor.animalInstructor).toBe('owl');
     expect(geometryShapesActivity.descriptor.animalInstructor).toBe('owl');
-    expect(colorBloomActivity.descriptor.animalInstructor).toBe('fox');
-    expect(phonicsPondActivity.descriptor.animalInstructor).toBe('raccoon');
-    expect(creatureLadderActivity.descriptor.animalInstructor).toBe('dino');
-    expect(patternPathActivity.descriptor.animalInstructor).toBe('fox');
+    expect(colorBloomActivity.descriptor.animalInstructor).toBe('owl');
+    expect(phonicsPondActivity.descriptor.animalInstructor).toBe('owl');
+    expect(creatureLadderActivity.descriptor.animalInstructor).toBe('owl');
+    expect(patternPathActivity.descriptor.animalInstructor).toBe('owl');
     expect(shadowMatchActivity.descriptor.animalInstructor).toBe('owl');
-    expect(natureSortingActivity.descriptor.animalInstructor).toBe('bear');
-    expect(symmetryWingsActivity.descriptor.animalInstructor).toBe('otter');
+    expect(natureSortingActivity.descriptor.animalInstructor).toBe('owl');
+    expect(symmetryWingsActivity.descriptor.animalInstructor).toBe('owl');
   });
 
-  it('correctly maps instructor titles and guidance prompts', () => {
-    expect(getInstructorTitle('owl')).toContain('Professor Owl');
-    expect(getInstructorTitle('fox')).toContain('Guide Fox');
-    expect(getInstructorTitle('raccoon')).toContain('Ranger Raccoon');
-    expect(getInstructorTitle('dino')).toContain('Coach Dino');
-    expect(getInstructorTitle('bear')).toContain('Big Bear');
-    expect(getInstructorTitle('otter')).toContain('Maestro Otter');
+  it('correctly maps instructor to Professor Owl without showing text', () => {
+    expect(getInstructorTitle()).toContain('Professor Owl');
 
     const owlModule = createMockModule('geom_shapes', 'Shape Nest (Geometry)', './bg.jpg', 'owl');
     expect(getActivityInstructorId(owlModule)).toBe('owl');
-    expect(getActivityGuidePrompt(owlModule)).toContain('nest');
 
-    const bearModule = createMockModule('07', 'Acorn Scale', './bg.jpg', 'bear');
-    expect(getActivityInstructorId(bearModule)).toBe('bear');
-    expect(getActivityGuidePrompt(bearModule)).toContain('acorn');
+    const bearModule = createMockModule('07', 'Acorn Scale', './bg.jpg', 'owl');
+    expect(getActivityInstructorId(bearModule)).toBe('owl');
+  });
+
+  it('persists tutorial completion so instructor demonstration stops after first successful solve', () => {
+    const store: Record<string, string> = {};
+    const localStorageMock = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, value: string) => {
+        store[key] = value.toString();
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+      clear: () => {
+        for (const k in store) delete store[k];
+      }
+    };
+    (globalThis as any).localStorage = localStorageMock;
+
+    const storageKey = 'rami_tutorial_completed_shape_nest_guest';
+    localStorageMock.removeItem(storageKey);
+
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    // First render: initial state without prior solve
+    const htmlFirst = renderToString(
+      React.createElement(GeometryShapesActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+    expect(htmlFirst).toContain('stage-owl-instructor');
+
+    // Simulate completion
+    localStorageMock.setItem(storageKey, 'true');
+    expect(localStorageMock.getItem(storageKey)).toBe('true');
+
+    // Subsequent render: tutorial marked as completed
+    const htmlSubsequent = renderToString(
+      React.createElement(GeometryShapesActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+    expect(htmlSubsequent).toContain('stage-owl-instructor perched');
   });
 });

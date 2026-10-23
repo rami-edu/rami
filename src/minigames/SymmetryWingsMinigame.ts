@@ -32,7 +32,7 @@ export class SymmetryWingsActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Fold a piece of paper in half, place a small drop of paint inside, press together, and unfold it to show how identical wings appear on both sides!'
       },
-      animalInstructor: 'otter',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_symmetry_wings',
       backgroundUrl: './bg-symmetry-wings.jpg'
     });

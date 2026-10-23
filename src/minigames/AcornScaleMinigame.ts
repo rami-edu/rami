@@ -57,7 +57,7 @@ export class AcornScaleActivity implements MinigameModule {
       parentRecommendation:
         'Encourage your preschooler to watch how the balance beam responds with every acorn added. Ask them: "Which side is heavier right now?" and celebrate when the beam settles horizontal.'
     },
-    animalInstructor: 'bear'
+    animalInstructor: 'owl'
   };
 
   /**

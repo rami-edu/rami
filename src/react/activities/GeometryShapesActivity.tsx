@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { profileManager } from '../../managers/ProfileManager';
+import { audioManager } from '../../managers/AudioManager';
 
 interface ShapeDef {
   id: string;
@@ -84,6 +86,33 @@ interface DragState {
   isDragging: boolean;
 }
 
+const TUTORIAL_STORAGE_PREFIX = 'rami_tutorial_completed_shape_nest_';
+
+const checkTutorialCompleted = (): boolean => {
+  try {
+    const activeProfile = profileManager.getActiveProfile();
+    const pid = activeProfile?.id ?? 'guest';
+    const completedCount =
+      activeProfile?.progress?.['Shape Nest (Geometry)']?.completedCount ??
+      activeProfile?.progress?.['geom_shapes']?.completedCount ??
+      0;
+    if (completedCount > 0) return true;
+    return localStorage.getItem(`${TUTORIAL_STORAGE_PREFIX}${pid}`) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const markTutorialCompletedInStorage = (): void => {
+  try {
+    const activeProfile = profileManager.getActiveProfile();
+    const pid = activeProfile?.id ?? 'guest';
+    localStorage.setItem(`${TUTORIAL_STORAGE_PREFIX}${pid}`, 'true');
+  } catch {
+    // Ignore storage issues
+  }
+};
+
 const getRandomRound = () => {
   const shuffled = [...ALL_SHAPES].sort(() => 0.5 - Math.random());
   const targets = shuffled.slice(0, 3);
@@ -101,11 +130,33 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
   const [justSnappedId, setJustSnappedId] = useState<string | null>(null);
   const [nudgeShapeId, setNudgeShapeId] = useState<string | null>(null);
 
+  // Tutorial tracking
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(checkTutorialCompleted);
+  const [owlFlightState, setOwlFlightState] = useState<{
+    stage: 'idle' | 'flying_to_piece' | 'carrying_to_socket' | 'dropping' | 'celebrating' | 'perched';
+    x: number;
+    y: number;
+    carriedShape: ShapeDef | null;
+    reaction: string | null;
+    isFlapping: boolean;
+  }>({
+    stage: checkTutorialCompleted() ? 'perched' : 'idle',
+    x: 0,
+    y: 0,
+    carriedShape: null,
+    reaction: null,
+    isFlapping: false
+  });
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const socketRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const choiceRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const suppressClickUntilRef = useRef<number>(0);
+  const userInteractedRef = useRef<boolean>(false);
+  const hasDemonstratedRef = useRef<boolean>(checkTutorialCompleted());
 
   // Setup a new puzzle round
-  const setupRound = () => {
+  const setupRound = useCallback(() => {
     const { targets, choices } = getRandomRound();
     setTargetShapes(targets);
     setFilledSocketIds(new Set());
@@ -114,29 +165,185 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
     setHoveredSocketId(null);
     setJustSnappedId(null);
     setNudgeShapeId(null);
-  };
+  }, []);
 
-  const placePieceInSocket = (shapeId: string) => {
-    const nextFilled = new Set(filledSocketIds);
-    nextFilled.add(shapeId);
-    setFilledSocketIds(nextFilled);
-    setJustSnappedId(shapeId);
-    window.setTimeout(() => setJustSnappedId(null), 500);
+  const placePieceInSocket = useCallback(
+    (shapeId: string) => {
+      setFilledSocketIds((prev) => {
+        const nextFilled = new Set(prev);
+        nextFilled.add(shapeId);
 
-    // Remove from available choices
-    setAvailableChoices((prev) => prev.filter((p) => p.id !== shapeId));
+        setJustSnappedId(shapeId);
+        window.setTimeout(() => setJustSnappedId(null), 500);
 
-    if (nextFilled.size === targetShapes.length) {
-      onSolved();
-      window.setTimeout(() => {
-        setupRound();
-      }, 1100);
+        // Remove from available choices
+        setAvailableChoices((choices) => choices.filter((p) => p.id !== shapeId));
+
+        if (nextFilled.size === targetShapes.length) {
+          // Completed the puzzle!
+          markTutorialCompletedInStorage();
+          setHasCompletedTutorial(true);
+          hasDemonstratedRef.current = true;
+
+          // Owl celebrates on perch!
+          setOwlFlightState((curr) => ({
+            ...curr,
+            stage: 'perched',
+            reaction: '🌟',
+            isFlapping: true
+          }));
+          window.setTimeout(() => {
+            setOwlFlightState((curr) => ({ ...curr, reaction: null, isFlapping: false }));
+          }, 1500);
+
+          onSolved();
+          window.setTimeout(() => {
+            setupRound();
+          }, 1100);
+        }
+
+        return nextFilled;
+      });
+    },
+    [targetShapes.length, onSolved, setupRound]
+  );
+
+  // Owl physical demonstration tutorial on first entry
+  useEffect(() => {
+    if (hasCompletedTutorial || hasDemonstratedRef.current) {
+      setOwlFlightState((prev) => ({ ...prev, stage: 'perched' }));
+      return;
     }
-  };
+
+    let t1: number | null = null;
+    let t2: number | null = null;
+    let t3: number | null = null;
+    let t4: number | null = null;
+    let t5: number | null = null;
+    let t6: number | null = null;
+
+    // Wait 500ms for DOM elements to render and position
+    t1 = window.setTimeout(() => {
+      if (userInteractedRef.current || hasDemonstratedRef.current) return;
+      hasDemonstratedRef.current = true;
+
+      if (availableChoices.length === 0) return;
+      const demoShape = availableChoices[0];
+      const pieceEl = choiceRefs.current[demoShape.id];
+      const socketEl = socketRefs.current[demoShape.id];
+
+      if (!pieceEl || !socketEl) {
+        setOwlFlightState((prev) => ({ ...prev, stage: 'perched' }));
+        return;
+      }
+
+      const pRect = pieceEl.getBoundingClientRect();
+      const sRect = socketEl.getBoundingClientRect();
+
+      const pieceCenterX = pRect.left + pRect.width / 2;
+      const pieceCenterY = pRect.top + pRect.height / 2;
+      const socketCenterX = sRect.left + sRect.width / 2;
+      const socketCenterY = sRect.top + sRect.height / 2;
+
+      // 1. Owl swoops in from above right to the first piece
+      setOwlFlightState({
+        stage: 'flying_to_piece',
+        x: pieceCenterX,
+        y: pieceCenterY - 20,
+        carriedShape: null,
+        reaction: null,
+        isFlapping: true
+      });
+
+      // 2. Owl lands on the piece and picks it up
+      t2 = window.setTimeout(() => {
+        if (userInteractedRef.current) return;
+        setOwlFlightState({
+          stage: 'flying_to_piece',
+          x: pieceCenterX,
+          y: pieceCenterY - 8,
+          carriedShape: demoShape,
+          reaction: '🦉',
+          isFlapping: false
+        });
+
+        // 3. Owl drags the piece up toward the matching socket
+        t3 = window.setTimeout(() => {
+          if (userInteractedRef.current) return;
+          setHoveredSocketId(demoShape.id);
+          setOwlFlightState({
+            stage: 'carrying_to_socket',
+            x: socketCenterX,
+            y: socketCenterY,
+            carriedShape: demoShape,
+            reaction: null,
+            isFlapping: true
+          });
+
+          // 4. Owl arrives at socket and drops the piece in!
+          t4 = window.setTimeout(() => {
+            if (userInteractedRef.current) return;
+            setHoveredSocketId(null);
+            setOwlFlightState({
+              stage: 'dropping',
+              x: socketCenterX,
+              y: socketCenterY,
+              carriedShape: null,
+              reaction: '🌟',
+              isFlapping: false
+            });
+
+            // Snap the demo piece into its nest
+            placePieceInSocket(demoShape.id);
+            audioManager.playPortalReturn();
+
+            // 5. Celebration flutter & fly to perch
+            t5 = window.setTimeout(() => {
+              setOwlFlightState((prev) => ({
+                ...prev,
+                stage: 'celebrating',
+                reaction: '✨',
+                isFlapping: true
+              }));
+
+              t6 = window.setTimeout(() => {
+                setOwlFlightState((prev) => ({
+                  ...prev,
+                  stage: 'perched',
+                  reaction: null,
+                  isFlapping: false
+                }));
+              }, 750);
+            }, 600);
+          }, 1100);
+        }, 320);
+      }, 700);
+    }, 500);
+
+    return () => {
+      if (t1) window.clearTimeout(t1);
+      if (t2) window.clearTimeout(t2);
+      if (t3) window.clearTimeout(t3);
+      if (t4) window.clearTimeout(t4);
+      if (t5) window.clearTimeout(t5);
+      if (t6) window.clearTimeout(t6);
+    };
+  }, [availableChoices, hasCompletedTutorial, placePieceInSocket]);
 
   const handlePointerDown = (shape: ShapeDef, e: React.PointerEvent) => {
-    // Only accept primary button / touch
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    // User is interacting! If tutorial was carrying, finish it and let user play
+    userInteractedRef.current = true;
+    if (owlFlightState.carriedShape) {
+      placePieceInSocket(owlFlightState.carriedShape.id);
+    }
+    setOwlFlightState((prev) => ({
+      ...prev,
+      stage: 'perched',
+      carriedShape: null,
+      isFlapping: false
+    }));
 
     setDragState({
       shape,
@@ -192,7 +399,6 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
       const dist = Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY);
       const wasDragging = dragState.isDragging || dist >= 6;
 
-      // Suppress subsequent synthetic click events
       suppressClickUntilRef.current = Date.now() + 350;
 
       if (!wasDragging) {
@@ -209,12 +415,21 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
           if (droppedSocketId === dragState.shape.id) {
             // Correct socket match!
             placePieceInSocket(dragState.shape.id);
+            // Owl cheers with a star on perch
+            setOwlFlightState((curr) => ({ ...curr, reaction: '🌟', isFlapping: true }));
+            window.setTimeout(() => {
+              setOwlFlightState((curr) => ({ ...curr, reaction: null, isFlapping: false }));
+            }, 900);
           } else {
             // Dropped on incorrect socket
             onMistake();
+            // Owl tilts head encouragingly
+            setOwlFlightState((curr) => ({ ...curr, reaction: '🌱' }));
+            window.setTimeout(() => {
+              setOwlFlightState((curr) => ({ ...curr, reaction: null }));
+            }, 1000);
           }
         }
-        // Dropping into empty space cancels drag smoothly with no penalty
       }
 
       setDragState(null);
@@ -235,17 +450,73 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerCancel);
     };
-  }, [dragState, targetShapes, filledSocketIds]);
+  }, [dragState, targetShapes, filledSocketIds, placePieceInSocket, onMistake]);
+
+  const handleOwlTap = () => {
+    audioManager.playPortalReturn();
+    setOwlFlightState((curr) => ({
+      ...curr,
+      reaction: '🌟',
+      isFlapping: true
+    }));
+    window.setTimeout(() => {
+      setOwlFlightState((curr) => ({
+        ...curr,
+        reaction: null,
+        isFlapping: false
+      }));
+    }, 1000);
+  };
 
   return (
-    <div className="shape-nest-container">
+    <div className="shape-nest-container" ref={containerRef}>
+      {/* Animated Owl Instructor: Explains by moving and perches on stage without any text */}
+      <div
+        className={`stage-owl-instructor ${owlFlightState.stage === 'perched' ? 'perched' : 'flying'} ${owlFlightState.isFlapping ? 'flapping' : ''}`}
+        style={
+          owlFlightState.stage === 'perched'
+            ? undefined
+            : {
+                left: `${owlFlightState.x}px`,
+                top: `${owlFlightState.y}px`
+              }
+        }
+        onClick={handleOwlTap}
+        aria-label="Professor Owl instructor"
+      >
+        <div className="owl-body-wrapper">
+          {/* Mortarboard Graduation Hat */}
+          <svg viewBox="0 0 100 60" className="owl-scholar-hat" aria-hidden="true">
+            <polygon points="50,6 94,24 50,42 6,24" fill="#1b2a47" stroke="#ffd166" strokeWidth="3.5" />
+            <path d="M30,34 Q50,48 70,34 L70,44 Q50,56 30,44 Z" fill="#121b2d" stroke="#ffd166" strokeWidth="2.5" />
+            <circle cx="50" cy="24" r="4.5" fill="#ffd166" />
+            <path d="M50,24 C56,28 66,32 68,44" fill="none" stroke="#ffd166" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="68" cy="44" r="3.5" fill="#f59e0b" />
+          </svg>
+          <img src="./avatars/owl.png" alt="Professor Owl" className="owl-sprite" />
+          {owlFlightState.reaction && (
+            <div className="owl-reaction-bubble">{owlFlightState.reaction}</div>
+          )}
+        </div>
+
+        {/* Branch perch underneath when perched */}
+        {owlFlightState.stage === 'perched' && <div className="owl-branch-perch" />}
+
+        {/* Demo Carried Shape under Owl during tutorial drag */}
+        {owlFlightState.carriedShape && (
+          <div className="owl-carried-shape">
+            {owlFlightState.carriedShape.renderSvg(76, owlFlightState.carriedShape.color)}
+          </div>
+        )}
+      </div>
+
       {/* Sockets Row (Silhouettes in wooden nests) */}
       <div className="shape-sockets-row">
         {targetShapes.map((shape) => {
           const isFilled = filledSocketIds.has(shape.id);
           const isHovered = hoveredSocketId === shape.id;
-          const isMatchHover = isHovered && dragState?.shape.id === shape.id;
-          const isWrongHover = isHovered && dragState?.shape.id !== shape.id;
+          const isMatchHover = isHovered && (dragState?.shape.id === shape.id || owlFlightState.carriedShape?.id === shape.id);
+          const isWrongHover = isHovered && dragState?.shape.id !== shape.id && !owlFlightState.carriedShape;
           const isJustSnapped = justSnappedId === shape.id;
 
           const socketClasses = [
@@ -278,12 +549,17 @@ export const GeometryShapesActivityComponent: React.FC<Props> = ({ onSolved, onM
       {/* Available choices to drag */}
       <div className="shape-choices-row">
         {availableChoices.map((shape) => {
-          const isBeingDragged = dragState?.shape.id === shape.id && dragState.isDragging;
+          const isBeingDragged =
+            (dragState?.shape.id === shape.id && dragState.isDragging) ||
+            owlFlightState.carriedShape?.id === shape.id;
           const isNudged = nudgeShapeId === shape.id;
 
           return (
             <button
               key={shape.id}
+              ref={(el) => {
+                choiceRefs.current[shape.id] = el;
+              }}
               type="button"
               className={`shape-piece ${isBeingDragged ? 'is-dragged' : ''} ${isNudged ? 'drag-hint-nudge' : ''}`}
               onPointerDown={(e) => handlePointerDown(shape, e)}

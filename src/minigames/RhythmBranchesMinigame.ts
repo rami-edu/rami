@@ -59,7 +59,7 @@ export class RhythmBranchesActivity implements MinigameModule {
       parentRecommendation:
         'Hum or sing the notes along with your child. Let them listen to the glowing bell sequence first, then clap their hands as they tap each leaf.'
     },
-    animalInstructor: 'raccoon'
+    animalInstructor: 'owl'
   };
 
   /**

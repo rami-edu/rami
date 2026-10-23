@@ -81,7 +81,7 @@ export class ColorBloomActivity extends BasePreschoolActivity {
         parentRecommendation:
           'Try mixing drops of food coloring in transparent cups of water at home! Ask your child to predict what color will appear before dropping the second color.'
       },
-      animalInstructor: 'fox',
+      animalInstructor: 'owl',
       backgroundKey: 'bg_color_bloom',
       backgroundUrl: './bg-color-bloom.jpg'
     });
