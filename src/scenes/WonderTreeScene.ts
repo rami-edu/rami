@@ -701,11 +701,15 @@ export class WonderTreeScene extends Phaser.Scene {
   } {
     const dpr = this.getDpr();
     // Tree logical dimensions: 1400w x 1600h
-    const fitScaleX = (width * 0.94) / DynamicWonderTree.LOGICAL_WIDTH;
-    const fitScaleY = (height * 0.94) / DynamicWonderTree.LOGICAL_HEIGHT;
-    const treeScale = Math.max(0.48 * dpr, Math.min(fitScaleX * 1.35, fitScaleY));
+    // The Wonder Tree is a majestic centerpiece with a massive, grand trunk.
+    // Scale prominently by width with a generous minimum scale so it is never tiny,
+    // allowing vertical scrolling to explore up the grand trunk and spreading canopy.
+    const isMobile = width / dpr < 768;
+    const fitScaleX = (width * 0.90) / DynamicWonderTree.LOGICAL_WIDTH;
+    const baseScale = isMobile ? 0.85 * dpr : 1.15 * dpr;
+    const treeScale = Math.max(baseScale, fitScaleX);
     const treeBaseX = width / 2;
-    const treeBaseY = height - 20 * dpr;
+    const treeBaseY = height - 15 * dpr;
     return { treeBaseX, treeBaseY, treeScale };
   }
 

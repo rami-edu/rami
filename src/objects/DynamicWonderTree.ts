@@ -93,7 +93,7 @@ export const TIER_ACTIVITIES: Array<{
 export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   1: {
     stage: 1,
-    title: 'The Tender Sapling',
+    title: 'The Sturdy Haven',
     minStars: 0,
     maxStars: 2,
     textureKey: 'tree_stage_1',
@@ -111,7 +111,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   2: {
     stage: 2,
-    title: 'The Budding Shoot',
+    title: 'The Branching Roots',
     minStars: 3,
     maxStars: 5,
     textureKey: 'tree_stage_2',
@@ -120,16 +120,16 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.38,
-        y: 0.68,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.62,
-        y: 0.64,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       }
@@ -137,7 +137,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   3: {
     stage: 3,
-    title: 'The Leafy Sprout',
+    title: 'The Flourishing Haven',
     minStars: 6,
     maxStars: 9,
     textureKey: 'tree_stage_3',
@@ -146,16 +146,16 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.34,
-        y: 0.72,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.66,
-        y: 0.68,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -163,7 +163,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
         x: 0.50,
-        y: 0.52,
+        y: 0.50,
         signHang: 'center',
         branchSide: 'center'
       }
@@ -171,7 +171,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   4: {
     stage: 4,
-    title: 'The Branching Haven',
+    title: 'The Spreading Boughs',
     minStars: 10,
     maxStars: 13,
     textureKey: 'tree_stage_4',
@@ -180,32 +180,32 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.30,
-        y: 0.74,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.70,
-        y: 0.70,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.38,
-        y: 0.54,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.62,
-        y: 0.50,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       }
@@ -213,7 +213,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   5: {
     stage: 5,
-    title: 'The Flourishing Oak',
+    title: 'The Verdant Canopy',
     minStars: 14,
     maxStars: 17,
     textureKey: 'tree_stage_5',
@@ -222,32 +222,32 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.28,
-        y: 0.76,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.72,
-        y: 0.72,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.36,
-        y: 0.56,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.64,
-        y: 0.52,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -255,7 +255,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_pattern_path',
         minigame: 'Pattern Path (Patterns)',
         x: 0.50,
-        y: 0.38,
+        y: 0.48,
         signHang: 'center',
         branchSide: 'center'
       }
@@ -272,23 +272,23 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.26,
-        y: 0.78,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.74,
-        y: 0.74,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.35,
+        x: 0.32,
         y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
@@ -296,8 +296,8 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.65,
-        y: 0.54,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -305,15 +305,15 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_pattern_path',
         minigame: 'Pattern Path (Patterns)',
         x: 0.50,
-        y: 0.42,
+        y: 0.48,
         signHang: 'center',
         branchSide: 'center'
       },
       {
         id: 'portal_shadow_match',
         minigame: 'Shadow Match (Observation)',
-        x: 0.24,
-        y: 0.44,
+        x: 0.28,
+        y: 0.42,
         signHang: 'rope-left',
         branchSide: 'left'
       }
@@ -321,7 +321,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   7: {
     stage: 7,
-    title: 'The Verdant Sanctuary',
+    title: 'The Great Oak of Wonder',
     minStars: 22,
     maxStars: 25,
     textureKey: 'tree_stage_7',
@@ -330,32 +330,32 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.25,
-        y: 0.80,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.75,
-        y: 0.76,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.35,
-        y: 0.60,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.65,
-        y: 0.56,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -363,23 +363,23 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_pattern_path',
         minigame: 'Pattern Path (Patterns)',
         x: 0.50,
-        y: 0.44,
+        y: 0.48,
         signHang: 'center',
         branchSide: 'center'
       },
       {
         id: 'portal_shadow_match',
         minigame: 'Shadow Match (Observation)',
-        x: 0.23,
-        y: 0.46,
+        x: 0.28,
+        y: 0.42,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_nature_sorting',
         minigame: 'Nature Sorting (Science)',
-        x: 0.77,
-        y: 0.44,
+        x: 0.72,
+        y: 0.42,
         signHang: 'rope-right',
         branchSide: 'right'
       }
@@ -387,7 +387,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
   },
   8: {
     stage: 8,
-    title: 'The Ancient Wonder Tree',
+    title: 'The Ancient Elder',
     minStars: 26,
     maxStars: 29,
     textureKey: 'tree_stage_8',
@@ -396,55 +396,55 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.24,
-        y: 0.82,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.76,
-        y: 0.78,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.35,
-        y: 0.64,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.66,
-        y: 0.60,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_pattern_path',
         minigame: 'Pattern Path (Patterns)',
-        x: 0.48,
-        y: 0.50,
+        x: 0.50,
+        y: 0.48,
         signHang: 'center',
         branchSide: 'center'
       },
       {
         id: 'portal_shadow_match',
         minigame: 'Shadow Match (Observation)',
-        x: 0.22,
-        y: 0.44,
+        x: 0.28,
+        y: 0.42,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_nature_sorting',
         minigame: 'Nature Sorting (Science)',
-        x: 0.78,
+        x: 0.72,
         y: 0.42,
         signHang: 'rope-right',
         branchSide: 'right'
@@ -470,32 +470,32 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.22,
-        y: 0.82,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.78,
-        y: 0.80,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.33,
-        y: 0.64,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.67,
-        y: 0.60,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -510,15 +510,15 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_shadow_match',
         minigame: 'Shadow Match (Observation)',
-        x: 0.20,
-        y: 0.44,
+        x: 0.28,
+        y: 0.42,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_nature_sorting',
         minigame: 'Nature Sorting (Science)',
-        x: 0.80,
+        x: 0.72,
         y: 0.42,
         signHang: 'rope-right',
         branchSide: 'right'
@@ -527,7 +527,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_symmetry_wings',
         minigame: 'Symmetry Wings (Art)',
         x: 0.50,
-        y: 0.28,
+        y: 0.30,
         signHang: 'center',
         branchSide: 'center'
       }
@@ -544,32 +544,32 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_geom_shapes',
         minigame: 'Shape Nest (Geometry)',
-        x: 0.22,
-        y: 0.82,
+        x: 0.42,
+        y: 0.66,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_color_bloom',
         minigame: 'Color Bloom (Colors)',
-        x: 0.78,
-        y: 0.80,
+        x: 0.58,
+        y: 0.66,
         signHang: 'rope-right',
         branchSide: 'right'
       },
       {
         id: 'portal_phonics_pond',
         minigame: 'Phonics Pond (Language)',
-        x: 0.33,
-        y: 0.64,
+        x: 0.32,
+        y: 0.58,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_creature_ladder',
         minigame: 'Creature Ladder (Sizes)',
-        x: 0.67,
-        y: 0.60,
+        x: 0.68,
+        y: 0.58,
         signHang: 'rope-right',
         branchSide: 'right'
       },
@@ -584,15 +584,15 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
       {
         id: 'portal_shadow_match',
         minigame: 'Shadow Match (Observation)',
-        x: 0.20,
-        y: 0.44,
+        x: 0.28,
+        y: 0.42,
         signHang: 'rope-left',
         branchSide: 'left'
       },
       {
         id: 'portal_nature_sorting',
         minigame: 'Nature Sorting (Science)',
-        x: 0.80,
+        x: 0.72,
         y: 0.42,
         signHang: 'rope-right',
         branchSide: 'right'
@@ -601,7 +601,7 @@ export const TREE_STAGES: Record<number, TreeStageDefinition> = {
         id: 'portal_symmetry_wings',
         minigame: 'Symmetry Wings (Art)',
         x: 0.50,
-        y: 0.26,
+        y: 0.30,
         signHang: 'center',
         branchSide: 'center'
       }
