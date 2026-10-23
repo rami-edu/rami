@@ -61,7 +61,7 @@ export class WonderTreeScene extends Phaser.Scene {
   private fireflies: Firefly[] = [];
   private activeMinigame = false;
   private isDashboardOpen = false;
-  private pendingClickedPortal: PortalInstance | null = null;
+  private isMovingToPortal = false;
   private readonly baseSpeed = 250;
   private readonly emojis = ['💡', '👍', '👏', '👋'];
   private stepSoundTimer = 0.2;
@@ -179,11 +179,11 @@ export class WonderTreeScene extends Phaser.Scene {
     window.addEventListener('rami:launch-activity', ((e: Event) => {
       const customEvent = e as CustomEvent<{ activityTitle: string }>;
       const title = customEvent.detail?.activityTitle;
-      if (!title || this.activeMinigame) return;
+      if (!title || this.activeMinigame || this.isMovingToPortal) return;
 
       const portal = this.portals.find((p) => p.anchor.minigame === title);
       if (portal) {
-        void this.enterPortal(portal);
+        void this.moveToPortalAndEnter(portal);
       } else {
         // Direct launch for activities not yet anchored on current tree tier
         this.activeMinigame = true;
@@ -216,8 +216,11 @@ export class WonderTreeScene extends Phaser.Scene {
     // Completely isolate tree interactions when Parent/Guardian Dashboard is open
     window.addEventListener('rami:dashboard-opened', () => {
       this.isDashboardOpen = true;
+      this.isMovingToPortal = false;
       this.targetPos = null;
-      this.pendingClickedPortal = null;
+      this.tweens.killTweensOf(this.playerContainer);
+      this.tweens.killTweensOf(this.avatarSprite);
+      this.avatarSprite.y = 0;
       if (this.input) {
         this.input.enabled = false;
       }
@@ -665,8 +668,8 @@ export class WonderTreeScene extends Phaser.Scene {
     const onPortalClick = () => {
       audioManager.unlockAudio();
       onOut();
-      if (!this.activeMinigame) {
-        void this.enterPortal(instance);
+      if (!this.activeMinigame && !this.isMovingToPortal) {
+        void this.moveToPortalAndEnter(instance);
       }
     };
 
@@ -842,10 +845,10 @@ export class WonderTreeScene extends Phaser.Scene {
         currentlyOver: Phaser.GameObjects.GameObject[]
       ) => {
         audioManager.unlockAudio();
-        if (this.activeMinigame || this.isDashboardOpen) return;
+        if (this.activeMinigame || this.isDashboardOpen || this.isMovingToPortal) return;
 
         // If the pointer clicked on an interactive object (e.g. a portal or sprout bud),
-        // let that object's handler keep `pendingClickedPortal`.
+        // let that object's handler handle it.
         if (currentlyOver && currentlyOver.length > 0) {
           return;
         }
@@ -853,6 +856,7 @@ export class WonderTreeScene extends Phaser.Scene {
         // Also check if the tap/click landed inside any portal's tree hollow or emblem radius
         const dpr = this.getDpr();
         for (const p of this.portals) {
+          if (!p.container.visible) continue;
           const pScale = p.container.scaleY || dpr;
           const distToCenter = Phaser.Math.Distance.Between(
             pointer.worldX,
@@ -861,13 +865,11 @@ export class WonderTreeScene extends Phaser.Scene {
             p.worldY
           );
           if (distToCenter <= 95 * pScale) {
-            this.pendingClickedPortal = p;
-            this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
+            void this.moveToPortalAndEnter(p);
             return;
           }
         }
 
-        this.pendingClickedPortal = null;
         this.targetPos = new Phaser.Math.Vector2(
           pointer.worldX,
           pointer.worldY
@@ -969,6 +971,36 @@ export class WonderTreeScene extends Phaser.Scene {
 
     if (this.activeMinigame || this.isDashboardOpen) return;
 
+    if (this.isMovingToPortal) {
+      // Smoothly scroll camera to follow the avatar as they move towards the portal
+      const minWorldY = this.getMinWorldY(width, height);
+      const { minWorldX, maxWorldX } = this.getHorizontalWorldBounds(
+        width,
+        height
+      );
+      const desiredScrollX = Phaser.Math.Clamp(
+        this.playerContainer.x - width * 0.5,
+        minWorldX,
+        Math.max(0, maxWorldX - width)
+      );
+      const desiredScrollY = Phaser.Math.Clamp(
+        this.playerContainer.y - height * 0.62,
+        minWorldY,
+        0
+      );
+      this.cameras.main.scrollX = Phaser.Math.Linear(
+        this.cameras.main.scrollX,
+        desiredScrollX,
+        Math.min(1, dt * 6)
+      );
+      this.cameras.main.scrollY = Phaser.Math.Linear(
+        this.cameras.main.scrollY,
+        desiredScrollY,
+        Math.min(1, dt * 6)
+      );
+      return;
+    }
+
     const speed = this.baseSpeed * dpr;
     let vx = 0;
     let vy = 0;
@@ -982,7 +1014,6 @@ export class WonderTreeScene extends Phaser.Scene {
 
     if (vx !== 0 || vy !== 0) {
       this.targetPos = null;
-      this.pendingClickedPortal = null;
       const len = Math.hypot(vx, vy);
       this.playerContainer.x += (vx / len) * speed * dt;
       this.playerContainer.y += (vy / len) * speed * dt;
@@ -1052,21 +1083,78 @@ export class WonderTreeScene extends Phaser.Scene {
       Math.min(1, dt * 6)
     );
 
-    // Only enter a portal if the user explicitly clicked on that portal
-    if (this.pendingClickedPortal) {
-      const targetPortal = this.pendingClickedPortal;
-      const dist = Phaser.Math.Distance.Between(
-        this.playerContainer.x,
-        this.playerContainer.y,
-        targetPortal.worldX,
-        targetPortal.worldY
-      );
-      if (dist < 42 * dpr) {
-        this.pendingClickedPortal = null;
-        this.targetPos = null;
-        this.enterPortal(targetPortal);
-      }
+  }
+
+  /**
+   * Smoothly navigates the player avatar towards the selected activity portal,
+   * playing footstep audio and bobbing animations, before entering the portal.
+   */
+  private async moveToPortalAndEnter(portal: PortalInstance): Promise<void> {
+    if (this.activeMinigame || this.isMovingToPortal || this.isDashboardOpen) return;
+    this.isMovingToPortal = true;
+    this.targetPos = null;
+
+    const dpr = this.getDpr();
+    const startX = this.playerContainer.x;
+    const startY = this.playerContainer.y;
+    const targetX = portal.worldX;
+    const targetY = portal.worldY;
+
+    const dist = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
+
+    // If already right beside the portal cavity, transition immediately
+    if (dist < 28 * dpr) {
+      this.isMovingToPortal = false;
+      await this.enterPortal(portal);
+      return;
     }
+
+    // Orient avatar sprite towards the portal
+    if (targetX < startX - 2) {
+      this.avatarSprite.setFlipX(true);
+    } else if (targetX > startX + 2) {
+      this.avatarSprite.setFlipX(false);
+    }
+
+    // Lively transit duration (between 380ms and 850ms)
+    const duration = Phaser.Math.Clamp((dist / (500 * dpr)) * 1000, 380, 850);
+
+    let stepTimer = 0;
+
+    // Cheerful hop/bounce animation while travelling across branches
+    const hopTween = this.tweens.add({
+      targets: this.avatarSprite,
+      y: -12 * dpr,
+      duration: 150,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: this.playerContainer,
+        x: targetX,
+        y: targetY,
+        duration,
+        ease: 'Cubic.easeInOut',
+        onUpdate: () => {
+          stepTimer += 16;
+          if (stepTimer >= 170) {
+            stepTimer = 0;
+            audioManager.playMoveStep();
+          }
+        },
+        onComplete: () => {
+          hopTween.stop();
+          this.avatarSprite.y = 0;
+          resolve();
+        }
+      });
+    });
+
+    this.isMovingToPortal = false;
+    await this.enterPortal(portal);
   }
 
   /**
@@ -1159,6 +1247,7 @@ export class WonderTreeScene extends Phaser.Scene {
 
   private async enterPortal(portal: PortalInstance): Promise<void> {
     this.activeMinigame = true;
+    this.isMovingToPortal = false;
     this.targetPos = null;
 
     audioManager.playPortalEnter();
@@ -1184,6 +1273,7 @@ export class WonderTreeScene extends Phaser.Scene {
       module: mod,
       onExit: () => {
         this.activeMinigame = false;
+        this.isMovingToPortal = false;
         const currentHud = document.getElementById('hud-overlay');
         if (currentHud) {
           currentHud.style.display = 'flex';
