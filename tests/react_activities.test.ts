@@ -11,6 +11,7 @@ import { CreatureLadderActivityComponent } from '../src/react/activities/Creatur
 import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
 import { SymmetryWingsActivityComponent } from '../src/react/activities/SymmetryWingsActivity';
+import { PatternPathActivityComponent } from '../src/react/activities/PatternPathActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -215,6 +216,34 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('symmetry-palette-shelf');
     expect(html).toContain('symmetry-palette-tray');
     expect(html).toContain('symmetry-color-piece');
+  });
+
+  it('renders PatternPathActivityComponent with all pattern symbols in the same row, order connectors, and choices shelf', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(PatternPathActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('pattern-path-container');
+    expect(html).toContain('pattern-trail-section');
+    expect(html).toContain('pattern-trail-track');
+    expect(html).toContain('pattern-trail-line');
+    expect(html).toContain('pattern-stones-row');
+    expect(html).toContain('stepping-stone');
+    expect(html).toContain('stone-emoji');
+    expect(html).toContain('stone-order-pill');
+    expect(html).toContain('pattern-order-arrow');
+    expect(html).toContain('→');
+    expect(html).toContain('stepping-stone empty');
+    expect(html).toContain('stone-question-mark');
+    expect(html).toContain('pattern-choices-shelf');
+    expect(html).toContain('pattern-choices-row');
+    expect(html).toContain('pattern-choice-stone');
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {
