@@ -2278,25 +2278,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 12px 14px;
-  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(6px, 1.5vh, 16px) 14px;
+  gap: clamp(14px, 2.5vh, 26px);
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
 .butterfly-stage-box {
   position: relative;
-  width: min(480px, 92vw);
-  height: min(320px, 50vh);
-  max-height: 320px;
+  width: min(480px, 90vw);
+  height: clamp(180px, 32vh, 275px);
+  max-height: 275px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
   transition: transform 0.3s ease;
 }
@@ -2408,6 +2411,24 @@
   filter: drop-shadow(0 0 4px #ffd166);
 }
 
+/* Wing Socket Catch Sparkle Burst */
+.socket-catch-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: socketCatchBurst 0.5s ease-out forwards;
+  font-size: 26px;
+}
+
+@keyframes socketCatchBurst {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1.4); opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
 .gem-shine-overlay {
   position: absolute;
   inset: 0;
@@ -2418,28 +2439,29 @@
 
 .symmetry-palette-shelf {
   width: 100%;
-  max-width: 640px;
+  max-width: 620px;
   display: flex;
   justify-content: center;
   z-index: 10;
+  flex: 0 0 auto;
 }
 
 .symmetry-palette-tray {
   display: flex;
-  gap: clamp(12px, 3.5vw, 22px);
+  gap: clamp(10px, 2.8vw, 20px);
   justify-content: center;
   align-items: center;
   background: rgba(16, 32, 20, 0.88);
   border: 2.5px solid #2d6a4f;
-  border-radius: 28px;
-  padding: 10px 18px;
+  border-radius: 24px;
+  padding: 8px 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(8px);
 }
 
 .symmetry-color-piece {
-  width: 66px;
-  height: 66px;
+  width: clamp(52px, 10vw, 64px);
+  height: clamp(52px, 10vw, 64px);
   border-radius: 50%;
   border: 3.5px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
@@ -2494,6 +2516,53 @@
   align-items: center;
   justify-content: center;
   will-change: left, top;
+}
+
+/* Animated Color Gem Flying into Wing Socket */
+.symmetry-flying-gem {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 9999;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 3.5px solid #ffffff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 22px rgba(255, 209, 102, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: flyIntoWingSocket 0.46s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.flying-gem-sparkle-trail {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 20px;
+  animation: trailTwinkle 0.25s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes flyIntoWingSocket {
+  0% {
+    transform: translate(var(--start-x), var(--start-y)) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(var(--mid-x), var(--mid-y)) scale(1.18) rotate(15deg);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(var(--target-x), var(--target-y)) scale(0.9) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--target-x), var(--target-y)) scale(0.85) rotate(0deg);
+    opacity: 0.2;
+  }
 }
 
 .butterfly-celebration-sparkles {
@@ -2653,6 +2722,26 @@
   .item-piece-emoji {
     font-size: 26px;
   }
+
+  .symmetry-wings-container {
+    padding: 4px 6px;
+    gap: 10px;
+  }
+
+  .butterfly-stage-box {
+    width: 95vw;
+    height: clamp(170px, 30vh, 230px);
+  }
+
+  .symmetry-palette-tray {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .symmetry-color-piece {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 /* Landscape / Short screen viewport adaptation */
@@ -2722,6 +2811,30 @@
 
   .item-piece-emoji {
     font-size: 24px;
+  }
+
+  .symmetry-wings-container {
+    padding: 2px 8px;
+    gap: 8px;
+  }
+
+  .butterfly-stage-box {
+    height: clamp(160px, 28vh, 215px);
+  }
+
+  .symmetry-palette-tray {
+    padding: 5px 12px;
+    border-radius: 20px;
+    gap: 8px;
+  }
+
+  .symmetry-color-piece {
+    width: 46px;
+    height: 46px;
+  }
+
+  .color-piece-sparkle {
+    font-size: 18px;
   }
 }
 

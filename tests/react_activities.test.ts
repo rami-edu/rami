@@ -278,6 +278,16 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('symmetry-color-piece');
   });
 
+  it('verifies SymmetryWings flying color gem animation and socket burst rules in stylesheet', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const cssContent = fs.readFileSync(path.resolve(__dirname, '../src/react/activity.css'), 'utf-8');
+
+    expect(cssContent).toContain('.symmetry-flying-gem');
+    expect(cssContent).toContain('flyIntoWingSocket');
+    expect(cssContent).toContain('.socket-catch-burst');
+  });
+
   it('renders PatternPathActivityComponent with all pattern symbols in the same row, order connectors, and choices shelf', () => {
     const onSolved = vi.fn();
     const onMistake = vi.fn();

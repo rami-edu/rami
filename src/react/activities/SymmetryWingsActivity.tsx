@@ -20,6 +20,18 @@ export const getRandomWingColors = (): [string, string] => {
   return [shuffled[0].hex, shuffled[1].hex];
 };
 
+export interface FlyingColorGem {
+  id: string;
+  colorHex: string;
+  socketIndex: number;
+  startX: number;
+  startY: number;
+  midX: number;
+  midY: number;
+  targetX: number;
+  targetY: number;
+}
+
 interface Props {
   onSolved: () => void;
   onMistake: () => void;
@@ -44,15 +56,20 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
   // Animation states
   const [wobbleSocketIndex, setWobbleSocketIndex] = useState<number | null>(null);
   const [justSnappedIndex, setJustSnappedIndex] = useState<number | null>(null);
+  const [burstSocketIndex, setBurstSocketIndex] = useState<number | null>(null);
+  const [flyingGems, setFlyingGems] = useState<FlyingColorGem[]>([]);
   const [isSolved, setIsSolved] = useState(false);
 
   // Sockets DOM references for drag hit-testing
   const socketRefs = useRef<Record<number, HTMLDivElement | null>>({ 0: null, 1: null });
+  const paletteRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const setupRound = () => {
     setIsSolved(false);
     setWobbleSocketIndex(null);
     setJustSnappedIndex(null);
+    setBurstSocketIndex(null);
+    setFlyingGems([]);
     setDraggedColor(null);
     setDragPos(null);
     setIsDragging(false);
@@ -64,42 +81,106 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
     setSelectedColor(newLeftColors[0]);
   };
 
-  const handleDropColor = (socketIndex: number, colorHex: string) => {
+  const handleDropColor = (
+    socketIndex: number,
+    colorHex: string,
+    dropCoords?: { x: number; y: number } | null
+  ) => {
     if (isSolved) return;
 
-    const nextRight = [...rightWingColors];
-    nextRight[socketIndex] = colorHex;
-    setRightWingColors(nextRight);
+    // Determine flight origin (drop pointer location or palette swatch button)
+    let startX = typeof window !== 'undefined' ? window.innerWidth / 2 : 300;
+    let startY = typeof window !== 'undefined' ? window.innerHeight * 0.8 : 500;
 
-    const expectedColor = leftWingColors[socketIndex];
-
-    if (colorHex === expectedColor) {
-      // Correct symmetrical placement!
-      audioManager.playPortalReturn();
-      setJustSnappedIndex(socketIndex);
-      window.setTimeout(() => setJustSnappedIndex(null), 600);
-
-      // Check if both mirrored sockets match the reference left wing
-      if (nextRight[0] === leftWingColors[0] && nextRight[1] === leftWingColors[1]) {
-        setIsSolved(true);
-        onSolved();
-        window.setTimeout(() => {
-          setupRound();
-        }, 1500);
+    if (dropCoords) {
+      startX = dropCoords.x;
+      startY = dropCoords.y;
+    } else if (paletteRefs.current[colorHex]) {
+      const pRect = paletteRefs.current[colorHex]!.getBoundingClientRect();
+      if (pRect.width > 0) {
+        startX = pRect.left + pRect.width / 2;
+        startY = pRect.top + pRect.height / 2;
       }
-    } else {
-      // Asymmetrical placement: gentle pedagogical shake and reset
-      setWobbleSocketIndex(socketIndex);
-      onMistake();
-      window.setTimeout(() => {
-        setWobbleSocketIndex(null);
+    }
+
+    // Determine target wing socket position
+    let targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : 300;
+    let targetY = typeof window !== 'undefined' ? window.innerHeight * 0.4 : 250;
+
+    if (socketRefs.current[socketIndex]) {
+      const sRect = socketRefs.current[socketIndex]!.getBoundingClientRect();
+      if (sRect.width > 0) {
+        targetX = sRect.left + sRect.width / 2;
+        targetY = sRect.top + sRect.height / 2;
+      }
+    }
+
+    const midX = (startX + targetX) / 2;
+    const arcHeight = Math.max(40, Math.abs(startX - targetX) * 0.25);
+    const midY = Math.min(startY, targetY) - arcHeight;
+
+    const flyingId = `${colorHex}-${socketIndex}-${Date.now()}`;
+    const newFlyingGem: FlyingColorGem = {
+      id: flyingId,
+      colorHex,
+      socketIndex,
+      startX,
+      startY,
+      midX,
+      midY,
+      targetX,
+      targetY
+    };
+
+    setFlyingGems((prev) => [...prev, newFlyingGem]);
+
+    // Fly animation duration: 460ms
+    window.setTimeout(() => {
+      // Remove flying gem
+      setFlyingGems((prev) => prev.filter((g) => g.id !== flyingId));
+
+      const expectedColor = leftWingColors[socketIndex];
+
+      if (colorHex === expectedColor) {
+        // Correct symmetrical placement!
+        audioManager.playPortalReturn();
+
+        const nextRight = [...rightWingColors];
+        nextRight[socketIndex] = colorHex;
+        setRightWingColors(nextRight);
+
+        setJustSnappedIndex(socketIndex);
+        setBurstSocketIndex(socketIndex);
+        window.setTimeout(() => setJustSnappedIndex(null), 500);
+        window.setTimeout(() => setBurstSocketIndex(null), 600);
+
+        // Check if both mirrored sockets match the reference left wing
+        if (nextRight[0] === leftWingColors[0] && nextRight[1] === leftWingColors[1]) {
+          setIsSolved(true);
+          onSolved();
+          window.setTimeout(() => {
+            setupRound();
+          }, 1500);
+        }
+      } else {
+        // Asymmetrical placement: show in socket temporarily, gentle wobble and reset
         setRightWingColors((curr) => {
           const reset = [...curr];
-          reset[socketIndex] = null;
+          reset[socketIndex] = colorHex;
           return reset;
         });
-      }, 550);
-    }
+        setWobbleSocketIndex(socketIndex);
+        onMistake();
+        window.setTimeout(() => {
+          setWobbleSocketIndex(null);
+          setRightWingColors((curr) => {
+            const reset = [...curr];
+            reset[socketIndex] = null;
+            return reset;
+          });
+        }, 550);
+      }
+    }, 460);
   };
 
   // Pointer Drag Handlers
@@ -170,7 +251,7 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
       }
 
       if (droppedSocketIndex !== null) {
-        handleDropColor(droppedSocketIndex, draggedColor);
+        handleDropColor(droppedSocketIndex, draggedColor, { x: e.clientX, y: e.clientY });
       }
     } else {
       // Tap selection
@@ -356,6 +437,11 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
             title="Drop matching color here"
             data-socket-index="0"
           >
+            {burstSocketIndex === 0 && (
+              <div className="socket-catch-burst">
+                <span>✨</span>
+              </div>
+            )}
             {!rightWingColors[0] && <span className="socket-ghost-plus">✨</span>}
             {rightWingColors[0] && <div className="gem-shine-overlay" />}
           </div>
@@ -374,6 +460,11 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
             title="Drop matching color here"
             data-socket-index="1"
           >
+            {burstSocketIndex === 1 && (
+              <div className="socket-catch-burst">
+                <span>✨</span>
+              </div>
+            )}
             {!rightWingColors[1] && <span className="socket-ghost-plus">✨</span>}
             {rightWingColors[1] && <div className="gem-shine-overlay" />}
           </div>
@@ -399,6 +490,9 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
             return (
               <button
                 key={colDef.id}
+                ref={(el) => {
+                  paletteRefs.current[colDef.hex] = el;
+                }}
                 type="button"
                 className={`symmetry-color-piece ${isSelected ? 'is-selected' : ''} ${isBeingDragged ? 'is-dragged-origin' : ''}`}
                 style={{ backgroundColor: colDef.hex }}
@@ -431,6 +525,29 @@ export const SymmetryWingsActivityComponent: React.FC<Props> = ({ onSolved, onMi
           <div className="gem-shine-overlay" />
         </div>
       )}
+
+      {/* Animated Color Gems Flying into Wing Sockets */}
+      {flyingGems.map((fGem) => (
+        <div
+          key={fGem.id}
+          className="symmetry-flying-gem"
+          style={
+            {
+              backgroundColor: fGem.colorHex,
+              '--start-x': `${fGem.startX - 29}px`,
+              '--start-y': `${fGem.startY - 29}px`,
+              '--mid-x': `${fGem.midX - 29}px`,
+              '--mid-y': `${fGem.midY - 29}px`,
+              '--target-x': `${fGem.targetX - 29}px`,
+              '--target-y': `${fGem.targetY - 29}px`
+            } as React.CSSProperties
+          }
+        >
+          <span className="color-piece-sparkle">✨</span>
+          <div className="gem-shine-overlay" />
+          <div className="flying-gem-sparkle-trail">✨</div>
+        </div>
+      ))}
     </div>
   );
 };
