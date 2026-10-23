@@ -573,32 +573,25 @@ function setupHudAndGuardianModal(): void {
     syncHud();
   }
 
-  // Intercept all pointer, mouse, touch, and wheel events on the dashboard UI
-  // so no clicks or gestures pass through to the Phaser tree scene
+  // Prevent pointer/click events that bubble up to guardianModal from escaping to window/document,
+  // while ensuring all child elements inside guardianModal receive their events in target phase.
+  // Note: We do NOT intercept in capture phase, and do not stop wheel/touchmove so modal scrolling works.
   if (guardianModal) {
-    const stopAll = (e: Event) => {
+    const stopBubble = (e: Event) => {
       e.stopPropagation();
     };
-    const ISOLATED_EVENTS = [
+    const BUBBLE_EVENTS = [
       'pointerdown',
       'pointerup',
-      'pointermove',
-      'pointercancel',
       'mousedown',
       'mouseup',
-      'mousemove',
       'click',
       'dblclick',
       'touchstart',
-      'touchend',
-      'touchmove',
-      'touchcancel',
-      'wheel',
-      'contextmenu'
+      'touchend'
     ];
-    for (const ev of ISOLATED_EVENTS) {
-      guardianModal.addEventListener(ev, stopAll, { capture: true });
-      guardianModal.addEventListener(ev, stopAll, { capture: false });
+    for (const ev of BUBBLE_EVENTS) {
+      guardianModal.addEventListener(ev, stopBubble, { capture: false });
     }
   }
 
@@ -748,6 +741,12 @@ function setupHudAndGuardianModal(): void {
     if (childNameInput) childNameInput.value = '';
     syncHud();
     renderProfiles();
+  });
+
+  childNameInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      addChildBtn?.click();
+    }
   });
 
   // Background Piano Music
