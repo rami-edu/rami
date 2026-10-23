@@ -90,6 +90,9 @@ export const PhonicsPondActivityComponent: React.FC<Props> = ({ onSolved, onMist
   };
 
   const setupRound = () => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setIsSolved(false);
     setWobbleCardId(null);
     const newRound = generatePhonicsRound(lastCreatureIdRef.current);
@@ -117,7 +120,13 @@ export const PhonicsPondActivityComponent: React.FC<Props> = ({ onSolved, onMist
     startLoop(roundData.targetCreature.id);
   };
 
-  const handleSelectCreature = (creature: PhonicsCreature) => {
+  const handleSelectCreature = (creature: PhonicsCreature, targetEl?: HTMLElement) => {
+    if (targetEl) {
+      targetEl.blur();
+    }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     if (isSolved) return;
 
     // Immediately stop the 10-time start loop when player interacts
@@ -191,7 +200,13 @@ export const PhonicsPondActivityComponent: React.FC<Props> = ({ onSolved, onMist
               key={c.id}
               type="button"
               className={`creature-card ${isWobbling ? 'wobble' : ''} ${isTargetCorrect ? 'solved-correct' : ''}`}
-              onClick={() => handleSelectCreature(c)}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                handleSelectCreature(c, e.currentTarget);
+              }}
+              onPointerUp={(e) => {
+                e.currentTarget.blur();
+              }}
               aria-label={c.name}
             >
               <span className="creature-card-emoji">{c.emoji}</span>
