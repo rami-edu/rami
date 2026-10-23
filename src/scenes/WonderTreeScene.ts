@@ -430,33 +430,33 @@ export class WonderTreeScene extends Phaser.Scene {
 
     // 1. Ambient tree-hollow background aura / back glow
     const backGlow = this.add
-      .ellipse(0, 0, 84, 84, theme.glowColor, 0.35);
+      .ellipse(0, 0, 168, 168, theme.glowColor, 0.35);
 
     // 2. Carved dark wood / stone cavity rim
     const cavityRim = this.add.graphics();
     cavityRim.fillStyle(0x0f1c11, 0.95);
-    cavityRim.fillCircle(0, 0, 40);
-    cavityRim.lineStyle(3.5, 0x5c4033, 0.95);
-    cavityRim.strokeCircle(0, 0, 40);
-    cavityRim.lineStyle(1.5, theme.ringColor, 0.8);
-    cavityRim.strokeCircle(0, 0, 38);
+    cavityRim.fillCircle(0, 0, 80);
+    cavityRim.lineStyle(4, 0x5c4033, 0.95);
+    cavityRim.strokeCircle(0, 0, 80);
+    cavityRim.lineStyle(2, theme.ringColor, 0.8);
+    cavityRim.strokeCircle(0, 0, 76);
 
-    // 3. Static round logo image of the activity
+    // 3. Static round logo image of the activity (Twice as big: 144x144)
     const staticLogoImg = this.add
       .image(0, 0, portalTexKey)
-      .setDisplaySize(72, 72)
+      .setDisplaySize(144, 144)
       .setOrigin(0.5);
 
     // 4. Portal Light Animation (Placed OVER the static image with delicate transparency so artwork is crisp)
     // a) Swirling ethereal light vortex rays
     const lightVortex = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    lightVortex.lineStyle(1.2, theme.ringColor, 0.24);
+    lightVortex.lineStyle(1.6, theme.ringColor, 0.24);
     for (let arm = 0; arm < 4; arm++) {
       const startAngle = (arm / 4) * Math.PI * 2;
       lightVortex.beginPath();
       for (let s = 0; s <= 16; s++) {
         const t = s / 16;
-        const r = 8 + t * 26;
+        const r = 16 + t * 52;
         const a = startAngle + t * Math.PI * 1.5;
         const wx = Math.cos(a) * r;
         const wy = Math.sin(a) * r;
@@ -466,13 +466,13 @@ export class WonderTreeScene extends Phaser.Scene {
       lightVortex.strokePath();
     }
     // Subtle white inner spiral
-    lightVortex.lineStyle(1.0, 0xffffff, 0.2);
+    lightVortex.lineStyle(1.2, 0xffffff, 0.2);
     for (let arm = 0; arm < 2; arm++) {
       const startAngle = (arm / 2) * Math.PI * 2 + Math.PI / 4;
       lightVortex.beginPath();
       for (let s = 0; s <= 12; s++) {
         const t = s / 12;
-        const r = 5 + t * 20;
+        const r = 10 + t * 40;
         const a = startAngle + t * Math.PI * 1.8;
         const wx = Math.cos(a) * r;
         const wy = Math.sin(a) * r;
@@ -484,8 +484,8 @@ export class WonderTreeScene extends Phaser.Scene {
 
     // b) Ethereal counter-rotating rune ring around the outer rim
     const runeRing = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    runeRing.lineStyle(1.0, theme.ringColor, 0.28);
-    const R_RUNE = 35;
+    runeRing.lineStyle(1.4, theme.ringColor, 0.28);
+    const R_RUNE = 70;
     const NUM_SEGMENTS = 16;
     for (let i = 0; i < NUM_SEGMENTS; i += 2) {
       const a1 = (i / NUM_SEGMENTS) * Math.PI * 2;
@@ -498,40 +498,41 @@ export class WonderTreeScene extends Phaser.Scene {
     runeRing.fillStyle(0xffffff, 0.35);
     for (let i = 0; i < 4; i++) {
       const a = (i / 4) * Math.PI * 2;
-      runeRing.fillCircle(Math.cos(a) * R_RUNE, Math.sin(a) * R_RUNE, 1.6);
+      runeRing.fillCircle(Math.cos(a) * R_RUNE, Math.sin(a) * R_RUNE, 2.5);
     }
 
     // c) Delicate, transparent radial sheen (keeps artwork completely visible)
     const lightSheen = this.add
-      .ellipse(0, 0, 70, 70, theme.ringColor, 0.08)
+      .ellipse(0, 0, 140, 140, theme.ringColor, 0.08)
       .setBlendMode(Phaser.BlendModes.ADD);
 
     // 5. Rectangular wooden sign on top of the portal (hanging above the rim)
-    const SIGN_Y = -54;
-    const SIGN_W = 76;
-    const SIGN_H = 44;
+    const SIGN_Y = -126;
+    const SIGN_W = 112;
+    const SIGN_H = 82;
 
     const signHangers = this.add.graphics();
-    signHangers.lineStyle(2, 0x8b5a2b, 0.85);
+    signHangers.lineStyle(2.5, 0x8b5a2b, 0.85);
     signHangers.beginPath();
-    signHangers.moveTo(-20, SIGN_Y + SIGN_H / 2);
-    signHangers.lineTo(-18, -32);
-    signHangers.moveTo(20, SIGN_Y + SIGN_H / 2);
-    signHangers.lineTo(18, -32);
+    signHangers.moveTo(-30, SIGN_Y + SIGN_H / 2);
+    signHangers.lineTo(-24, -68);
+    signHangers.moveTo(30, SIGN_Y + SIGN_H / 2);
+    signHangers.lineTo(24, -68);
     signHangers.strokePath();
 
     const signBoard = this.add
       .rectangle(0, SIGN_Y, SIGN_W, SIGN_H, 0x1f2e22, 0.95)
-      .setStrokeStyle(2, theme.ringColor, 0.9)
+      .setStrokeStyle(2.5, theme.ringColor, 0.9)
       .setInteractive({ useHandCursor: true });
 
     const signInner = this.add
-      .rectangle(0, SIGN_Y, SIGN_W - 6, SIGN_H - 6)
-      .setStrokeStyle(1, 0xd4a373, 0.4);
+      .rectangle(0, SIGN_Y, SIGN_W - 8, SIGN_H - 8)
+      .setStrokeStyle(1.2, 0xd4a373, 0.4);
 
+    // Activity logo on sign (Twice as big: 88x68)
     const logoImg = this.add
       .image(0, SIGN_Y, activityLogoKey)
-      .setDisplaySize(44, 34)
+      .setDisplaySize(88, 68)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
@@ -546,9 +547,9 @@ export class WonderTreeScene extends Phaser.Scene {
     const displayTitle = anchor.minigame.replace(/\s*\(.*?\)/g, '').trim();
 
     const titleLabel = this.add
-      .text(0, -96, displayTitle, {
+      .text(0, SIGN_Y - SIGN_H / 2 - 28, displayTitle, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: `${15 * TEXT_SUPERSAMPLE}px`,
+        fontSize: `${16 * TEXT_SUPERSAMPLE}px`,
         color: '#f0fdf4',
         fontStyle: '700',
         stroke: '#08140c',
@@ -569,9 +570,9 @@ export class WonderTreeScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     const subLabel = this.add
-      .text(0, -78, starsVisual, {
+      .text(0, SIGN_Y - SIGN_H / 2 - 10, starsVisual, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: `${13 * TEXT_SUPERSAMPLE}px`,
+        fontSize: `${14 * TEXT_SUPERSAMPLE}px`,
         color: '#ffd166',
         fontStyle: 'bold',
         stroke: '#08140c',
@@ -591,9 +592,9 @@ export class WonderTreeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    // Full rectangular hit area covering the portal cavity, sign, and titles
+    // Full rectangular hit area covering the enlarged portal cavity, sign, and titles
     const fullHitZone = this.add
-      .rectangle(0, -36, 110, 164, 0x000000, 0.0001)
+      .rectangle(0, -50, 170, 270, 0x000000, 0.0001)
       .setInteractive({ useHandCursor: true });
 
     // Animations:
@@ -789,7 +790,7 @@ export class WonderTreeScene extends Phaser.Scene {
       p.diskContainer.setScale(1.0);
     }
     if (p.staticLogoImg && p.staticLogoImg.active) {
-      p.staticLogoImg.setDisplaySize(72, 72);
+      p.staticLogoImg.setDisplaySize(144, 144);
     }
   }
 
@@ -900,14 +901,14 @@ export class WonderTreeScene extends Phaser.Scene {
             p.worldX,
             p.worldY
           );
-          const signWorldY = p.worldY - 48 * pScale;
+          const signWorldY = p.worldY - 126 * pScale;
           const distToSign = Phaser.Math.Distance.Between(
             pointer.worldX,
             pointer.worldY,
             p.worldX,
             signWorldY
           );
-          if (distToCenter <= 52 * pScale || distToSign <= 52 * pScale) {
+          if (distToCenter <= 95 * pScale || distToSign <= 95 * pScale) {
             this.pendingClickedPortal = p;
             this.targetPos = new Phaser.Math.Vector2(p.worldX, p.worldY);
             return;
@@ -1248,7 +1249,7 @@ export class WonderTreeScene extends Phaser.Scene {
             p.diskContainer.setScale(1.0);
           }
           if (p.staticLogoImg && p.staticLogoImg.active) {
-            p.staticLogoImg.setDisplaySize(72, 72);
+            p.staticLogoImg.setDisplaySize(144, 144);
           }
         }
 
