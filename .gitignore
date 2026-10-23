@@ -5,3 +5,5 @@ ios/
 .DS_Store
 *.log
 .vite/
+__pycache__/
+*.pyc

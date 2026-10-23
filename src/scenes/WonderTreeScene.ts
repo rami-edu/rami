@@ -165,6 +165,7 @@ export class WonderTreeScene extends Phaser.Scene {
       if (this.avatarSprite && current) {
         const desc = ProfileManager.getAvatarDescriptor(current.avatarId);
         this.avatarSprite.setTexture(desc.textureKey);
+        this.avatarSprite.setDisplaySize(132, 132);
       }
       for (const p of this.portals) {
         const stats = current?.progress[p.anchor.minigame];
@@ -771,13 +772,13 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.avatarSprite = this.add
       .image(0, -6, avatarDesc.textureKey)
-      .setScale(0.52)
+      .setDisplaySize(132, 132)
       .setOrigin(0.5, 0.5);
 
     this.tweens.add({
       targets: this.avatarSprite,
-      scaleY: 0.53,
-      scaleX: 0.51,
+      displayHeight: 136,
+      displayWidth: 128,
       duration: 1500,
       yoyo: true,
       repeat: -1,
