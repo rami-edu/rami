@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AudioManager } from '../src/managers/AudioManager';
+import { PhonicsAudioSynthesizer } from '../src/managers/PhonicsAudioSynthesizer';
 import { profileManager } from '../src/managers/ProfileManager';
 
 describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
@@ -30,7 +31,9 @@ describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
       localStorage: localStorageMock,
       dispatchEvent: () => true,
       addEventListener: () => {},
-      removeEventListener: () => {}
+      removeEventListener: () => {},
+      setTimeout: globalThis.setTimeout.bind(globalThis),
+      clearTimeout: globalThis.clearTimeout.bind(globalThis)
     };
     (globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage = localStorageMock;
     (globalThis as unknown as { window: typeof windowMock }).window = windowMock;
@@ -135,5 +138,26 @@ describe('AudioManager (Background Music & Portal/Movement SFX)', () => {
   it('resolves audio asset URLs reliably with getAudioSrc', () => {
     const src = manager.getAudioSrc('sweet-piano.mp3');
     expect(src).toContain('audio/sweet-piano.mp3');
+  });
+
+  it('handles PhonicsAudioSynthesizer 10-time loop and cancellation safely', () => {
+    const synth = new PhonicsAudioSynthesizer();
+    expect(synth).toBeDefined();
+
+    let iterationCount = 0;
+    const cancel = synth.loopCreatureSound(
+      'duck',
+      10,
+      (iter) => {
+        iterationCount = iter;
+      }
+    );
+
+    expect(typeof cancel).toBe('function');
+    expect(iterationCount).toBe(1);
+
+    // Cancel loop immediately
+    cancel();
+    expect(() => synth.stopLoop()).not.toThrow();
   });
 });

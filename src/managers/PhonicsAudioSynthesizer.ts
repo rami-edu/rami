@@ -1,11 +1,19 @@
 /**
- * Procedural Web Audio Synthesizer for Phonics animal calls:
- * Zero external audio files or CDNs needed. Guarantees authentic, charming,
- * audible animal calls 100% offline and local-first.
+ * Phonics Audio Manager & Synthesizer:
+ * Uses high-quality natural recorded sounds for each animal (duck, frog, bird, owl, bee)
+ * with seamless procedural Web Audio synthesis fallback if offline or loading.
  */
 export class PhonicsAudioSynthesizer {
   private ctx: AudioContext | null = null;
   private unlocked = false;
+  private naturalBuffers: Map<string, AudioBuffer> = new Map();
+  private loadAttempted = false;
+  private activeSourceNode: AudioBufferSourceNode | null = null;
+  private currentLoopCancel: (() => void) | null = null;
+
+  constructor() {
+    this.preloadNaturalSounds();
+  }
 
   public getContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -41,11 +49,171 @@ export class PhonicsAudioSynthesizer {
     return !!ctx && (ctx.state === 'running' || this.unlocked);
   }
 
-  public playCreatureSound(creatureId: string): void {
+  /**
+   * Preloads natural recorded audio clips for all 5 animals.
+   */
+  public preloadNaturalSounds(): void {
+    if (this.loadAttempted || typeof window === 'undefined' || typeof fetch === 'undefined') {
+      return;
+    }
+    this.loadAttempted = true;
+
     const ctx = this.getContext();
     if (!ctx) return;
+
+    const creatures = ['duck', 'frog', 'bird', 'owl', 'bee'];
+    const canPlayOgg = typeof Audio !== 'undefined' && new Audio().canPlayType('audio/ogg; codecs="vorbis"');
+    const ext = canPlayOgg ? 'ogg' : 'mp3';
+
+    for (const id of creatures) {
+      const url = `./audio/phonics/${id}.${ext}`;
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((buf) => ctx.decodeAudioData(buf))
+        .then((decoded) => {
+          this.naturalBuffers.set(id, decoded);
+        })
+        .catch(() => {
+          // Gracefully fallback to procedural Web Audio synthesis
+        });
+    }
+  }
+
+  /**
+   * Plays a natural recorded creature sound with fallback to procedural synthesis.
+   * @param creatureId - 'duck' | 'frog' | 'bird' | 'owl' | 'bee'
+   * @param onEnded - Optional callback when playback completes
+   * @returns Approximate duration in seconds
+   */
+  public playCreatureSound(creatureId: string, onEnded?: () => void): number {
+    const ctx = this.getContext();
+    if (!ctx) {
+      onEnded?.();
+      return 0;
+    }
     this.unlock();
 
+    // 1. Try playing natural recorded audio buffer
+    const naturalBuffer = this.naturalBuffers.get(creatureId);
+    if (naturalBuffer) {
+      try {
+        const source = ctx.createBufferSource();
+        source.buffer = naturalBuffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(1.0, ctx.currentTime);
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(0);
+        this.activeSourceNode = source;
+
+        source.onended = () => {
+          if (this.activeSourceNode === source) {
+            this.activeSourceNode = null;
+          }
+          onEnded?.();
+        };
+
+        return naturalBuffer.duration;
+      } catch {
+        // Fallback to procedural below
+      }
+    }
+
+    // 2. Procedural synthesis fallback
+    this.playSynthesizedSound(creatureId, ctx);
+    const estimatedDur = creatureId === 'owl' ? 1.65 : creatureId === 'bird' ? 1.8 : 1.4;
+    setTimeout(() => {
+      onEnded?.();
+    }, estimatedDur * 1000);
+    return estimatedDur;
+  }
+
+  /**
+   * Loops a creature's natural recorded sound for 10 times at the start of the round.
+   * @param creatureId - Target creature id
+   * @param totalLoops - Number of times to loop (default: 10)
+   * @param onIteration - Callback receiving current iteration number (1..10)
+   * @param onComplete - Callback when all 10 loops complete
+   * @returns Cancellation function to stop loop immediately
+   */
+  public loopCreatureSound(
+    creatureId: string,
+    totalLoops = 10,
+    onIteration?: (iteration: number) => void,
+    onComplete?: () => void
+  ): () => void {
+    // Stop any existing loop first
+    this.stopLoop();
+
+    let cancelled = false;
+    let currentIteration = 0;
+    let timerId: any = null;
+
+    const playNext = () => {
+      if (cancelled) return;
+      currentIteration++;
+      onIteration?.(currentIteration);
+
+      const duration = this.playCreatureSound(creatureId, () => {
+        if (cancelled) return;
+        if (currentIteration < totalLoops) {
+          // Natural breathing pause between calls (400ms)
+          timerId = setTimeout(() => {
+            if (!cancelled) {
+              playNext();
+            }
+          }, 400);
+        } else {
+          onComplete?.();
+        }
+      });
+
+      // Safety timeout if onended fails or in mock test environment
+      if (duration === 0) {
+        timerId = setTimeout(() => {
+          if (!cancelled && currentIteration < totalLoops) {
+            playNext();
+          } else if (!cancelled) {
+            onComplete?.();
+          }
+        }, 1200);
+      }
+    };
+
+    playNext();
+
+    const cancel = () => {
+      cancelled = true;
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      if (this.activeSourceNode) {
+        try {
+          this.activeSourceNode.stop();
+        } catch {}
+        this.activeSourceNode = null;
+      }
+      if (this.currentLoopCancel === cancel) {
+        this.currentLoopCancel = null;
+      }
+    };
+
+    this.currentLoopCancel = cancel;
+    return cancel;
+  }
+
+  public stopLoop(): void {
+    if (this.currentLoopCancel) {
+      this.currentLoopCancel();
+      this.currentLoopCancel = null;
+    }
+  }
+
+  private playSynthesizedSound(creatureId: string, ctx: AudioContext): void {
     switch (creatureId) {
       case 'duck':
         this.playDuckQuack(ctx);

@@ -7,6 +7,7 @@ import {
   getInstructorTitle
 } from '../src/react/ActivityShell';
 import { GeometryShapesActivityComponent } from '../src/react/activities/GeometryShapesActivity';
+import { PhonicsPondActivityComponent } from '../src/react/activities/PhonicsPondActivity';
 import { CreatureLadderActivityComponent } from '../src/react/activities/CreatureLadderActivity';
 import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomActivity';
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
@@ -271,6 +272,26 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('shadow-choices-shelf');
     expect(html).toContain('shadow-choices-row');
     expect(html).toContain('shadow-animal-card');
+  });
+
+  it('renders PhonicsPondActivityComponent with central speaker horn, sound loop badge, and animal choice cards', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(PhonicsPondActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('phonics-pond-container');
+    expect(html).toContain('speaker-horn-wrapper');
+    expect(html).toContain('speaker-horn-btn');
+    expect(html).toContain('speaker-horn-icon');
+    expect(html).toContain('creature-cards-row');
+    expect(html).toContain('creature-card');
+    expect(html).toContain('creature-card-emoji');
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {
