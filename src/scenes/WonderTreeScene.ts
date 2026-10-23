@@ -97,7 +97,10 @@ export class WonderTreeScene extends Phaser.Scene {
       { key: 'portal_pattern_path', file: './portal-pattern-path.png' },
       { key: 'portal_shadow_match', file: './portal-shadow-match.png' },
       { key: 'portal_nature_sorting', file: './portal-nature-sorting.png' },
-      { key: 'portal_symmetry_wings', file: './portal-symmetry-wings.png' }
+      { key: 'portal_symmetry_wings', file: './portal-symmetry-wings.png' },
+      { key: 'portal_acorn_scale', file: './portal-acorn-scale.png' },
+      { key: 'portal_rhythm_branches', file: './portal-rhythm-branches.png' },
+      { key: 'portal_cave_echoes', file: './portal-cave-echoes.png' }
     ];
     for (const pt of portalTextures) {
       if (!this.textures.exists(pt.key)) {
@@ -393,12 +396,15 @@ export class WonderTreeScene extends Phaser.Scene {
       return directKey;
     }
     const t = minigameTitle.toLowerCase();
-    if (t.includes('shape') || t.includes('geom') || t.includes('acorn')) return 'portal_geom_shapes';
+    if (t.includes('acorn') || t.includes('scale')) return 'portal_acorn_scale';
+    if (t.includes('rhythm') || t.includes('branch')) return 'portal_rhythm_branches';
+    if (t.includes('cave') || t.includes('echo')) return 'portal_cave_echoes';
+    if (t.includes('shape') || t.includes('geom')) return 'portal_geom_shapes';
     if (t.includes('color') || t.includes('bloom')) return 'portal_color_bloom';
-    if (t.includes('phonics') || t.includes('pond') || t.includes('rhythm')) return 'portal_phonics_pond';
+    if (t.includes('phonics') || t.includes('pond')) return 'portal_phonics_pond';
     if (t.includes('creature') || t.includes('ladder') || t.includes('size')) return 'portal_creature_ladder';
     if (t.includes('pattern') || t.includes('path')) return 'portal_pattern_path';
-    if (t.includes('shadow') || t.includes('echo') || t.includes('tower')) return 'portal_shadow_match';
+    if (t.includes('shadow') || t.includes('tower')) return 'portal_shadow_match';
     if (t.includes('nature') || t.includes('sort') || t.includes('harvest')) return 'portal_nature_sorting';
     if (t.includes('symmetry') || t.includes('wing') || t.includes('art')) return 'portal_symmetry_wings';
     return 'portal_geom_shapes';
@@ -641,11 +647,10 @@ export class WonderTreeScene extends Phaser.Scene {
 
     diskContainer.add([
       backGlow,
-      cavityRim,
-      staticLogoImg,
       lightVortex,
       runeRing,
-      lightSheen
+      cavityRim,
+      staticLogoImg
     ]);
 
     container.add([

@@ -45,6 +45,9 @@ export class SplashScreenScene extends Phaser.Scene {
     this.load.image('portal_shadow_match', './portal-shadow-match.png');
     this.load.image('portal_nature_sorting', './portal-nature-sorting.png');
     this.load.image('portal_symmetry_wings', './portal-symmetry-wings.png');
+    this.load.image('portal_acorn_scale', './portal-acorn-scale.png');
+    this.load.image('portal_rhythm_branches', './portal-rhythm-branches.png');
+    this.load.image('portal_cave_echoes', './portal-cave-echoes.png');
     for (let i = 1; i <= 10; i++) {
       this.load.image(`tree_stage_${i}`, `./tree-stage-${i}.png`);
     }
