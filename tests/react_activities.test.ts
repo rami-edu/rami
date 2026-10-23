@@ -119,7 +119,7 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('owl-sprite');
   });
 
-  it('renders CreatureLadderActivityComponent with draggable animal cards and ladder rungs', () => {
+  it('renders CreatureLadderActivityComponent with only animals in a row for in-place drag-and-drop sorting', () => {
     const onSolved = vi.fn();
     const onMistake = vi.fn();
 
@@ -131,10 +131,15 @@ describe('React Activity Rendering', () => {
     );
 
     expect(html).toContain('creature-ladder-container');
-    expect(html).toContain('ladder-stand');
-    expect(html).toContain('creature-choices-col');
-    expect(html).toContain('ladder-rung');
-    expect(html).toContain('ladder-rung-size-label');
+    expect(html).toContain('creature-sort-stage');
+    expect(html).toContain('creature-size-flow-guide');
+    expect(html).toContain('creature-sort-row');
+    expect(html).toContain('creature-sort-slot');
+    expect(html).toContain('creature-sort-card');
+    expect(html).toContain('creature-emoji');
+    // Verify ladder structure is NOT rendered (animals only)
+    expect(html).not.toContain('ladder-stand');
+    expect(html).not.toContain('ladder-rung');
   });
 
   it('renders ColorBloomActivityComponent with the entire flower: pot, stem, leaves, and full 8 petals', () => {
