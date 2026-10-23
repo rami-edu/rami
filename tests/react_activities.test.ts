@@ -12,6 +12,7 @@ import { ColorBloomActivityComponent } from '../src/react/activities/ColorBloomA
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
 import { SymmetryWingsActivityComponent } from '../src/react/activities/SymmetryWingsActivity';
 import { PatternPathActivityComponent } from '../src/react/activities/PatternPathActivity';
+import { ShadowMatchActivityComponent } from '../src/react/activities/ShadowMatchActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -244,6 +245,27 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('pattern-choices-shelf');
     expect(html).toContain('pattern-choices-row');
     expect(html).toContain('pattern-choice-stone');
+  });
+
+  it('renders ShadowMatchActivityComponent with illuminated warm lantern screen, high-contrast silhouette, and animal choices shelf', () => {
+    const onSolved = vi.fn();
+    const onMistake = vi.fn();
+
+    const html = renderToString(
+      React.createElement(ShadowMatchActivityComponent, {
+        onSolved,
+        onMistake
+      })
+    );
+
+    expect(html).toContain('shadow-match-container');
+    expect(html).toContain('shadow-stage-frame');
+    expect(html).toContain('shadow-lantern-halo');
+    expect(html).toContain('shadow-target-box');
+    expect(html).toContain('shadow-silhouette');
+    expect(html).toContain('shadow-choices-shelf');
+    expect(html).toContain('shadow-choices-row');
+    expect(html).toContain('shadow-animal-card');
   });
 
   it('guarantees every minigame has the owl as its single instructor', () => {

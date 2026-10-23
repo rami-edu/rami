@@ -1388,34 +1388,226 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-around;
+  justify-content: space-evenly;
   width: 100%;
   height: 100%;
+  padding: 12px clamp(8px, 2vw, 24px);
+  gap: clamp(16px, 3.5vh, 32px);
+  position: relative;
+  user-select: none;
 }
 
+.shadow-stage-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.shadow-lantern-halo {
+  position: absolute;
+  width: clamp(240px, 55vw, 320px);
+  height: clamp(240px, 55vw, 320px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 209, 102, 0.35) 0%, rgba(255, 209, 102, 0.08) 55%, transparent 75%);
+  pointer-events: none;
+  animation: haloBreathe 3s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+@keyframes haloBreathe {
+  0% { transform: scale(0.92); opacity: 0.7; }
+  100% { transform: scale(1.08); opacity: 1; }
+}
+
+/* Illuminated warm parchment / lantern screen with high contrast */
 .shadow-target-box {
-  width: 180px;
-  height: 180px;
-  background: rgba(10, 18, 12, 0.88);
-  border: 4px solid rgba(144, 224, 239, 0.5);
-  border-radius: 28px;
+  width: clamp(190px, 46vw, 250px);
+  height: clamp(190px, 46vw, 250px);
+  background: radial-gradient(circle at 50% 45%, #fffef4 0%, #fef7da 42%, #faeab2 80%, #f4dc8f 100%);
+  border: 5px solid #d4a373;
+  outline: 3.5px solid #ffd166;
+  border-radius: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 84px;
-  box-shadow: 0 0 30px rgba(72, 202, 228, 0.25);
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    0 0 45px rgba(255, 209, 102, 0.45),
+    0 16px 36px rgba(0, 0, 0, 0.55),
+    inset 0 3px 8px rgba(255, 255, 255, 0.9),
+    inset 0 -4px 10px rgba(180, 120, 40, 0.25);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease, background 0.4s ease;
+  cursor: pointer;
 }
 
+.shadow-target-box.drag-hover {
+  transform: scale(1.08);
+  outline-color: #ffffff;
+  box-shadow: 0 0 65px rgba(255, 209, 102, 0.85), 0 20px 48px rgba(0, 0, 0, 0.65);
+}
+
+.shadow-target-box.wobble {
+  animation: shadowBoxWobble 0.45s ease-in-out;
+  outline-color: #e63946 !important;
+}
+
+@keyframes shadowBoxWobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-7deg) scale(0.96); }
+  75% { transform: rotate(7deg) scale(0.96); }
+}
+
+/* Crisp, dark, high-contrast silhouette against illuminated parchment */
 .shadow-silhouette {
-  filter: brightness(0) invert(0.08);
-  opacity: 0.9;
-  transition: all 0.4s ease;
+  font-size: clamp(86px, 18vw, 124px);
+  filter: brightness(0) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.42));
+  opacity: 0.94;
+  line-height: 1;
+  display: inline-block;
+  user-select: none;
+  pointer-events: none;
+  transform: scale(1);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s ease, opacity 0.3s ease;
+}
+
+/* When correctly matched and revealed: vibrant starlight blossom */
+.shadow-target-box.revealed {
+  background: radial-gradient(circle at 50% 45%, #ffffff 0%, #edf7ee 42%, #d2edd4 80%, #b2e4b6 100%);
+  border-color: #52b788;
+  outline-color: #74c69d;
+  box-shadow:
+    0 0 60px rgba(82, 183, 136, 0.75),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    inset 0 3px 8px rgba(255, 255, 255, 0.95);
+  animation: shadowRevealPulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shadowRevealPulse {
+  0% { transform: scale(0.92); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .shadow-target-box.revealed .shadow-silhouette {
-  filter: none;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.18);
+}
+
+.shadow-celebration-sparkles {
+  position: absolute;
+  top: -18px;
+  font-size: 32px;
+  display: flex;
+  gap: 12px;
+  animation: celebratePop 0.8s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Choices Shelf below */
+.shadow-choices-shelf {
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+}
+
+.shadow-choices-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: clamp(14px, 3.8vw, 30px);
+  justify-content: center;
+  align-items: center;
+  background: rgba(14, 28, 18, 0.88);
+  border: 2.5px solid #2d6a4f;
+  border-radius: 32px;
+  padding: clamp(10px, 2vw, 16px) clamp(16px, 3.5vw, 32px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.shadow-animal-card {
+  width: clamp(74px, 15vw, 108px);
+  height: clamp(74px, 15vw, 108px);
+  border-radius: 26px;
+  background: radial-gradient(circle at 35% 35%, #2d6a4f 0%, #1a3d2e 65%, #0f231a 100%);
+  border: 3.5px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  position: relative;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+
+.shadow-animal-card:hover {
+  transform: scale(1.14);
+  border-color: #ffd166;
+  box-shadow: 0 12px 30px rgba(255, 209, 102, 0.45);
+}
+
+.shadow-animal-card:active {
+  transform: scale(0.92);
+  cursor: grabbing;
+}
+
+.shadow-animal-card.is-dragged-origin {
+  opacity: 0.35;
+  transform: scale(0.88);
+}
+
+.shadow-animal-card.wobble {
+  animation: shadowBoxWobble 0.45s ease-in-out;
+  border-color: #e63946 !important;
+}
+
+.animal-card-emoji {
+  font-size: clamp(38px, 8vw, 56px);
+  pointer-events: none;
+  line-height: 1;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+}
+
+.animal-card-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: radial-gradient(circle at 32% 32%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 65%);
+  pointer-events: none;
+}
+
+/* Floating drag clone */
+.shadow-drag-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%) scale(1.22);
+  width: 96px;
+  height: 96px;
+  border-radius: 26px;
+  background: radial-gradient(circle at 35% 35%, #2d6a4f 0%, #1a3d2e 65%, #0f231a 100%);
+  border: 4px solid #ffffff;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7), 0 0 26px rgba(255, 209, 102, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: left, top;
+}
+
+.drag-clone-animal {
+  font-size: 52px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
 }
 
 /* 7. Nature Sorting */
