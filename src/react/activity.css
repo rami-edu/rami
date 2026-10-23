@@ -32,6 +32,16 @@
 #react-activity-root.active {
   display: flex;
   pointer-events: auto;
+  animation: ramiActivityFadeIn 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes ramiActivityFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 #react-activity-root button {

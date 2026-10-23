@@ -547,6 +547,19 @@
         font-weight: 700;
         font-size: 11px;
       }
+      #transition-curtain {
+        position: absolute;
+        inset: 0;
+        background-color: #08120a;
+        z-index: 45;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #transition-curtain.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
     </style>
   </head>
   <body>
@@ -560,6 +573,7 @@
 
       <div id="game-container"></div>
       <div id="react-activity-root"></div>
+      <div id="transition-curtain"></div>
 
       <div id="hud-overlay">
         <div id="hud-player-badge" class="hud-badge">

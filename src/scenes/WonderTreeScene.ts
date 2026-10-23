@@ -1158,89 +1158,26 @@ export class WonderTreeScene extends Phaser.Scene {
   }
 
   /**
-   * Plays an expanding, spinning vortex swirl animation centered on the portal
-   * while pulling the player avatar into the portal.
+   * Smoothly fades the screen out or in using both DOM curtain and Phaser camera fade.
    */
-  private playSwirlingPortalTransition(
-    portalX: number,
-    portalY: number
-  ): Promise<Phaser.GameObjects.Container> {
+  private fadeTransition(direction: 'in' | 'out', duration = 320): Promise<void> {
     return new Promise((resolve) => {
-      const { width, height } = this.scale;
-      const dpr = this.getDpr();
-      const maxDim = Math.hypot(width, height);
-
-      const swirlContainer = this.add
-        .container(portalX, portalY)
-        .setDepth(85);
-
-      const veil = this.add
-        .circle(0, 0, maxDim, 0x0b160e, 0)
-        .setOrigin(0.5);
-      swirlContainer.add(veil);
-
-      this.tweens.add({
-        targets: veil,
-        fillAlpha: 0.96,
-        duration: 850,
-        ease: 'Sine.easeIn'
-      });
-
-      const vortexArms = this.add.graphics();
-      const ringColors = [0x95d5b2, 0x52b788, 0x74c69d, 0xffd166, 0x40916c];
-      for (let arm = 0; arm < 6; arm++) {
-        const baseAngle = (arm / 6) * Math.PI * 2;
-        const color = ringColors[arm % ringColors.length];
-        vortexArms.lineStyle(5 * dpr, color, 0.85);
-        vortexArms.beginPath();
-        for (let step = 0; step <= 45; step++) {
-          const t = step / 45;
-          const r = t * 240 * dpr;
-          const theta = baseAngle + t * Math.PI * 3.5;
-          const sx = Math.cos(theta) * r;
-          const sy = Math.sin(theta) * r;
-          if (step === 0) {
-            vortexArms.moveTo(sx, sy);
-          } else {
-            vortexArms.lineTo(sx, sy);
-          }
+      const curtain = document.getElementById('transition-curtain');
+      if (curtain) {
+        curtain.style.transitionDuration = `${duration}ms`;
+        if (direction === 'out') {
+          curtain.classList.add('active');
+        } else {
+          curtain.classList.remove('active');
         }
-        vortexArms.strokePath();
-
-        const orbDist = (45 + arm * 28) * dpr;
-        const orb = this.add.circle(
-          Math.cos(baseAngle) * orbDist,
-          Math.sin(baseAngle) * orbDist,
-          7 * dpr,
-          0xffd166,
-          0.9
-        );
-        swirlContainer.add(orb);
       }
-
-      swirlContainer.add(vortexArms);
-      swirlContainer.setScale(0.15);
-
-      this.tweens.add({
-        targets: swirlContainer,
-        rotation: Math.PI * 3.5,
-        scale: (maxDim / (220 * dpr)) * 1.15,
-        duration: 950,
-        ease: 'Cubic.easeIn'
-      });
-
-      this.tweens.add({
-        targets: this.playerContainer,
-        x: portalX,
-        y: portalY,
-        scale: 0.05,
-        rotation: Math.PI * 4,
-        duration: 850,
-        ease: 'Back.easeIn'
-      });
-
-      this.time.delayedCall(950, () => {
-        resolve(swirlContainer);
+      if (direction === 'out') {
+        this.cameras.main.fadeOut(duration, 8, 18, 10);
+      } else {
+        this.cameras.main.fadeIn(duration, 8, 18, 10);
+      }
+      this.time.delayedCall(duration, () => {
+        resolve();
       });
     });
   }
@@ -1252,16 +1189,16 @@ export class WonderTreeScene extends Phaser.Scene {
 
     audioManager.playPortalEnter();
 
-    const [swirlOverlay, mod] = await Promise.all([
-      this.playSwirlingPortalTransition(portal.worldX, portal.worldY),
-      minigameLoader.loadMinigame(portal.anchor.minigame)
+    // 1. Fade out to black/dark forest background while preloading minigame chunk
+    const [mod] = await Promise.all([
+      minigameLoader.loadMinigame(portal.anchor.minigame),
+      this.fadeTransition('out', 320)
     ]);
 
-    swirlOverlay.destroy();
     const dpr = this.getDpr();
     this.playerContainer.setRotation(0).setScale(dpr);
 
-    // Hide global HUD overlay (no parent dashboard, no player badge) inside activities
+    // Hide global HUD overlay inside activities
     const hudOverlay = document.getElementById('hud-overlay');
     if (hudOverlay) {
       hudOverlay.style.display = 'none';
@@ -1269,9 +1206,13 @@ export class WonderTreeScene extends Phaser.Scene {
 
     this.scene.sleep('WonderTreeScene');
 
+    // 2. Launch the React activity behind the curtain
     activityOverlayManager.launch({
       module: mod,
-      onExit: () => {
+      onExit: async () => {
+        // Fade out from the activity
+        await this.fadeTransition('out', 280);
+
         this.activeMinigame = false;
         this.isMovingToPortal = false;
         const currentHud = document.getElementById('hud-overlay');
@@ -1302,73 +1243,19 @@ export class WonderTreeScene extends Phaser.Scene {
         this.wonderTree.syncUnlockedTiers(unlockedCount, true);
 
         this.layoutScene(this.scale.width, this.scale.height);
-        this.playReturnPortalArrival(portal.worldX, portal.worldY);
+        this.playerContainer
+          .setPosition(portal.worldX, portal.worldY)
+          .setScale(dpr)
+          .setRotation(0);
+
+        audioManager.playPortalReturn();
+
+        // 3. Fade back in smoothly to the Wonder Tree
+        await this.fadeTransition('in', 320);
       }
     });
-  }
 
-  /**
-   * Plays the reverse (collapsing, counter-clockwise) golden-celestial portal
-   * vortex on the main WonderTreeScene when the player returns from an activity.
-   */
-  private playReturnPortalArrival(portalX: number, portalY: number): void {
-    audioManager.playPortalReturn();
-
-    const { width, height } = this.scale;
-    const dpr = this.getDpr();
-    const maxDim = Math.hypot(width, height);
-
-    const swirlContainer = this.add.container(portalX, portalY).setDepth(85);
-    const vortexArms = this.add.graphics();
-    const returnColors = [0xffd166, 0x48cae4, 0xf4a261, 0x90e0ef, 0xffe66d];
-
-    for (let arm = 0; arm < 6; arm++) {
-      const baseAngle = (arm / 6) * Math.PI * 2;
-      const color = returnColors[arm % returnColors.length];
-      vortexArms.lineStyle(5 * dpr, color, 0.9);
-      vortexArms.beginPath();
-      for (let step = 0; step <= 45; step++) {
-        const t = step / 45;
-        const r = t * 240 * dpr;
-        const theta = baseAngle - t * Math.PI * 3.5;
-        const sx = Math.cos(theta) * r;
-        const sy = Math.sin(theta) * r;
-        if (step === 0) {
-          vortexArms.moveTo(sx, sy);
-        } else {
-          vortexArms.lineTo(sx, sy);
-        }
-      }
-      vortexArms.strokePath();
-    }
-
-    swirlContainer.add(vortexArms);
-    swirlContainer.setScale((maxDim / (220 * dpr)) * 0.9);
-
-    this.playerContainer
-      .setPosition(portalX, portalY)
-      .setScale(0.05)
-      .setRotation(-Math.PI * 3);
-
-    this.tweens.add({
-      targets: swirlContainer,
-      rotation: -Math.PI * 3,
-      scale: 0.05,
-      alpha: 0,
-      duration: 650,
-      ease: 'Cubic.easeOut',
-      onComplete: () => swirlContainer.destroy()
-    });
-
-    this.tweens.add({
-      targets: this.playerContainer,
-      scale: dpr,
-      rotation: 0,
-      duration: 650,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        this.activeMinigame = false;
-      }
-    });
+    // 3. Fade in to the launched activity
+    await this.fadeTransition('in', 320);
   }
 }
