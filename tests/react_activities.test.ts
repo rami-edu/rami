@@ -20,7 +20,10 @@ import {
 import { NatureSortingActivityComponent } from '../src/react/activities/NatureSortingActivity';
 import { SymmetryWingsActivityComponent } from '../src/react/activities/SymmetryWingsActivity';
 import { PatternPathActivityComponent } from '../src/react/activities/PatternPathActivity';
-import { ShadowMatchActivityComponent } from '../src/react/activities/ShadowMatchActivity';
+import {
+  ShadowMatchActivityComponent,
+  pickNextShadowAnimal
+} from '../src/react/activities/ShadowMatchActivity';
 import type { MinigameModule } from '../src/managers/MinigameLoader';
 import { acornScaleActivity } from '../src/minigames/AcornScaleMinigame';
 import { caveEchoesActivity } from '../src/minigames/CaveEchoesMinigame';
@@ -338,6 +341,19 @@ describe('React Activity Rendering', () => {
     expect(html).toContain('shadow-choices-shelf');
     expect(html).toContain('shadow-choices-row');
     expect(html).toContain('shadow-animal-card');
+  });
+
+  it('guarantees ShadowMatch does not present the same animal shadow consecutively', () => {
+    let lastAnimalId: string | null = null;
+    for (let round = 0; round < 300; round++) {
+      const nextAnimal = pickNextShadowAnimal(lastAnimalId);
+      expect(nextAnimal).toBeDefined();
+      expect(nextAnimal.id).toBeTruthy();
+      if (lastAnimalId !== null) {
+        expect(nextAnimal.id).not.toBe(lastAnimalId);
+      }
+      lastAnimalId = nextAnimal.id;
+    }
   });
 
   it('renders PhonicsPondActivityComponent with central speaker horn, sound loop badge, and animal choice cards', () => {

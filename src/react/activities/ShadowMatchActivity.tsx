@@ -25,10 +25,22 @@ export interface ShadowRoundData {
   choices: ShadowAnimal[];
 }
 
-export const generateShadowRound = (): ShadowRoundData => {
-  const shuffled = [...SHADOW_ANIMALS].sort(() => 0.5 - Math.random());
-  const target = shuffled[0];
-  const distractors = shuffled.slice(1, 3);
+/**
+ * Guarantees that the same animal shadow is NEVER selected consecutively.
+ */
+export function pickNextShadowAnimal(lastAnimalId: string | null): ShadowAnimal {
+  const available = lastAnimalId
+    ? SHADOW_ANIMALS.filter((a) => a.id !== lastAnimalId)
+    : SHADOW_ANIMALS;
+  return available[Math.floor(Math.random() * available.length)] ?? SHADOW_ANIMALS[0];
+}
+
+export const generateShadowRound = (lastAnimalId?: string | null): ShadowRoundData => {
+  const target = pickNextShadowAnimal(lastAnimalId ?? null);
+  const otherAnimals = SHADOW_ANIMALS.filter((a) => a.id !== target.id).sort(
+    () => 0.5 - Math.random()
+  );
+  const distractors = otherAnimals.slice(0, 2);
   const roundChoices = [target, ...distractors].sort(() => 0.5 - Math.random());
 
   return {
@@ -43,7 +55,12 @@ interface Props {
 }
 
 export const ShadowMatchActivityComponent: React.FC<Props> = ({ onSolved, onMistake }) => {
-  const [roundData, setRoundData] = useState<ShadowRoundData>(() => generateShadowRound());
+  const lastAnimalIdRef = useRef<string | null>(null);
+  const [roundData, setRoundData] = useState<ShadowRoundData>(() => {
+    const initialRound = generateShadowRound(null);
+    lastAnimalIdRef.current = initialRound.targetAnimal.id;
+    return initialRound;
+  });
   const [isRevealed, setIsRevealed] = useState(false);
   const [wobble, setWobble] = useState(false);
   const [wrongChoiceId, setWrongChoiceId] = useState<string | null>(null);
@@ -58,6 +75,9 @@ export const ShadowMatchActivityComponent: React.FC<Props> = ({ onSolved, onMist
   const targetBoxRef = useRef<HTMLDivElement | null>(null);
 
   const setupRound = () => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setIsRevealed(false);
     setWobble(false);
     setWrongChoiceId(null);
@@ -67,7 +87,9 @@ export const ShadowMatchActivityComponent: React.FC<Props> = ({ onSolved, onMist
     setIsTargetHovered(false);
     hasMovedRef.current = false;
     dragStartRef.current = null;
-    setRoundData(generateShadowRound());
+    const nextRound = generateShadowRound(lastAnimalIdRef.current);
+    lastAnimalIdRef.current = nextRound.targetAnimal.id;
+    setRoundData(nextRound);
   };
 
   const handleSelectAnimal = (choice: ShadowAnimal) => {
@@ -209,14 +231,18 @@ export const ShadowMatchActivityComponent: React.FC<Props> = ({ onSolved, onMist
                 key={a.id}
                 type="button"
                 className={`shadow-animal-card shape-piece ${isBeingDragged ? 'is-dragged-origin' : ''} ${isWobbling ? 'wobble' : ''}`}
-                onClick={() => {
+                onClick={(e) => {
+                  e.currentTarget.blur();
                   if (!hasMovedRef.current) {
                     handleSelectAnimal(a);
                   }
                 }}
                 onPointerDown={(e) => handlePointerDown(a, e)}
                 onPointerMove={handlePointerMove}
-                onPointerUp={(e) => handlePointerUp(a, e)}
+                onPointerUp={(e) => {
+                  e.currentTarget.blur();
+                  handlePointerUp(a, e);
+                }}
                 onPointerCancel={handlePointerCancel}
                 aria-label={`Match ${a.name}`}
               >
